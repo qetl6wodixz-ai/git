@@ -1,0 +1,64 @@
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+-- === SETTINGS ===
+local COOLDOWN = 0.1 -- 100 ms delay
+local FOLDER_NAME = "chomiki" -- Folder with homiki on the map
+local DEX_NAME = "ChomikDex" -- Your folder with collected homiki
+
+local function startCollecting()
+local character = player.Character or player.CharacterAdded:Wait()
+local rootPart = character:WaitForChild("HumanoidRootPart")
+local humanoid = character:WaitForChild("Humanoid")
+
+local worldFolder = workspace:FindFirstChild(FOLDER_NAME)
+local playerDex = player:FindFirstChild(DEX_NAME)
+
+if not worldFolder then
+warn("Folder '" .. FOLDER_NAME .. "' not found in Workspace!")
+return
+end
+
+if not playerDex then
+warn("Collection folder '" .. DEX_NAME .. "' not found on playerDex!")
+end
+
+-- Loop through the entire contents of the chomiki folder
+for _, item in pairs(worldFolder:GetChildren()) do
+-- If dead, break out of the loop (CharacterAdded will start it again)
+if humanoid.Health <= 0 then break end
+
+-- MAIN CHECK: Is this hamster already in the ChomikDex?
+local isAlreadyOwned = playerDex and playerDex:FindFirstChild(item.Name)
+
+if not isAlreadyOwned then
+-- If NOT received, determine coordinates
+local targetPosition = nil
+if item:IsA("Model") then
+targetPosition = item:GetPivot()
+elseif item:IsA("BasePart") then
+targetPosition = item.CFrame
+end
+
+if targetPosition then
+rootPart.CFrame = targetPosition
+print("Teleport to NEW: " .. item.Name)
+task.wait(COOLDOWN)
+end
+else
+-- If RECEIVED, simply write to console (can be commented out)
+-- print("Pass (already present): " .. item.Name)
+end
+end
+print("All new hamsters checked!")
+end
+-- Restart after each death
+player.CharacterAdded:Connect(function()
+task.wait(1) -- Wait for the character to load
+startCollecting()
+end)
+
+-- The very first launch
+if player.Character then
+task.spawn(startCollecting)
+end
