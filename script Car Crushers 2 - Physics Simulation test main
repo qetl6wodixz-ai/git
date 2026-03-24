@@ -1,9 +1,9 @@
 -- ╔════════════════════════════════════════════════════════════════════════════╗
 -- ║                                                                            ║
--- ║     ██████╗██╗  ██╗██╗██████╗ ███████╗████████╗███████╗██████╗            ║
+-- ║     ██████╗██╗  ██╗██╗██████╗             ║
 -- ║    ██╔════╝██║  ██║██║██╔══██╗╚══███╔╝╚══██╔══╝██╔════╝██╔══██╗           ║
 -- ║    ██║     ███████║██║██████╔╝  ███╔╝    ██║   █████╗  ██████╔╝           ║
--- ║    ██║     ██╔══██║██║██╔═══╝  ███╔╝     ██║   ██╔══╝  ██╔══██╗           ║
+-- ║    ██║     ██╔══███████╗████████╗███████╗██████╗██║██║██╔═══╝  ███╔╝     ██║   ██╔══╝  ██╔══██╗           ║
 -- ║    ╚██████╗██║  ██║██║██║     ███████╗   ██║   ███████╗██║  ██║           ║
 -- ║     ╚═════╝╚═╝  ╚═╝╚═╝╚═╝     ╚══════╝   ╚═╝   ╚══════╝╚═╝  ╚═╝           ║
 -- ║                                                                            ║
@@ -3480,3 +3480,1591 @@ else
 	-- Если хочешь запускать по кнопке или другому скрипту, раскомментируй:
 	-- StartCrush()
 end
+
+--[[
+    ╔═══════════════════════════════════════════════════════════════╗
+    ║     CAR CRUSHERS 2 - ULTRA PHYSICS SIMULATION ENHANCEMENT     ║
+    ║                    SUPER DETAILED VERSION                      ║
+    ║                      v2.0 EXTREME EDITION                      ║
+    ╚═══════════════════════════════════════════════════════════════╝
+]]--
+
+-- ═══════════════════════════════════════════════════════════════
+-- 🔧 ADVANCED CONFIGURATION MODULE
+-- ═══════════════════════════════════════════════════════════════
+
+local UltraConfig = {
+    -- Particle Systems
+    Particles = {
+        MaxParticles = 500,
+        SparkCount = 150,
+        SmokeIntensity = 2.5,
+        FireIntensity = 3.0,
+        DebrisMultiplier = 4,
+        MetalShardCount = 80,
+        GlassShardCount = 120,
+        DustCloudSize = 15,
+        ExplosionParticles = 300
+    },
+    
+    -- Advanced Physics
+    Physics = {
+        DeformationQuality = "ULTRA",
+        CollisionPrecision = 0.001,
+        MetalBendingRealism = true,
+        DynamicMassDistribution = true,
+        RealTimeStressCalculation = true,
+        MomentumConservation = true,
+        AngularMomentumPhysics = true,
+        FrictionCoefficients = {
+            Metal = 0.45,
+            Rubber = 0.85,
+            Glass = 0.25,
+            Plastic = 0.35,
+            Concrete = 0.75
+        }
+    },
+    
+    -- Visual Effects
+    Visuals = {
+        HDREnabled = true,
+        BloomIntensity = 1.8,
+        MotionBlurStrength = 0.6,
+        ChromaticAberration = true,
+        LensFlares = true,
+        VolumetricLighting = true,
+        ScreenShakeIntensity = 2.0,
+        SlowMotionOnImpact = true,
+        DynamicShadows = true,
+        ReflectionQuality = "ULTRA"
+    },
+    
+    -- Sound System
+    Audio = {
+        SpatialAudio = true,
+        ReverbEnabled = true,
+        DopplerEffect = true,
+        MetalScreechVolume = 0.8,
+        ExplosionBassBoost = 2.5,
+        GlassBreakVariations = 12,
+        EngineRevVariations = 8
+    },
+    
+    -- Weather Effects
+    Weather = {
+        DynamicWeather = true,
+        RainPhysics = true,
+        WindForce = true,
+        LightningEffects = true,
+        FogDensity = 0.3
+    }
+}
+
+-- ═══════════════════════════════════════════════════════════════
+-- 🎆 ADVANCED PARTICLE SYSTEM
+-- ═══════════════════════════════════════════════════════════════
+
+local AdvancedParticleSystem = {}
+AdvancedParticleSystem.__index = AdvancedParticleSystem
+
+function AdvancedParticleSystem.new()
+    local self = setmetatable({}, AdvancedParticleSystem)
+    self.activeParticles = {}
+    self.particlePools = {}
+    self.emitters = {}
+    return self
+end
+
+-- 🔥 Fire Particle Emitter
+function AdvancedParticleSystem:createFireEmitter(position, intensity)
+    local fireEmitter = {
+        Position = position,
+        Intensity = intensity or 1,
+        Colors = {
+            Color3.fromRGB(255, 100, 0),   -- Orange core
+            Color3.fromRGB(255, 200, 50),  -- Yellow flames
+            Color3.fromRGB(255, 50, 0),    -- Red outer
+            Color3.fromRGB(100, 20, 0),    -- Dark smoke tip
+        },
+        Lifetime = NumberRange.new(0.3, 1.5),
+        Speed = NumberRange.new(8, 25),
+        SpreadAngle = Vector2.new(30, 30),
+        Acceleration = Vector3.new(0, 15, 0),
+        Rotation = NumberRange.new(-180, 180),
+        RotSpeed = NumberRange.new(-100, 100),
+        LightEmission = 1,
+        Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 0),
+            NumberSequenceKeypoint.new(0.3, 0.2),
+            NumberSequenceKeypoint.new(0.7, 0.6),
+            NumberSequenceKeypoint.new(1, 1)
+        }),
+        Size = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 0.2),
+            NumberSequenceKeypoint.new(0.2, 1.5),
+            NumberSequenceKeypoint.new(0.5, 2.5),
+            NumberSequenceKeypoint.new(1, 0.5)
+        })
+    }
+    
+    table.insert(self.emitters, fireEmitter)
+    return fireEmitter
+end
+
+-- 💨 Smoke Particle Emitter
+function AdvancedParticleSystem:createSmokeEmitter(position, color, density)
+    local smokeEmitter = {
+        Position = position,
+        Density = density or 1,
+        Colors = {
+            color or Color3.fromRGB(50, 50, 50),
+            Color3.fromRGB(80, 80, 80),
+            Color3.fromRGB(30, 30, 30)
+        },
+        Lifetime = NumberRange.new(2, 5),
+        Speed = NumberRange.new(3, 12),
+        SpreadAngle = Vector2.new(45, 45),
+        Acceleration = Vector3.new(0, 8, 0),
+        Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 0.3),
+            NumberSequenceKeypoint.new(0.5, 0.6),
+            NumberSequenceKeypoint.new(1, 1)
+        }),
+        Size = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 1),
+            NumberSequenceKeypoint.new(0.5, 4),
+            NumberSequenceKeypoint.new(1, 8)
+        })
+    }
+    
+    table.insert(self.emitters, smokeEmitter)
+    return smokeEmitter
+end
+
+-- ⚡ Spark Particle Emitter
+function AdvancedParticleSystem:createSparkEmitter(position, velocity, count)
+    local sparks = {}
+    
+    for i = 1, (count or 50) do
+        local spark = {
+            Position = position,
+            Velocity = velocity + Vector3.new(
+                math.random(-20, 20),
+                math.random(5, 30),
+                math.random(-20, 20)
+            ),
+            Color = Color3.fromRGB(
+                255,
+                math.random(150, 255),
+                math.random(0, 100)
+            ),
+            Size = math.random() * 0.3 + 0.05,
+            Lifetime = math.random() * 0.8 + 0.2,
+            Gravity = -50,
+            Bounce = 0.3,
+            Trail = true,
+            TrailLength = 0.15
+        }
+        table.insert(sparks, spark)
+    end
+    
+    return sparks
+end
+
+-- 🪨 Debris Particle System
+function AdvancedParticleSystem:createDebrisEmitter(position, material, force)
+    local debrisTypes = {
+        Metal = {
+            Colors = {Color3.fromRGB(150, 150, 150), Color3.fromRGB(100, 100, 100)},
+            Sizes = {0.1, 0.5},
+            Shapes = {"Block", "Wedge", "Cylinder"},
+            Bounce = 0.4,
+            Friction = 0.6
+        },
+        Glass = {
+            Colors = {Color3.fromRGB(200, 220, 255), Color3.fromRGB(150, 180, 220)},
+            Sizes = {0.05, 0.2},
+            Shapes = {"Block"},
+            Bounce = 0.1,
+            Friction = 0.3,
+            Transparent = true
+        },
+        Plastic = {
+            Colors = {Color3.fromRGB(50, 50, 50), Color3.fromRGB(80, 80, 80)},
+            Sizes = {0.1, 0.3},
+            Shapes = {"Block", "Ball"},
+            Bounce = 0.5,
+            Friction = 0.4
+        }
+    }
+    
+    local materialData = debrisTypes[material] or debrisTypes.Metal
+    local debris = {}
+    
+    for i = 1, UltraConfig.Particles.DebrisMultiplier * 10 do
+        local piece = {
+            Position = position + Vector3.new(
+                math.random(-2, 2),
+                math.random(0, 2),
+                math.random(-2, 2)
+            ),
+            Velocity = force * Vector3.new(
+                math.random(-1, 1),
+                math.random(0.5, 1.5),
+                math.random(-1, 1)
+            ),
+            AngularVelocity = Vector3.new(
+                math.random(-500, 500),
+                math.random(-500, 500),
+                math.random(-500, 500)
+            ),
+            Color = materialData.Colors[math.random(1, #materialData.Colors)],
+            Size = Vector3.new(
+                math.random() * (materialData.Sizes[2] - materialData.Sizes[1]) + materialData.Sizes[1],
+                math.random() * (materialData.Sizes[2] - materialData.Sizes[1]) + materialData.Sizes[1],
+                math.random() * (materialData.Sizes[2] - materialData.Sizes[1]) + materialData.Sizes[1]
+            ),
+            Shape = materialData.Shapes[math.random(1, #materialData.Shapes)],
+            Bounce = materialData.Bounce,
+            Friction = materialData.Friction,
+            Lifetime = math.random(3, 8),
+            Transparent = materialData.Transparent
+        }
+        table.insert(debris, piece)
+    end
+    
+    return debris
+end
+
+-- ═══════════════════════════════════════════════════════════════
+-- 🚗 ULTRA DETAILED VEHICLE DAMAGE SYSTEM
+-- ═══════════════════════════════════════════════════════════════
+
+local UltraVehicleDamage = {}
+UltraVehicleDamage.__index = UltraVehicleDamage
+
+function UltraVehicleDamage.new(vehicle)
+    local self = setmetatable({}, UltraVehicleDamage)
+    
+    self.vehicle = vehicle
+    self.damagePoints = {}
+    self.deformationMap = {}
+    self.structuralIntegrity = 100
+    self.components = {}
+    self.fluids = {
+        Oil = {Level = 100, Leaking = false, LeakRate = 0},
+        Fuel = {Level = 100, Leaking = false, LeakRate = 0},
+        Coolant = {Level = 100, Leaking = false, LeakRate = 0},
+        BrakeFluid = {Level = 100, Leaking = false, LeakRate = 0}
+    }
+    self.electrical = {
+        BatteryCharge = 100,
+        ShortCircuit = false,
+        LightsWorking = true,
+        EngineStartable = true
+    }
+    self.temperature = {
+        Engine = 90,
+        Brakes = 25,
+        Exhaust = 150
+    }
+    
+    self:initializeComponents()
+    
+    return self
+end
+
+function UltraVehicleDamage:initializeComponents()
+    self.components = {
+        -- Body Panels
+        Hood = {Integrity = 100, Deformation = 0, Detached = false, Hinges = {Left = true, Right = true}},
+        Trunk = {Integrity = 100, Deformation = 0, Detached = false, Hinges = {Left = true, Right = true}},
+        FrontBumper = {Integrity = 100, Deformation = 0, Detached = false},
+        RearBumper = {Integrity = 100, Deformation = 0, Detached = false},
+        FrontLeftFender = {Integrity = 100, Deformation = 0, Detached = false},
+        FrontRightFender = {Integrity = 100, Deformation = 0, Detached = false},
+        RearLeftQuarter = {Integrity = 100, Deformation = 0, Detached = false},
+        RearRightQuarter = {Integrity = 100, Deformation = 0, Detached = false},
+        LeftDoor = {Integrity = 100, Deformation = 0, Detached = false, Hinges = {Top = true, Bottom = true}, Window = 100},
+        RightDoor = {Integrity = 100, Deformation = 0, Detached = false, Hinges = {Top = true, Bottom = true}, Window = 100},
+        LeftRearDoor = {Integrity = 100, Deformation = 0, Detached = false, Hinges = {Top = true, Bottom = true}, Window = 100},
+        RightRearDoor = {Integrity = 100, Deformation = 0, Detached = false, Hinges = {Top = true, Bottom = true}, Window = 100},
+        Roof = {Integrity = 100, Deformation = 0, Detached = false},
+        
+        -- Glass
+        Windshield = {Integrity = 100, CrackPattern = {}, Shattered = false},
+        RearWindow = {Integrity = 100, CrackPattern = {}, Shattered = false},
+        LeftMirror = {Integrity = 100, Detached = false},
+        RightMirror = {Integrity = 100, Detached = false},
+        
+        -- Wheels
+        FrontLeftWheel = {Integrity = 100, TirePressure = 32, Alignment = 0, Detached = false, Rim = {Integrity = 100, Bent = false}},
+        FrontRightWheel = {Integrity = 100, TirePressure = 32, Alignment = 0, Detached = false, Rim = {Integrity = 100, Bent = false}},
+        RearLeftWheel = {Integrity = 100, TirePressure = 32, Alignment = 0, Detached = false, Rim = {Integrity = 100, Bent = false}},
+        RearRightWheel = {Integrity = 100, TirePressure = 32, Alignment = 0, Detached = false, Rim = {Integrity = 100, Bent = false}},
+        
+        -- Mechanical
+        Engine = {Integrity = 100, Running = true, RPM = 0, Temperature = 90, OilPressure = 40},
+        Transmission = {Integrity = 100, CurrentGear = 0, GearboxDamage = 0},
+        Radiator = {Integrity = 100, Punctured = false},
+        Exhaust = {Integrity = 100, Sections = {Front = 100, Mid = 100, Rear = 100, Muffler = 100}},
+        FuelTank = {Integrity = 100, Punctured = false, FuelLevel = 75},
+        Battery = {Integrity = 100, Charge = 100, Terminals = {Positive = true, Negative = true}},
+        
+        -- Suspension
+        FrontLeftSuspension = {Integrity = 100, Compressed = 0, Broken = false},
+        FrontRightSuspension = {Integrity = 100, Compressed = 0, Broken = false},
+        RearLeftSuspension = {Integrity = 100, Compressed = 0, Broken = false},
+        RearRightSuspension = {Integrity = 100, Compressed = 0, Broken = false},
+        
+        -- Lights
+        HeadlightLeft = {Integrity = 100, Working = true, Shattered = false},
+        HeadlightRight = {Integrity = 100, Working = true, Shattered = false},
+        TaillightLeft = {Integrity = 100, Working = true, Shattered = false},
+        TaillightRight = {Integrity = 100, Working = true, Shattered = false},
+        FogLightLeft = {Integrity = 100, Working = true},
+        FogLightRight = {Integrity = 100, Working = true},
+        
+        -- Frame
+        Chassis = {Integrity = 100, BendPoints = {}, TwistAngle = 0},
+        Subframe = {Integrity = 100, Alignment = Vector3.new(0, 0, 0)}
+    }
+end
+
+-- 💥 Process Impact Damage
+function UltraVehicleDamage:processImpact(impactData)
+    local position = impactData.Position
+    local force = impactData.Force
+    local direction = impactData.Direction
+    local impactType = impactData.Type or "Collision"
+    
+    -- Calculate affected area
+    local affectedRadius = math.min(force / 100, 5)
+    local affectedComponents = self:getComponentsInRadius(position, affectedRadius)
+    
+    local damageResults = {
+        ComponentsDamaged = {},
+        ParticlesGenerated = {},
+        SoundsTriggered = {},
+        VisualEffects = {}
+    }
+    
+    for _, componentName in ipairs(affectedComponents) do
+        local component = self.components[componentName]
+        if component then
+            local distance = (position - self:getComponentPosition(componentName)).Magnitude
+            local damageFalloff = 1 - (distance / affectedRadius)
+            local actualDamage = force * damageFalloff * self:getMaterialResistance(componentName)
+            
+            -- Apply damage
+            local damageResult = self:applyComponentDamage(componentName, actualDamage, direction)
+            table.insert(damageResults.ComponentsDamaged, damageResult)
+            
+            -- Generate effects based on damage
+            local effects = self:generateDamageEffects(componentName, actualDamage, position, direction)
+            for _, effect in ipairs(effects.Particles) do
+                table.insert(damageResults.ParticlesGenerated, effect)
+            end
+            for _, sound in ipairs(effects.Sounds) do
+                table.insert(damageResults.SoundsTriggered, sound)
+            end
+            for _, visual in ipairs(effects.Visuals) do
+                table.insert(damageResults.VisualEffects, visual)
+            end
+        end
+    end
+    
+    -- Update structural integrity
+    self:recalculateStructuralIntegrity()
+    
+    -- Check for cascading failures
+    self:checkCascadingFailures()
+    
+    return damageResults
+end
+
+function UltraVehicleDamage:applyComponentDamage(componentName, damage, direction)
+    local component = self.components[componentName]
+    local result = {
+        Component = componentName,
+        DamageApplied = damage,
+        NewIntegrity = 0,
+        Events = {}
+    }
+    
+    -- Reduce integrity
+    component.Integrity = math.max(0, component.Integrity - damage)
+    result.NewIntegrity = component.Integrity
+    
+    -- Apply deformation if applicable
+    if component.Deformation ~= nil then
+        local deformationAmount = damage * 0.01
+        component.Deformation = math.min(1, component.Deformation + deformationAmount)
+        
+        if component.Deformation > 0.3 then
+            table.insert(result.Events, "SEVERE_DEFORMATION")
+        end
+    end
+    
+    -- Check for detachment
+    if component.Detached ~= nil and component.Integrity < 20 then
+        if math.random() < (1 - component.Integrity / 20) * 0.5 then
+            component.Detached = true
+            table.insert(result.Events, "COMPONENT_DETACHED")
+        end
+    end
+    
+    -- Check hinges
+    if component.Hinges then
+        for hingeName, working in pairs(component.Hinges) do
+            if working and damage > 30 and math.random() < 0.3 then
+                component.Hinges[hingeName] = false
+                table.insert(result.Events, "HINGE_BROKEN:" .. hingeName)
+            end
+        end
+    end
+    
+    -- Window damage
+    if component.Window then
+        if damage > 15 then
+            component.Window = math.max(0, component.Window - damage * 2)
+            if component.Window == 0 then
+                table.insert(result.Events, "WINDOW_SHATTERED")
+            end
+        end
+    end
+    
+    -- Glass crack patterns
+    if component.CrackPattern then
+        if damage > 10 then
+            local crackCount = math.floor(damage / 5)
+            for i = 1, crackCount do
+                table.insert(component.CrackPattern, {
+                    Start = Vector2.new(math.random(), math.random()),
+                    End = Vector2.new(math.random(), math.random()),
+                    Width = math.random() * 2 + 0.5
+                })
+            end
+        end
+        
+        if component.Integrity < 30 and not component.Shattered then
+            component.Shattered = true
+            table.insert(result.Events, "GLASS_SHATTERED")
+        end
+    end
+    
+    -- Tire damage
+    if component.TirePressure then
+        if damage > 25 then
+            local pressureLoss = damage * 0.5
+            component.TirePressure = math.max(0, component.TirePressure - pressureLoss)
+            
+            if component.TirePressure < 10 then
+                table.insert(result.Events, "TIRE_FLAT")
+            end
+        end
+        
+        -- Alignment damage
+        if damage > 40 then
+            component.Alignment = component.Alignment + (direction.X * damage * 0.1)
+            component.Alignment = math.clamp(component.Alignment, -45, 45)
+        end
+        
+        -- Rim damage
+        if component.Rim and damage > 50 then
+            component.Rim.Integrity = math.max(0, component.Rim.Integrity - damage * 0.5)
+            if not component.Rim.Bent and damage > 70 then
+                component.Rim.Bent = true
+                table.insert(result.Events, "RIM_BENT")
+            end
+        end
+    end
+    
+    -- Mechanical component specific damage
+    if componentName == "Engine" then
+        if damage > 40 then
+            component.OilPressure = math.max(0, component.OilPressure - damage * 0.3)
+            if component.OilPressure < 15 then
+                self.fluids.Oil.Leaking = true
+                self.fluids.Oil.LeakRate = (15 - component.OilPressure) * 0.5
+                table.insert(result.Events, "OIL_LEAK")
+            end
+        end
+        
+        if component.Integrity < 50 then
+            component.Running = false
+            table.insert(result.Events, "ENGINE_FAILURE")
+        end
+    end
+    
+    if componentName == "Radiator" then
+        if damage > 30 and not component.Punctured then
+            component.Punctured = true
+            self.fluids.Coolant.Leaking = true
+            self.fluids.Coolant.LeakRate = damage * 0.2
+            table.insert(result.Events, "COOLANT_LEAK")
+        end
+    end
+    
+    if componentName == "FuelTank" then
+        if damage > 50 and not component.Punctured then
+            component.Punctured = true
+            self.fluids.Fuel.Leaking = true
+            self.fluids.Fuel.LeakRate = damage * 0.3
+            table.insert(result.Events, "FUEL_LEAK")
+        end
+    end
+    
+    return result
+end
+
+function UltraVehicleDamage:generateDamageEffects(componentName, damage, position, direction)
+    local effects = {
+        Particles = {},
+        Sounds = {},
+        Visuals = {}
+    }
+    
+    -- Determine material type
+    local materialType = self:getComponentMaterial(componentName)
+    
+    -- Metal impact effects
+    if materialType == "Metal" then
+        -- Sparks
+        if damage > 20 then
+            table.insert(effects.Particles, {
+                Type = "Sparks",
+                Position = position,
+                Count = math.floor(damage * 2),
+                Velocity = direction * -1 * damage * 0.5,
+                Color = Color3.fromRGB(255, 200, 50),
+                Lifetime = 0.5
+            })
+        end
+        
+        -- Metal fragments
+        if damage > 40 then
+            table.insert(effects.Particles, {
+                Type = "MetalDebris",
+                Position = position,
+                Count = math.floor(damage * 0.3),
+                Velocity = direction * -1 * damage * 0.3,
+                Size = {0.05, 0.2}
+            })
+        end
+        
+        -- Dust cloud
+        table.insert(effects.Particles, {
+            Type = "Dust",
+            Position = position,
+            Density = damage * 0.1,
+            Color = Color3.fromRGB(150, 130, 110)
+        })
+        
+        -- Sound
+        table.insert(effects.Sounds, {
+            Type = "MetalImpact",
+            Position = position,
+            Volume = math.min(damage / 50, 1),
+            Pitch = 1 + (math.random() - 0.5) * 0.3
+        })
+        
+        if damage > 60 then
+            table.insert(effects.Sounds, {
+                Type = "MetalScreech",
+                Position = position,
+                Volume = math.min(damage / 80, 1),
+                Duration = damage * 0.02
+            })
+        end
+    end
+    
+    -- Glass effects
+    if materialType == "Glass" then
+        if damage > 15 then
+            -- Glass shards
+            table.insert(effects.Particles, {
+                Type = "GlassShards",
+                Position = position,
+                Count = math.floor(damage * 3),
+                Velocity = direction * -1 * damage * 0.3,
+                Colors = {
+                    Color3.fromRGB(200, 220, 255),
+                    Color3.fromRGB(180, 200, 240),
+                    Color3.fromRGB(220, 230, 255)
+                },
+                Transparent = true,
+                Reflective = true
+            })
+            
+            -- Sound
+            table.insert(effects.Sounds, {
+                Type = "GlassBreak",
+                Position = position,
+                Volume = math.min(damage / 30, 1),
+                Variation = math.random(1, 12)
+            })
+        end
+    end
+    
+    -- Plastic effects
+    if materialType == "Plastic" then
+        if damage > 25 then
+            table.insert(effects.Particles, {
+                Type = "PlasticDebris",
+                Position = position,
+                Count = math.floor(damage * 0.5),
+                Velocity = direction * -1 * damage * 0.2,
+                Colors = {Color3.fromRGB(30, 30, 30), Color3.fromRGB(60, 60, 60)}
+            })
+            
+            table.insert(effects.Sounds, {
+                Type = "PlasticCrack",
+                Position = position,
+                Volume = math.min(damage / 40, 1)
+            })
+        end
+    end
+    
+    -- Fire effects for fuel leaks
+    if self.fluids.Fuel.Leaking and damage > 30 then
+        if math.random() < 0.1 then
+            table.insert(effects.Particles, {
+                Type = "Fire",
+                Position = position,
+                Intensity = self.fluids.Fuel.LeakRate * 0.5,
+                Duration = 999
+            })
+            
+            table.insert(effects.Particles, {
+                Type = "Smoke",
+                Position = position,
+                Color = Color3.fromRGB(20, 20, 20),
+                Density = 2
+            })
+            
+            table.insert(effects.Visuals, {
+                Type = "FireGlow",
+                Position = position,
+                Color = Color3.fromRGB(255, 150, 50),
+                Radius = 10
+            })
+        end
+    end
+    
+    -- Visual deformation effect
+    if damage > 30 then
+        table.insert(effects.Visuals, {
+            Type = "Deformation",
+            Component = componentName,
+            Amount = damage * 0.01,
+            Direction = direction
+        })
+    end
+    
+    -- Screen shake
+    if damage > 50 then
+        table.insert(effects.Visuals, {
+            Type = "ScreenShake",
+            Intensity = damage * UltraConfig.Visuals.ScreenShakeIntensity * 0.01,
+            Duration = 0.3
+        })
+    end
+    
+    -- Slow motion on heavy impact
+    if damage > 80 and UltraConfig.Visuals.SlowMotionOnImpact then
+        table.insert(effects.Visuals, {
+            Type = "SlowMotion",
+            TimeScale = 0.3,
+            Duration = 0.5,
+            EaseOut = true
+        })
+    end
+    
+    return effects
+end
+
+function UltraVehicleDamage:getComponentMaterial(componentName)
+    local glassParts = {"Windshield", "RearWindow", "HeadlightLeft", "HeadlightRight", "TaillightLeft", "TaillightRight"}
+    local plasticParts = {"FrontBumper", "RearBumper", "LeftMirror", "RightMirror", "FogLightLeft", "FogLightRight"}
+    
+    for _, part in ipairs(glassParts) do
+        if componentName == part then return "Glass" end
+    end
+    
+    for _, part in ipairs(plasticParts) do
+        if componentName == part then return "Plastic" end
+    end
+    
+    return "Metal"
+end
+
+function UltraVehicleDamage:getMaterialResistance(componentName)
+    local resistances = {
+        Metal = 0.8,
+        Glass = 1.5,
+        Plastic = 1.2
+    }
+    return resistances[self:getComponentMaterial(componentName)] or 1
+end
+
+function UltraVehicleDamage:getComponentsInRadius(position, radius)
+    -- Simplified - return all components (in real implementation, would check positions)
+    local allComponents = {}
+    for name, _ in pairs(self.components) do
+        table.insert(allComponents, name)
+    end
+    return allComponents
+end
+
+function UltraVehicleDamage:getComponentPosition(componentName)
+    -- Return estimated position based on component name
+    local positions = {
+        Hood = Vector3.new(0, 1, 3),
+        Trunk = Vector3.new(0, 1, -3),
+        -- ... more positions
+    }
+    return positions[componentName] or Vector3.new(0, 0, 0)
+end
+
+function UltraVehicleDamage:recalculateStructuralIntegrity()
+    local totalIntegrity = 0
+    local componentCount = 0
+    local criticalComponents = {"Chassis", "Subframe", "Engine", "FrontLeftSuspension", "FrontRightSuspension", "RearLeftSuspension", "RearRightSuspension"}
+    
+    for name, component in pairs(self.components) do
+        if component.Integrity then
+            local weight = 1
+            for _, critical in ipairs(criticalComponents) do
+                if name == critical then
+                    weight = 3
+                    break
+                end
+            end
+            totalIntegrity = totalIntegrity + (component.Integrity * weight)
+            componentCount = componentCount + weight
+        end
+    end
+    
+    self.structuralIntegrity = totalIntegrity / componentCount
+end
+
+function UltraVehicleDamage:checkCascadingFailures()
+    -- Engine overheating from coolant loss
+    if self.fluids.Coolant.Level < 30 then
+        self.temperature.Engine = self.temperature.Engine + (30 - self.fluids.Coolant.Level) * 0.1
+        
+        if self.temperature.Engine > 120 then
+            self.components.Engine.Integrity = math.max(0, self.components.Engine.Integrity - 1)
+        end
+    end
+    
+    -- Electrical failure from battery damage
+    if self.components.Battery.Integrity < 50 then
+        self.electrical.BatteryCharge = self.electrical.BatteryCharge * (self.components.Battery.Integrity / 50)
+        
+        if self.electrical.BatteryCharge < 20 then
+            self.electrical.LightsWorking = false
+            self.electrical.EngineStartable = false
+        end
+    end
+    
+    -- Brake failure from fluid loss
+    if self.fluids.BrakeFluid.Level < 40 then
+        -- Brakes compromised
+    end
+end
+
+-- ═══════════════════════════════════════════════════════════════
+-- 🔊 ADVANCED SOUND SYSTEM
+-- ═══════════════════════════════════════════════════════════════
+
+local UltraSoundSystem = {}
+UltraSoundSystem.__index = UltraSoundSystem
+
+function UltraSoundSystem.new()
+    local self = setmetatable({}, UltraSoundSystem)
+    
+    self.activeSounds = {}
+    self.soundPools = {}
+    self.masterVolume = 1.0
+    self.spatialEnabled = UltraConfig.Audio.SpatialAudio
+    self.reverbEnabled = UltraConfig.Audio.ReverbEnabled
+    
+    self.soundBank = {
+        -- Metal sounds
+        MetalImpact = {
+            Light = {"MetalHit_Light_01", "MetalHit_Light_02", "MetalHit_Light_03"},
+            Medium = {"MetalHit_Medium_01", "MetalHit_Medium_02", "MetalHit_Medium_03"},
+            Heavy = {"MetalHit_Heavy_01", "MetalHit_Heavy_02", "MetalHit_Heavy_03", "MetalHit_Heavy_04"}
+        },
+        MetalScreech = {"MetalScreech_01", "MetalScreech_02", "MetalScreech_03", "MetalScreech_04"},
+        MetalCreak = {"MetalCreak_01", "MetalCreak_02", "MetalCreak_03"},
+        
+        -- Glass sounds
+        GlassBreak = {
+            Small = {"GlassBreak_Small_01", "GlassBreak_Small_02", "GlassBreak_Small_03"},
+            Medium = {"GlassBreak_Medium_01", "GlassBreak_Medium_02", "GlassBreak_Medium_03"},
+            Large = {"GlassBreak_Large_01", "GlassBreak_Large_02", "GlassBreak_Large_03", "GlassBreak_Large_04"}
+        },
+        GlassCrack = {"GlassCrack_01", "GlassCrack_02", "GlassCrack_03"},
+        GlassTinkle = {"GlassTinkle_01", "GlassTinkle_02", "GlassTinkle_03", "GlassTinkle_04"},
+        
+        -- Engine sounds
+        EngineIdle = {"EngineIdle_01", "EngineIdle_02"},
+        EngineRev = {"EngineRev_01", "EngineRev_02", "EngineRev_03"},
+        EngineFailure = {"EngineFailure_01", "EngineFailure_02"},
+        EngineExplosion = {"EngineExplosion_01"},
+        
+        -- Explosion sounds
+        Explosion = {
+            Small = {"Explosion_Small_01", "Explosion_Small_02"},
+            Medium = {"Explosion_Medium_01", "Explosion_Medium_02", "Explosion_Medium_03"},
+            Large = {"Explosion_Large_01", "Explosion_Large_02"}
+        },
+        
+        -- Tire sounds
+        TireScreech = {"TireScreech_01", "TireScreech_02", "TireScreech_03"},
+        TirePop = {"TirePop_01", "TirePop_02"},
+        TireRoll = {"TireRoll_01"},
+        
+        -- Fluid sounds
+        FluidLeak = {"FluidLeak_01", "FluidLeak_02"},
+        FluidSplash = {"FluidSplash_01", "FluidSplash_02"},
+        
+        -- Fire sounds
+        FireBurn = {"FireBurn_01", "FireBurn_02"},
+        FireWhoosh = {"FireWhoosh_01"},
+        
+        -- Ambient
+        WindWhistle = {"WindWhistle_01", "WindWhistle_02"},
+        DebrisSettle = {"DebrisSettle_01", "DebrisSettle_02", "DebrisSettle_03"}
+    }
+    
+    return self
+end
+
+function UltraSoundSystem:playSound(soundType, params)
+    local position = params.Position or Vector3.new(0, 0, 0)
+    local volume = (params.Volume or 1) * self.masterVolume
+    local pitch = params.Pitch or 1
+    local looped = params.Looped or false
+    
+    -- Doppler effect calculation
+    if self.spatialEnabled and UltraConfig.Audio.DopplerEffect then
+        local velocity = params.Velocity or Vector3.new(0, 0, 0)
+        local listenerPosition = workspace.CurrentCamera.CFrame.Position
+        local direction = (position - listenerPosition).Unit
+        local relativeVelocity = velocity:Dot(direction)
+        
+        -- Adjust pitch based on relative velocity
+        local speedOfSound = 343 -- m/s
+        pitch = pitch * (speedOfSound / (speedOfSound - relativeVelocity * 0.1))
+    end
+    
+    local sound = {
+        Type = soundType,
+        Position = position,
+        Volume = volume,
+        Pitch = math.clamp(pitch, 0.5, 2.0),
+        Looped = looped,
+        StartTime = tick(),
+        Duration = params.Duration or 1
+    }
+    
+    table.insert(self.activeSounds, sound)
+    
+    return sound
+end
+
+function UltraSoundSystem:playImpactSound(impactForce, position, materialType)
+    local intensity = "Light"
+    if impactForce > 50 then intensity = "Medium" end
+    if impactForce > 100 then intensity = "Heavy" end
+    
+    local soundCategory = materialType .. "Impact"
+    if self.soundBank[soundCategory] then
+        local sounds = self.soundBank[soundCategory][intensity] or self.soundBank[soundCategory]
+        local selectedSound = sounds[math.random(1, #sounds)]
+        
+        self:playSound(selectedSound, {
+            Position = position,
+            Volume = math.min(impactForce / 100, 1),
+            Pitch = 1 + (math.random() - 0.5) * 0.2
+        })
+        
+        -- Add bass boost for heavy impacts
+        if impactForce > 80 then
+            self:playSound("SubBass", {
+                Position = position,
+                Volume = impactForce / 150 * UltraConfig.Audio.ExplosionBassBoost,
+                Pitch = 0.5
+            })
+        end
+    end
+end
+
+-- ═══════════════════════════════════════════════════════════════
+-- 🌦️ DYNAMIC WEATHER SYSTEM
+-- ═══════════════════════════════════════════════════════════════
+
+local WeatherSystem = {}
+WeatherSystem.__index = WeatherSystem
+
+function WeatherSystem.new()
+    local self = setmetatable({}, WeatherSystem)
+    
+    self.currentWeather = "Clear"
+    self.weatherIntensity = 0
+    self.windDirection = Vector3.new(1, 0, 0)
+    self.windSpeed = 5
+    self.temperature = 20
+    self.humidity = 50
+    
+    self.weatherTypes = {
+        Clear = {
+            FogDensity = 0,
+            SkyColor = Color3.fromRGB(135, 206, 235),
+            AmbientLight = 1.0,
+            ParticleEffects = {}
+        },
+        Cloudy = {
+            FogDensity = 0.1,
+            SkyColor = Color3.fromRGB(150, 160, 170),
+            AmbientLight = 0.7,
+            ParticleEffects = {}
+        },
+        Rain = {
+            FogDensity = 0.2,
+            SkyColor = Color3.fromRGB(100, 110, 120),
+            AmbientLight = 0.5,
+            ParticleEffects = {"RainDrops", "RainSplash", "PuddleRipples"},
+            SurfaceSlipperiness = 0.3
+        },
+        HeavyRain = {
+            FogDensity = 0.4,
+            SkyColor = Color3.fromRGB(70, 80, 90),
+            AmbientLight = 0.3,
+            ParticleEffects = {"HeavyRainDrops", "RainSplash", "PuddleRipples", "RoadSpray"},
+            SurfaceSlipperiness = 0.5,
+            VisibilityReduction = 0.6
+        },
+        Thunderstorm = {
+            FogDensity = 0.5,
+            SkyColor = Color3.fromRGB(50, 55, 65),
+            AmbientLight = 0.2,
+            ParticleEffects = {"HeavyRainDrops", "RainSplash", "Lightning"},
+            SurfaceSlipperiness = 0.6,
+            VisibilityReduction = 0.7,
+            LightningChance = 0.1
+        },
+        Fog = {
+            FogDensity = 0.8,
+            SkyColor = Color3.fromRGB(180, 180, 180),
+            AmbientLight = 0.6,
+            ParticleEffects = {"FogWisps"},
+            VisibilityReduction = 0.8
+        },
+        Snow = {
+            FogDensity = 0.15,
+            SkyColor = Color3.fromRGB(200, 210, 220),
+            AmbientLight = 0.8,
+            ParticleEffects = {"SnowFlakes", "SnowDrift"},
+            SurfaceSlipperiness = 0.4,
+            GroundAccumulation = true
+        },
+        Sandstorm = {
+            FogDensity = 0.7,
+            SkyColor = Color3.fromRGB(180, 150, 100),
+            AmbientLight = 0.4,
+            ParticleEffects = {"SandParticles", "SandWhoosh"},
+            SurfaceSlipperiness = 0.2,
+            VisibilityReduction = 0.7,
+            VehicleDamageRate = 0.1
+        }
+    }
+    
+    return self
+end
+
+function WeatherSystem:setWeather(weatherType, transitionTime)
+    if not self.weatherTypes[weatherType] then return end
+    
+    self.targetWeather = weatherType
+    self.transitionTime = transitionTime or 5
+    self.transitionStartTime = tick()
+    self.previousWeather = self.currentWeather
+end
+
+function WeatherSystem:update(deltaTime)
+    -- Handle weather transition
+    if self.targetWeather and self.targetWeather ~= self.currentWeather then
+        local elapsed = tick() - self.transitionStartTime
+        local progress = math.min(elapsed / self.transitionTime, 1)
+        
+        if progress >= 1 then
+            self.currentWeather = self.targetWeather
+            self.targetWeather = nil
+        else
+            self.weatherIntensity = progress
+        end
+    end
+    
+    -- Update wind
+    self.windDirection = (self.windDirection + Vector3.new(
+        (math.random() - 0.5) * 0.1,
+        0,
+        (math.random() - 0.5) * 0.1
+    )).Unit
+    
+    -- Check for lightning
+    local currentData = self.weatherTypes[self.currentWeather]
+    if currentData.LightningChance then
+        if math.random() < currentData.LightningChance * deltaTime then
+            self:triggerLightning()
+        end
+    end
+end
+
+function WeatherSystem:triggerLightning()
+    local lightningData = {
+        Position = Vector3.new(
+            math.random(-500, 500),
+            200,
+            math.random(-500, 500)
+        ),
+        Brightness = 10,
+        Duration = 0.1,
+        ThunderDelay = math.random(1, 5),
+        ThunderVolume = math.random() * 0.5 + 0.5
+    }
+    
+    return lightningData
+end
+
+function WeatherSystem:getPhysicsModifiers()
+    local currentData = self.weatherTypes[self.currentWeather]
+    
+    return {
+        FrictionMultiplier = 1 - (currentData.SurfaceSlipperiness or 0),
+        WindForce = self.windDirection * self.windSpeed,
+        VisibilityRange = 1000 * (1 - (currentData.VisibilityReduction or 0)),
+        AmbientDamageRate = currentData.VehicleDamageRate or 0
+    }
+end
+
+-- ═══════════════════════════════════════════════════════════════
+-- 💫 VISUAL EFFECTS MANAGER
+-- ═══════════════════════════════════════════════════════════════
+
+local VisualEffectsManager = {}
+VisualEffectsManager.__index = VisualEffectsManager
+
+function VisualEffectsManager.new()
+    local self = setmetatable({}, VisualEffectsManager)
+    
+    self.activeEffects = {}
+    self.postProcessing = {
+        Bloom = {Enabled = true, Intensity = 1.0, Threshold = 0.8},
+        ColorCorrection = {Enabled = true, Brightness = 0, Contrast = 0, Saturation = 1},
+        DepthOfField = {Enabled = false, FocusDistance = 50, FarBlur = 0},
+        SunRays = {Enabled = true, Intensity = 0.5, Spread = 0.5},
+        MotionBlur = {Enabled = true, Intensity = 0.5}
+    }
+    
+    return self
+end
+
+function VisualEffectsManager:createExplosion(position, size, type)
+    local explosion = {
+        Position = position,
+        Size = size,
+        Type = type or "Default",
+        StartTime = tick(),
+        Duration = 2,
+        Phases = {
+            {Name = "Flash", Duration = 0.05, Brightness = 10, Color = Color3.fromRGB(255, 255, 200)},
+            {Name = "Fireball", Duration = 0.3, Size = size * 2, Color = Color3.fromRGB(255, 100, 0)},
+            {Name = "Smoke", Duration = 1.5, Size = size * 4, Color = Color3.fromRGB(50, 50, 50)},
+            {Name = "Debris", Duration = 2, Count = 50}
+        },
+        ShockwaveEnabled = true,
+        ShockwaveSpeed = 100,
+        ShockwaveSize = size * 5
+    }
+    
+    table.insert(self.activeEffects, explosion)
+    
+    return explosion
+end
+
+function VisualEffectsManager:createScreenShake(intensity, duration)
+    local shake = {
+        Type = "ScreenShake",
+        Intensity = intensity,
+        Duration = duration,
+        StartTime = tick(),
+        Frequency = 30,
+        Decay = 0.9
+    }
+    
+    table.insert(self.activeEffects, shake)
+    
+    return shake
+end
+
+function VisualEffectsManager:createSlowMotion(timeScale, duration)
+    local slowMo = {
+        Type = "SlowMotion",
+        TimeScale = timeScale,
+        Duration = duration,
+        StartTime = tick(),
+        EaseIn = 0.1,
+        EaseOut = 0.3
+    }
+    
+    table.insert(self.activeEffects, slowMo)
+    
+    -- Apply post-processing changes
+    self.postProcessing.MotionBlur.Intensity = 0.8
+    self.postProcessing.ColorCorrection.Saturation = 0.8
+    
+    return slowMo
+end
+
+function VisualEffectsManager:createSparks(position, direction, count, color)
+    local sparks = {
+        Type = "Sparks",
+        Position = position,
+        Direction = direction,
+        Count = count or 30,
+        Color = color or Color3.fromRGB(255, 200, 50),
+        StartTime = tick(),
+        Duration = 0.5,
+        Gravity = -50,
+        Bounce = 0.3,
+        Trail = true
+    }
+    
+    table.insert(self.activeEffects, sparks)
+    
+    return sparks
+end
+
+function VisualEffectsManager:createSmoke(position, color, density, duration)
+    local smoke = {
+        Type = "Smoke",
+        Position = position,
+        Color = color or Color3.fromRGB(80, 80, 80),
+        Density = density or 1,
+        Duration = duration or 5,
+        StartTime = tick(),
+        RiseSpeed = 3,
+        Spread = 2,
+        Opacity = 0.6
+    }
+    
+    table.insert(self.activeEffects, smoke)
+    
+    return smoke
+end
+
+function VisualEffectsManager:createFire(position, intensity, duration)
+    local fire = {
+        Type = "Fire",
+        Position = position,
+        Intensity = intensity or 1,
+        Duration = duration or 10,
+        StartTime = tick(),
+        Colors = {
+            Core = Color3.fromRGB(255, 255, 200),
+            Inner = Color3.fromRGB(255, 150, 50),
+            Outer = Color3.fromRGB(255, 50, 0),
+            Smoke = Color3.fromRGB(30, 30, 30)
+        },
+        LightRadius = intensity * 10,
+        LightBrightness = intensity * 2,
+        SpreadRate = 0.1
+    }
+    
+    table.insert(self.activeEffects, fire)
+    
+    return fire
+end
+
+function VisualEffectsManager:createFluidLeak(position, fluidType, rate)
+    local fluidColors = {
+        Oil = Color3.fromRGB(30, 25, 20),
+        Fuel = Color3.fromRGB(200, 180, 100),
+        Coolant = Color3.fromRGB(50, 200, 50),
+        BrakeFluid = Color3.fromRGB(180, 150, 100)
+    }
+    
+    local leak = {
+        Type = "FluidLeak",
+        Position = position,
+        FluidType = fluidType,
+        Color = fluidColors[fluidType] or Color3.fromRGB(100, 100, 100),
+        Rate = rate or 1,
+        StartTime = tick(),
+        Duration = 999,
+        DropSize = 0.1,
+        PuddleGrowth = true,
+        MaxPuddleSize = 3
+    }
+    
+    table.insert(self.activeEffects, leak)
+    
+    return leak
+end
+
+function VisualEffectsManager:update(deltaTime)
+    local currentTime = tick()
+    
+    -- Update and remove expired effects
+    for i = #self.activeEffects, 1, -1 do
+        local effect = self.activeEffects[i]
+        local elapsed = currentTime - effect.StartTime
+        
+        if elapsed > effect.Duration then
+            table.remove(self.activeEffects, i)
+        else
+            -- Update effect based on type
+            if effect.Type == "ScreenShake" then
+                effect.CurrentIntensity = effect.Intensity * (1 - elapsed / effect.Duration) * effect.Decay
+            elseif effect.Type == "SlowMotion" then
+                local progress = elapsed / effect.Duration
+                if progress < effect.EaseIn then
+                    effect.CurrentTimeScale = 1 - (1 - effect.TimeScale) * (progress / effect.EaseIn)
+                elseif progress > (1 - effect.EaseOut) then
+                    local easeProgress = (progress - (1 - effect.EaseOut)) / effect.EaseOut
+                    effect.CurrentTimeScale = effect.TimeScale + (1 - effect.TimeScale) * easeProgress
+                else
+                    effect.CurrentTimeScale = effect.TimeScale
+                end
+            end
+        end
+    end
+end
+
+-- ═══════════════════════════════════════════════════════════════
+-- 🎮 MAIN SIMULATION CONTROLLER (ENHANCEMENT)
+-- ═══════════════════════════════════════════════════════════════
+
+local UltraSimulationEnhancement = {}
+UltraSimulationEnhancement.__index = UltraSimulationEnhancement
+
+function UltraSimulationEnhancement.new()
+    local self = setmetatable({}, UltraSimulationEnhancement)
+    
+    -- Initialize all systems
+    self.particleSystem = AdvancedParticleSystem.new()
+    self.soundSystem = UltraSoundSystem.new()
+    self.weatherSystem = WeatherSystem.new()
+    self.visualEffects = VisualEffectsManager.new()
+    self.vehicleDamage = {}
+    
+    -- Statistics
+    self.stats = {
+        TotalCollisions = 0,
+        ParticlesGenerated = 0,
+        EffectsActive = 0,
+        FrameTime = 0
+    }
+    
+    -- Debug mode
+    self.debugMode = false
+    self.showStats = true
+    
+    return self
+end
+
+function UltraSimulationEnhancement:initialize()
+    print("═══════════════════════════════════════════════════")
+    print("  🚗 ULTRA CAR CRUSHERS 2 ENHANCEMENT LOADED 🚗")
+    print("═══════════════════════════════════════════════════")
+    print("  ✅ Advanced Particle System: INITIALIZED")
+    print("  ✅ Ultra Vehicle Damage: INITIALIZED")
+    print("  ✅ Dynamic Weather System: INITIALIZED")
+    print("  ✅ Visual Effects Manager: INITIALIZED")
+    print("  ✅ Spatial Audio System: INITIALIZED")
+    print("═══════════════════════════════════════════════════")
+end
+
+function UltraSimulationEnhancement:registerVehicle(vehicle)
+    local damageSystem = UltraVehicleDamage.new(vehicle)
+    self.vehicleDamage[vehicle] = damageSystem
+    
+    print("📋 Vehicle registered: " .. tostring(vehicle))
+    
+    return damageSystem
+end
+
+function UltraSimulationEnhancement:processCollision(vehicle, collisionData)
+    local damageSystem = self.vehicleDamage[vehicle]
+    if not damageSystem then
+        damageSystem = self:registerVehicle(vehicle)
+    end
+    
+    -- Process impact
+    local results = damageSystem:processImpact(collisionData)
+    
+    -- Generate visual effects
+    for _, particle in ipairs(results.ParticlesGenerated) do
+        if particle.Type == "Fire" then
+            self.visualEffects:createFire(particle.Position, particle.Intensity)
+        elseif particle.Type == "Smoke" then
+            self.visualEffects:createSmoke(particle.Position, particle.Color, particle.Density)
+        elseif particle.Type == "Sparks" then
+            self.visualEffects:createSparks(particle.Position, collisionData.Direction * -1, particle.Count)
+        end
+    end
+    
+    -- Play sounds
+    for _, sound in ipairs(results.SoundsTriggered) do
+        self.soundSystem:playSound(sound.Type, sound)
+    end
+    
+    -- Apply visual effects
+    for _, visual in ipairs(results.VisualEffects) do
+        if visual.Type == "ScreenShake" then
+            self.visualEffects:createScreenShake(visual.Intensity, visual.Duration)
+        elseif visual.Type == "SlowMotion" then
+            self.visualEffects:createSlowMotion(visual.TimeScale, visual.Duration)
+        end
+    end
+    
+    -- Update statistics
+    self.stats.TotalCollisions = self.stats.TotalCollisions + 1
+    self.stats.ParticlesGenerated = self.stats.ParticlesGenerated + #results.ParticlesGenerated
+    
+    return results
+end
+
+function UltraSimulationEnhancement:update(deltaTime)
+    -- Update all systems
+    self.weatherSystem:update(deltaTime)
+    self.visualEffects:update(deltaTime)
+    
+    -- Update fluid leaks
+    for vehicle, damageSystem in pairs(self.vehicleDamage) do
+        for fluidName, fluidData in pairs(damageSystem.fluids) do
+            if fluidData.Leaking and fluidData.Level > 0 then
+                fluidData.Level = fluidData.Level - (fluidData.LeakRate * deltaTime)
+                
+                -- Create leak visual
+                if math.random() < fluidData.LeakRate * deltaTime then
+                    self.visualEffects:createFluidLeak(
+                        damageSystem:getComponentPosition("FuelTank"),
+                        fluidName,
+                        fluidData.LeakRate
+                    )
+                end
+            end
+        end
+        
+        -- Update temperature
+        if damageSystem.fluids.Coolant.Level < 50 then
+            damageSystem.temperature.Engine = damageSystem.temperature.Engine + deltaTime * (50 - damageSystem.fluids.Coolant.Level) * 0.01
+        end
+    end
+    
+    self.stats.EffectsActive = #self.visualEffects.activeEffects
+end
+
+function UltraSimulationEnhancement:createMassiveExplosion(position)
+    -- Epic explosion sequence
+    print("💥 MASSIVE EXPLOSION TRIGGERED!")
+    
+    -- Main explosion
+    self.visualEffects:createExplosion(position, 20, "Nuclear")
+    
+    -- Screen shake
+    self.visualEffects:createScreenShake(5, 2)
+    
+    -- Slow motion
+    self.visualEffects:createSlowMotion(0.2, 1)
+    
+    -- Multiple fire points
+    for i = 1, 10 do
+        local offset = Vector3.new(
+            math.random(-10, 10),
+            math.random(0, 5),
+            math.random(-10, 10)
+        )
+        self.visualEffects:createFire(position + offset, math.random() * 2 + 1, 30)
+    end
+    
+    -- Debris shower
+    for i = 1, 50 do
+        local offset = Vector3.new(
+            math.random(-5, 5),
+            math.random(0, 3),
+            math.random(-5, 5)
+        )
+        self.visualEffects:createSparks(position + offset, Vector3.new(0, 1, 0), 20)
+    end
+    
+    -- Massive smoke cloud
+    self.visualEffects:createSmoke(position, Color3.fromRGB(20, 20, 20), 5, 60)
+    
+    -- Sound
+    self.soundSystem:playSound("Explosion_Large", {
+        Position = position,
+        Volume = 1,
+        Pitch = 0.8
+    })
+    
+    return true
+end
+
+function UltraSimulationEnhancement:getStats()
+    return self.stats
+end
+
+function UltraSimulationEnhancement:setWeather(weatherType)
+    self.weatherSystem:setWeather(weatherType, 5)
+    print("🌦️ Weather changing to: " .. weatherType)
+end
+
+-- ═══════════════════════════════════════════════════════════════
+-- 🎯 ADDITIONAL FEATURES
+-- ═══════════════════════════════════════════════════════════════
+
+-- Camera Effects Module
+local CameraEffects = {}
+
+function CameraEffects.dollyZoom(duration, intensity)
+    return {
+        Type = "DollyZoom",
+        Duration = duration or 1,
+        Intensity = intensity or 1,
+        StartTime = tick()
+    }
+end
+
+function CameraEffects.impactPush(direction, force)
+    return {
+        Type = "ImpactPush",
+        Direction = direction,
+        Force = force,
+        Duration = 0.3,
+        Recovery = 0.5
+    }
+end
+
+function CameraEffects.orbitalSlowMo(targetPosition, duration)
+    return {
+        Type = "OrbitalSlowMo",
+        Target = targetPosition,
+        Duration = duration or 2,
+        RotationSpeed = 90,
+        TimeScale = 0.3
+    }
+end
+
+-- Replay System
+local ReplaySystem = {
+    recording = false,
+    frames = {},
+    maxFrames = 3000, -- 50 seconds at 60fps
+    
+    startRecording = function(self)
+        self.recording = true
+        self.frames = {}
+        print("📹 Replay recording started")
+    end,
+    
+    stopRecording = function(self)
+        self.recording = false
+        print("📹 Replay recording stopped: " .. #self.frames .. " frames")
+    end,
+    
+    recordFrame = function(self, frameData)
+        if self.recording then
+            table.insert(self.frames, frameData)
+            if #self.frames > self.maxFrames then
+                table.remove(self.frames, 1)
+            end
+        end
+    end,
+    
+    playback = function(self, speed)
+        print("▶️ Playing replay at " .. (speed or 1) .. "x speed")
+        return self.frames
+    end
+}
+
+-- Achievement Tracker
+local AchievementTracker = {
+    achievements = {
+        {Name = "First Crash", Description = "Crash your first vehicle", Unlocked = false},
+        {Name = "Demolition Expert", Description = "Deal 10000 total damage", Unlocked = false, Progress = 0, Target = 10000},
+        {Name = "Pyromaniac", Description = "Set 10 vehicles on fire", Unlocked = false, Progress = 0, Target = 10},
+        {Name = "Speed Demon", Description = "Reach 200 km/h before crashing", Unlocked = false},
+        {Name = "Perfect Storm", Description = "Crash during a thunderstorm", Unlocked = false},
+        {Name = "Chain Reaction", Description = "Cause 5 explosions in 10 seconds", Unlocked = false},
+        {Name = "Glass Cannon", Description = "Shatter 100 windows", Unlocked = false, Progress = 0, Target = 100},
+        {Name = "Tire Slayer", Description = "Pop 50 tires", Unlocked = false, Progress = 0, Target = 50}
+    },
+    
+    checkAchievement = function(self, name, value)
+        for _, achievement in ipairs(self.achievements) do
+            if achievement.Name == name and not achievement.Unlocked then
+                if achievement.Target then
+                    achievement.Progress = (achievement.Progress or 0) + (value or 1)
+                    if achievement.Progress >= achievement.Target then
+                        achievement.Unlocked = true
+                        print("🏆 Achievement Unlocked: " .. achievement.Name)
+                    end
+                else
+                    achievement.Unlocked = true
+                    print("🏆 Achievement Unlocked: " .. achievement.Name)
+                end
+            end
+        end
+    end
+}
+
+-- ═══════════════════════════════════════════════════════════════
+-- 📤 EXPORT MODULE
+-- ═══════════════════════════════════════════════════════════════
+
+local Enhancement = UltraSimulationEnhancement.new()
+Enhancement:initialize()
+
+return {
+    -- Main enhancement module
+    Enhancement = Enhancement,
+    
+    -- Sub-systems
+    ParticleSystem = Enhancement.particleSystem,
+    SoundSystem = Enhancement.soundSystem,
+    WeatherSystem = Enhancement.weatherSystem,
+    VisualEffects = Enhancement.visualEffects,
+    
+    -- Additional features
+    CameraEffects = CameraEffects,
+    ReplaySystem = ReplaySystem,
+    AchievementTracker = AchievementTracker,
+    
+    -- Configuration
+    Config = UltraConfig,
+    
+    -- Quick access functions
+    ProcessCollision = function(vehicle, data)
+        return Enhancement:processCollision(vehicle, data)
+    end,
+    
+    TriggerExplosion = function(position)
+        return Enhancement:createMassiveExplosion(position)
+    end,
+    
+    SetWeather = function(type)
+        return Enhancement:setWeather(type)
+    end,
+    
+    GetStats = function()
+        return Enhancement:getStats()
+    end
+}
