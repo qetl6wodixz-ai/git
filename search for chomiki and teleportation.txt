@@ -1,0 +1,2301 @@
+local player = game.Players.LocalPlayer
+local pgui = player:WaitForChild("PlayerGui")
+local UIS = game:GetService("UserInputService")
+local TS = game:GetService("TweenService")
+local Debris = game:GetService("Debris")
+local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
+local Lighting = game:GetService("Lighting")
+local SoundService = game:GetService("SoundService")
+local HttpService = game:GetService("HttpService")
+local TeleportService = game:GetService("TeleportService")
+
+-- ═══════════════════════════════════════════════════════════════
+-- 🎨 ЦВЕТА В СТИЛЕ FIND THE CHOMIK (РАСШИРЕННАЯ ПАЛИТРА)
+-- ═══════════════════════════════════════════════════════════════
+local COLORS = {
+    BG_DARK = Color3.fromRGB(45, 32, 22),
+    BG_MEDIUM = Color3.fromRGB(62, 45, 30),
+    BG_LIGHT = Color3.fromRGB(80, 58, 38),
+    BG_HOVER = Color3.fromRGB(95, 70, 45),
+    BG_FOOTER = Color3.fromRGB(38, 27, 18),
+    BG_PANEL = Color3.fromRGB(52, 38, 26),
+    BG_CARD = Color3.fromRGB(58, 42, 28),
+    BG_CARD_HOVER = Color3.fromRGB(72, 52, 34),
+    BG_INPUT = Color3.fromRGB(48, 35, 24),
+    BG_OVERLAY = Color3.fromRGB(20, 14, 10),
+    ACCENT = Color3.fromRGB(255, 180, 40),
+    ACCENT2 = Color3.fromRGB(255, 120, 20),
+    ACCENT_SOFT = Color3.fromRGB(255, 210, 80),
+    ACCENT_DIM = Color3.fromRGB(180, 130, 40),
+    ACCENT_GLOW = Color3.fromRGB(255, 200, 60),
+    ACCENT_DEEP = Color3.fromRGB(200, 140, 20),
+    TEXT_WHITE = Color3.fromRGB(255, 245, 220),
+    TEXT_DIM = Color3.fromRGB(210, 185, 150),
+    TEXT_DARK = Color3.fromRGB(140, 115, 85),
+    TEXT_MUTED = Color3.fromRGB(120, 95, 70),
+    TEXT_BRIGHT = Color3.fromRGB(255, 255, 240),
+    FLASH = Color3.fromRGB(255, 220, 100),
+    STROKE_GLOW = Color3.fromRGB(255, 170, 30),
+    HEADER_LEFT = Color3.fromRGB(255, 160, 20),
+    HEADER_RIGHT = Color3.fromRGB(255, 210, 60),
+    SCROLL_BAR = Color3.fromRGB(255, 170, 40),
+    CLOSE_RED = Color3.fromRGB(255, 100, 60),
+    NEAREST_GREEN = Color3.fromRGB(80, 200, 80),
+    NEAREST_DARK = Color3.fromRGB(50, 140, 50),
+    DISTANCE_FAR = Color3.fromRGB(255, 100, 80),
+    DISTANCE_MID = Color3.fromRGB(255, 200, 80),
+    DISTANCE_NEAR = Color3.fromRGB(100, 220, 100),
+    LIKE_RED = Color3.fromRGB(255, 80, 100),
+    LIKE_RED_DARK = Color3.fromRGB(180, 50, 70),
+    TAG_BATTLE = Color3.fromRGB(255, 80, 80),
+    TAG_HOME = Color3.fromRGB(80, 180, 255),
+    TAG_RARE = Color3.fromRGB(200, 100, 255),
+    TAG_CUTE = Color3.fromRGB(255, 150, 200),
+    TAG_FAST = Color3.fromRGB(100, 255, 150),
+    DASHBOARD_BG = Color3.fromRGB(35, 25, 18),
+    DASHBOARD_PANEL = Color3.fromRGB(50, 36, 24),
+    GRAPH_LINE = Color3.fromRGB(255, 180, 40),
+    GRAPH_BG = Color3.fromRGB(40, 30, 20),
+    RADAR_BG = Color3.fromRGB(30, 40, 30),
+    RADAR_DOT = Color3.fromRGB(255, 200, 40),
+    RADAR_RING = Color3.fromRGB(60, 80, 60),
+    SKIN_WOOD = Color3.fromRGB(120, 80, 40),
+    SKIN_HITECH = Color3.fromRGB(40, 60, 80),
+    SKIN_PINK = Color3.fromRGB(255, 180, 200),
+    WORMHOLE_PURPLE = Color3.fromRGB(120, 40, 200),
+    WORMHOLE_BLUE = Color3.fromRGB(40, 100, 255),
+    SAFE_GLASS = Color3.fromRGB(180, 220, 255),
+    SAFE_HAY = Color3.fromRGB(220, 200, 120),
+    LOCATION_BG = Color3.fromRGB(35, 28, 18),
+    LOCATION_ACCENT = Color3.fromRGB(255, 200, 80),
+    CONFETTI = {
+        Color3.fromRGB(255, 180, 40),
+        Color3.fromRGB(255, 120, 20),
+        Color3.fromRGB(255, 210, 80),
+        Color3.fromRGB(255, 100, 60),
+        Color3.fromRGB(100, 220, 100),
+        Color3.fromRGB(100, 180, 255),
+        Color3.fromRGB(255, 150, 200),
+        Color3.fromRGB(200, 100, 255),
+    },
+    PARTICLE_SAWDUST = {
+        Color3.fromRGB(210, 180, 130),
+        Color3.fromRGB(190, 160, 110),
+        Color3.fromRGB(230, 200, 150),
+        Color3.fromRGB(170, 140, 90),
+    },
+    PARTICLE_SEEDS = {
+        Color3.fromRGB(60, 50, 30),
+        Color3.fromRGB(80, 70, 40),
+        Color3.fromRGB(50, 40, 25),
+        Color3.fromRGB(90, 75, 45),
+    },
+    PARTICLE_SUNFLOWER = {
+        Color3.fromRGB(255, 220, 40),
+        Color3.fromRGB(255, 200, 20),
+        Color3.fromRGB(255, 240, 80),
+    },
+}
+
+-- ═══════════════════════════════════════════════════════════════
+-- 📦 ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ И СОСТОЯНИЕ
+-- ═══════════════════════════════════════════════════════════════
+local teleportCount = 0
+local totalDistanceTraveled = 0
+local lastTeleportTime = 0
+local isOpen = true
+local isDashboardOpen = false
+local isTinderOpen = false
+local isSettingsOpen = false
+local isStatsOpen = false
+local favoriteChomiks = {}
+local chomikTags = {}
+local chomikVisitCount = {}
+local globalVisitLeaderboard = {}
+local playerPreviousPosition = nil
+local canCtrlZ = false
+local lastTeleportDistance = 0
+local currentSkinIndex = 1
+local guiTransparency = 0
+local animationsEnabled = true
+local soundEnabled = true
+local hamsterVisionActive = false
+local hamsterVisionEndTime = 0
+local shrinkAnimationDuration = 0.5
+local expandAnimationDuration = 0.5
+local cameraFlyEnabled = true
+local proceduralSoundEnabled = true
+local safeLandingEnabled = true
+local backupPositionEnabled = true
+
+-- Статистика хомяков
+local chomikStats = {}
+local function initChomikStats(name)
+    if not chomikStats[name] then
+        chomikStats[name] = {
+            hunger = math.random(20, 100),
+            happiness = math.random(30, 100),
+            pulse = math.random(60, 120),
+            wantToSeeOwner = math.random(10, 100),
+            activity = "idle", -- idle, running, sleeping, eating
+            lastVisited = 0,
+            totalVisits = 0,
+            isFavorite = false,
+            tags = {},
+            likes = math.random(0, 50),
+        }
+    end
+    return chomikStats[name]
+end
+
+-- Скины GUI
+local GUI_SKINS = {
+    {
+        name = "Дерево",
+        emoji = "🪵",
+        bg = Color3.fromRGB(45, 32, 22),
+        medium = Color3.fromRGB(62, 45, 30),
+        accent = Color3.fromRGB(255, 180, 40),
+        text = Color3.fromRGB(255, 245, 220),
+    },
+    {
+        name = "Хай-тек",
+        emoji = "🔮",
+        bg = Color3.fromRGB(20, 30, 50),
+        medium = Color3.fromRGB(30, 45, 70),
+        accent = Color3.fromRGB(80, 180, 255),
+        text = Color3.fromRGB(220, 240, 255),
+    },
+    {
+        name = "Хомячий розовый",
+        emoji = "🌸",
+        bg = Color3.fromRGB(60, 30, 40),
+        medium = Color3.fromRGB(80, 40, 55),
+        accent = Color3.fromRGB(255, 150, 200),
+        text = Color3.fromRGB(255, 230, 240),
+    },
+    {
+        name = "Золотой",
+        emoji = "✨",
+        bg = Color3.fromRGB(50, 40, 15),
+        medium = Color3.fromRGB(70, 55, 20),
+        accent = Color3.fromRGB(255, 215, 0),
+        text = Color3.fromRGB(255, 250, 200),
+    },
+    {
+        name = "Ночной",
+        emoji = "🌙",
+        bg = Color3.fromRGB(15, 15, 25),
+        medium = Color3.fromRGB(25, 25, 40),
+        accent = Color3.fromRGB(150, 130, 255),
+        text = Color3.fromRGB(200, 200, 230),
+    },
+}
+
+-- Доступные теги
+local AVAILABLE_TAGS = {
+    {name = "Боевой", emoji = "⚔️", color = COLORS.TAG_BATTLE},
+    {name = "Домашний", emoji = "🏠", color = COLORS.TAG_HOME},
+    {name = "Редкий", emoji = "💎", color = COLORS.TAG_RARE},
+    {name = "Милый", emoji = "💖", color = COLORS.TAG_CUTE},
+    {name = "Быстрый", emoji = "⚡", color = COLORS.TAG_FAST},
+}
+
+-- ═══════════════════════════════════════════════════════════════
+-- 🔊 ЗВУКОВАЯ СИСТЕМА (РАСШИРЕННАЯ)
+-- ═══════════════════════════════════════════════════════════════
+local function playSound(id, vol, pitch)
+    if not soundEnabled then return end
+    local s = Instance.new("Sound")
+    s.SoundId = "rbxassetid://" .. id
+    s.Volume = vol or 0.4
+    if pitch then
+        local pe = Instance.new("PitchShiftSoundEffect")
+        pe.Octave = pitch
+        pe.Parent = s
+    end
+    s.Parent = SoundService
+    s:Play()
+    Debris:AddItem(s, 3)
+    return s
+end
+
+local function playSoundTeleport()
+    playSound(6042053626, 0.7, 1.2)
+    task.delay(0.05, function()
+        playSound(5074927383, 0.4, 0.8)
+    end)
+end
+
+-- Звук "фьюить" при телепорте
+local function playSoundFwyuit()
+    if not soundEnabled then return end
+    local s = Instance.new("Sound")
+    s.SoundId = "rbxassetid://6042053626"
+    s.Volume = 0.6
+    local pe = Instance.new("PitchShiftSoundEffect")
+    pe.Octave = 1.8
+    pe.Parent = s
+    s.Parent = SoundService
+    s:Play()
+    Debris:AddItem(s, 2)
+
+    -- Второй звук для эффекта "хруста морковки"
+    task.delay(0.15, function()
+        local s2 = Instance.new("Sound")
+        s2.SoundId = "rbxassetid://178104975"
+        s2.Volume = 0.35
+        local pe2 = Instance.new("PitchShiftSoundEffect")
+        pe2.Octave = 0.6
+        pe2.Parent = s2
+        s2.Parent = SoundService
+        s2:Play()
+        Debris:AddItem(s2, 2)
+    end)
+
+    task.delay(0.3, function()
+        local s3 = Instance.new("Sound")
+        s3.SoundId = "rbxassetid://178104975"
+        s3.Volume = 0.25
+        local pe3 = Instance.new("PitchShiftSoundEffect")
+        pe3.Octave = 0.4
+        pe3.Parent = s3
+        s3.Parent = SoundService
+        s3:Play()
+        Debris:AddItem(s3, 2)
+    end)
+end
+
+-- Процедурный звук писка на основе расстояния
+local function playProceduralSqueak(distance)
+    if not soundEnabled or not proceduralSoundEnabled then return end
+
+    -- Тональность зависит от расстояния
+    local minDist = 10
+    local maxDist = 2000
+    local normalizedDist = math.clamp((distance - minDist) / (maxDist - minDist), 0, 1)
+
+    -- Чем дальше — тем ниже тон
+    local basePitch = 2.0 - normalizedDist * 1.2 -- от 2.0 (близко) до 0.8 (далеко)
+
+    -- Генерируем серию писков
+    local squeakCount = math.floor(3 + normalizedDist * 5) -- от 3 до 8 писков
+    for i = 1, squeakCount do
+        task.delay(i * 0.08, function()
+            local variation = (math.random() - 0.5) * 0.3
+            local currentPitch = basePitch + variation + (i * 0.05)
+
+            local s = Instance.new("Sound")
+            s.SoundId = "rbxassetid://9114074523"
+            s.Volume = math.max(0.05, 0.2 - normalizedDist * 0.12)
+
+            local pe = Instance.new("PitchShiftSoundEffect")
+            pe.Octave = math.clamp(currentPitch, 0.5, 3.0)
+            pe.Parent = s
+
+            s.Parent = SoundService
+            s:Play()
+            Debris:AddItem(s, 1.5)
+        end)
+    end
+
+    -- Финальный длинный писк
+    task.delay(squeakCount * 0.08 + 0.1, function()
+        local s = Instance.new("Sound")
+        s.SoundId = "rbxassetid://9114074523"
+        s.Volume = 0.15
+
+        local pe = Instance.new("PitchShiftSoundEffect")
+        pe.Octave = basePitch * 0.7
+        pe.Parent = s
+
+        s.Parent = SoundService
+        s:Play()
+        Debris:AddItem(s, 2)
+    end)
+end
+
+local function playSoundToggle(opening)
+    if opening then
+        playSound(6895079853, 0.5, 1.3)
+        task.delay(0.08, function()
+            playSound(9114074523, 0.3, 1.5)
+        end)
+    else
+        playSound(6895079853, 0.5, 0.7)
+        task.delay(0.08, function()
+            playSound(9114074523, 0.25, 0.8)
+        end)
+    end
+end
+
+local lastTypeTime = 0
+local typeCounter = 0
+local previousSearchText = ""
+
+local function playSoundTypeAdd()
+    local now = tick()
+    if now - lastTypeTime < 0.04 then return end
+    lastTypeTime = now
+    typeCounter = typeCounter + 1
+    playSound(178104975, 0.12, 0.85 + math.random() * 0.6)
+    if typeCounter % 4 == 0 then
+        task.delay(0.03, function()
+            playSound(9114074523, 0.06, 1.7 + math.random() * 0.5)
+        end)
+    end
+end
+
+local function playSoundTypeDelete()
+    local now = tick()
+    if now - lastTypeTime < 0.04 then return end
+    lastTypeTime = now
+    playSound(178104975, 0.09, 0.5 + math.random() * 0.3)
+end
+
+local function playSoundHover()
+    playSound(9114074523, 0.06, 1.8 + math.random() * 0.4)
+end
+
+local function playSoundSearchFocus()
+    playSound(9114074523, 0.15, 1.6)
+end
+
+local function playSoundSearchBlur()
+    playSound(9114074523, 0.1, 0.85)
+    typeCounter = 0
+end
+
+local function playSoundLike()
+    playSound(421058968, 0.4, 1.4)
+    task.delay(0.1, function()
+        playSound(9114074523, 0.2, 2.0)
+    end)
+end
+
+local function playSoundUnlike()
+    playSound(9114074523, 0.15, 0.6)
+end
+
+local function playSoundDashboard()
+    playSound(6895079853, 0.4, 1.1)
+    task.delay(0.05, function()
+        playSound(9114074523, 0.2, 1.8)
+    end)
+end
+
+local function playSoundCtrlZ()
+    playSound(6042053626, 0.5, 0.7)
+    task.delay(0.1, function()
+        playSound(5074927383, 0.3, 1.5)
+    end)
+end
+
+-- ═══════════════════════════════════════════════════════════════
+-- 📐 УТИЛИТЫ (РАСШИРЕННЫЕ)
+-- ═══════════════════════════════════════════════════════════════
+local function getTargetPosition(target)
+    if target:IsA("Model") then
+        if target.PrimaryPart then
+            return target.PrimaryPart.Position
+        end
+        local parts = target:GetDescendants()
+        for _, p in ipairs(parts) do
+            if p:IsA("BasePart") then
+                return p.Position
+            end
+        end
+        return Vector3.new(0, 100, 0)
+    elseif target:IsA("BasePart") then
+        return target.Position
+    end
+    return Vector3.new(0, 0, 0)
+end
+
+local function getTargetCFrame(target)
+    if target:IsA("Model") then
+        if target.PrimaryPart then
+            return target.PrimaryPart.CFrame
+        end
+        local parts = target:GetDescendants()
+        for _, p in ipairs(parts) do
+            if p:IsA("BasePart") then
+                return p.CFrame
+            end
+        end
+        return CFrame.new(0, 100, 0)
+    elseif target:IsA("BasePart") then
+        return target.CFrame
+    end
+    return CFrame.new(0, 0, 0)
+end
+
+local function getDistanceTo(target)
+    local char = player.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    if not root then return math.huge end
+    return (root.Position - getTargetPosition(target)).Magnitude
+end
+
+local function formatDistance(dist)
+    if dist >= 10000 then
+        return string.format("%.1fK", dist / 1000)
+    elseif dist >= 100 then
+        return string.format("%d", dist)
+    else
+        return string.format("%.1f", dist)
+    end
+end
+
+local function getDistanceColor(dist)
+    if dist < 50 then return COLORS.DISTANCE_NEAR
+    elseif dist < 200 then return COLORS.DISTANCE_MID
+    else return COLORS.DISTANCE_FAR end
+end
+
+local function lerp(a, b, t)
+    return a + (b - a) * t
+end
+
+local function lerpColor(c1, c2, t)
+    return Color3.new(
+        lerp(c1.R, c2.R, t),
+        lerp(c1.G, c2.G, t),
+        lerp(c1.B, c2.B, t)
+    )
+end
+
+-- Определение биома по позиции (эвристика для Find the Chomik)
+local function getBiomeAtPosition(position)
+    local biomes = {
+        {name = "🌲 Лес", y_min = -10, y_max = 80, check = function(pos)
+            local region = workspace:FindPartsInRegion3(Region3.new(pos - Vector3.new(20,20,20), pos + Vector3.new(20,20,20)), nil, 50)
+            for _, p in ipairs(region) do
+                if p.Name:lower():find("tree") or p.Name:lower():find("leaf") or p.BrickColor == BrickColor.new("Forest green") then
+                    return true
+                end
+            end
+            return false
+        end},
+        {name = "🏔️ Горы", y_min = 120, y_max = 9999},
+        {name = "🌊 Вода", y_min = -999, y_max = 5},
+        {name = "🏜️ Пустыня", y_min = 5, y_max = 60, check = function(pos)
+            local region = workspace:FindPartsInRegion3(Region3.new(pos - Vector3.new(20,5,20), pos + Vector3.new(20,5,20)), nil, 20)
+            for _, p in ipairs(region) do
+                if p.BrickColor == BrickColor.new("Brick yellow") or p.BrickColor == BrickColor.new("Cool yellow") then
+                    return true
+                end
+            end
+            return false
+        end},
+        {name = "🌋 Лава", y_min = -999, y_max = 30, check = function(pos)
+            local region = workspace:FindPartsInRegion3(Region3.new(pos - Vector3.new(15,15,15), pos + Vector3.new(15,15,15)), nil, 30)
+            for _, p in ipairs(region) do
+                if p.Name:lower():find("lava") or p.BrickColor == BrickColor.new("Really red") or p.BrickColor == BrickColor.new("Neon orange") then
+                    return true
+                end
+            end
+            return false
+        end},
+        {name = "❄️ Снег", y_min = 60, y_max = 200, check = function(pos)
+            local region = workspace:FindPartsInRegion3(Region3.new(pos - Vector3.new(20,5,20), pos + Vector3.new(20,5,20)), nil, 20)
+            for _, p in ipairs(region) do
+                if p.BrickColor == BrickColor.new("White") or p.BrickColor == BrickColor.new("Institutional white") or p.Name:lower():find("snow") then
+                    return true
+                end
+            end
+            return false
+        end},
+    }
+
+    for _, biome in ipairs(biomes) do
+        if position.Y >= biome.y_min and position.Y <= biome.y_max then
+            if biome.check then
+                local ok, result = pcall(biome.check, position)
+                if ok and result then
+                    return biome.name
+                end
+            elseif position.Y >= biome.y_min and position.Y <= biome.y_max and not biome.check then
+                if biome.y_min > 100 then return biome.name end
+            end
+        end
+    end
+
+    -- Определение по высоте
+    if position.Y > 150 then return "🏔️ Горы"
+    elseif position.Y < 5 then return "🌊 Подводный мир"
+    elseif position.Y > 80 then return "☁️ Небеса"
+    else return "🌿 Равнины" end
+end
+
+-- Определение текущей локации игрока (для левого нижнего угла)
+local function getCurrentPlayerLocation()
+    local char = player.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    if not root then return "❓ Неизвестно", Vector3.new(0,0,0) end
+
+    local pos = root.Position
+    local biome = getBiomeAtPosition(pos)
+
+    -- Проверяем близость к хомякам
+    local chomiki = workspace:FindFirstChild("chomiki")
+    local nearestName = nil
+    local nearestDist = math.huge
+    if chomiki then
+        for _, item in pairs(chomiki:GetChildren()) do
+            local dist = (pos - getTargetPosition(item)).Magnitude
+            if dist < nearestDist then
+                nearestDist = dist
+                nearestName = item.Name
+            end
+        end
+    end
+
+    local locationStr = biome
+    if nearestName and nearestDist < 50 then
+        locationStr = locationStr .. " | Рядом: " .. nearestName
+    end
+
+    -- Определяем зону по координатам
+    local zone = ""
+    if math.abs(pos.X) > 500 or math.abs(pos.Z) > 500 then
+        zone = " [Далёкие земли]"
+    elseif math.abs(pos.X) < 100 and math.abs(pos.Z) < 100 then
+        zone = " [Центр]"
+    else
+        local dir = ""
+        if pos.Z < 0 then dir = dir .. "С" else dir = dir .. "Ю" end
+        if pos.X > 0 then dir = dir .. "В" else dir = dir .. "З" end
+        zone = " [" .. dir .. "]"
+    end
+
+    return locationStr .. zone, pos
+end
+
+-- ═══════════════════════════════════════════════════════════════
+-- 🔒 СИСТЕМА "МЯГКАЯ ПОСАДКА"
+-- ═══════════════════════════════════════════════════════════════
+local function checkAndPrepareLanding(targetPos)
+    if not safeLandingEnabled then return end
+
+    local checkRadius = 3
+    local dangerousBlocks = {}
+    local hasGround = false
+
+    -- Проверяем блоки в радиусе 3x3 вокруг целевой позиции
+    for dx = -checkRadius, checkRadius do
+        for dy = -checkRadius, 1 do
+            for dz = -checkRadius, checkRadius do
+                local checkPos = targetPos + Vector3.new(dx, dy, dz)
+                local ray = Ray.new(checkPos, Vector3.new(0, -1, 0))
+                local part, hitPos = workspace:FindPartOnRay(ray, player.Character)
+
+                if part then
+                    -- Проверяем на лаву
+                    if part.Name:lower():find("lava") or
+                       part.BrickColor == BrickColor.new("Really red") or
+                       part.BrickColor == BrickColor.new("Neon orange") or
+                       (part.Material == Enum.Material.Neon and part.BrickColor == BrickColor.new("Really red")) then
+                        table.insert(dangerousBlocks, {part = part, pos = checkPos, type = "lava"})
+                    end
+
+                    if dy <= 0 then hasGround = true end
+                end
+            end
+        end
+    end
+
+    -- Заменяем лаву на стекло (временно)
+    for _, danger in ipairs(dangerousBlocks) do
+        if danger.type == "lava" then
+            local originalColor = danger.part.BrickColor
+            local originalMaterial = danger.part.Material
+            local originalTransparency = danger.part.Transparency
+
+            danger.part.BrickColor = BrickColor.new("Institutional white")
+            danger.part.Material = Enum.Material.Glass
+            danger.part.Transparency = 0.3
+
+            -- Визуальный эффект замены
+            local glassGlow = Instance.new("PointLight")
+            glassGlow.Color = COLORS.SAFE_GLASS
+            glassGlow.Brightness = 2
+            glassGlow.Range = 8
+            glassGlow.Parent = danger.part
+
+            -- Восстановление через 10 секунд
+            task.delay(10, function()
+                if danger.part and danger.part.Parent then
+                    danger.part.BrickColor = originalColor
+                    danger.part.Material = originalMaterial
+                    danger.part.Transparency = originalTransparency
+                    if glassGlow and glassGlow.Parent then
+                        glassGlow:Destroy()
+                    end
+                end
+            end)
+        end
+    end
+
+    -- Если нет земли — создаём платформу из сена
+    if not hasGround then
+        local hayPlatform = Instance.new("Part")
+        hayPlatform.Size = Vector3.new(7, 1, 7)
+        hayPlatform.Position = targetPos + Vector3.new(0, -2, 0)
+        hayPlatform.BrickColor = BrickColor.new("Brick yellow")
+        hayPlatform.Material = Enum.Material.Grass
+        hayPlatform.Anchored = true
+        hayPlatform.CanCollide = true
+        hayPlatform.Name = "HamsterHayPlatform"
+        hayPlatform.Parent = workspace
+
+        -- Добавляем декор к платформе
+        for i = 1, 6 do
+            local straw = Instance.new("Part")
+            straw.Size = Vector3.new(0.2, 0.1, math.random(10, 30) / 10)
+            straw.Position = hayPlatform.Position + Vector3.new(math.random(-3, 3), 0.6, math.random(-3, 3))
+            straw.Rotation = Vector3.new(0, math.random(0, 360), math.random(-15, 15))
+            straw.BrickColor = BrickColor.new("Cool yellow")
+            straw.Material = Enum.Material.WoodPlanks
+            straw.Anchored = true
+            straw.CanCollide = false
+            straw.Name = "Straw_" .. i
+            straw.Parent = workspace
+            Debris:AddItem(straw, 15)
+        end
+
+        -- Платформа исчезает через 15 секунд с анимацией
+        task.delay(12, function()
+            if hayPlatform and hayPlatform.Parent then
+                for t = 0, 1, 0.05 do
+                    if hayPlatform and hayPlatform.Parent then
+                        hayPlatform.Transparency = t
+                    end
+                    task.wait(0.1)
+                end
+                if hayPlatform and hayPlatform.Parent then
+                    hayPlatform:Destroy()
+                end
+            end
+        end)
+    end
+end
+
+-- ═══════════════════════════════════════════════════════════════
+-- 💾 РЕЗЕРВНОЕ КОПИРОВАНИЕ ПОЗИЦИИ
+-- ═══════════════════════════════════════════════════════════════
+local function saveCurrentPosition()
+    if not backupPositionEnabled then return end
+    local char = player.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    if root then
+        playerPreviousPosition = root.CFrame
+        canCtrlZ = true
+    end
+end
+
+local function restorePosition()
+    if not canCtrlZ or not playerPreviousPosition then return end
+    local char = player.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    if root then
+        playSoundCtrlZ()
+        root.CFrame = playerPreviousPosition
+        canCtrlZ = false
+
+        -- Уведомление о возврате
+        task.spawn(function()
+            local notif = Instance.new("TextLabel")
+            notif.Size = UDim2.new(0, 250, 0, 40)
+            notif.Position = UDim2.new(0.5, -125, 0, -50)
+            notif.BackgroundColor3 = COLORS.ACCENT
+            notif.BackgroundTransparency = 0.2
+            notif.Text = "⏪ Позиция восстановлена!"
+            notif.TextColor3 = COLORS.BG_DARK
+            notif.Font = Enum.Font.FredokaOne
+            notif.TextSize = 16
+            notif.ZIndex = 150
+            notif.Parent = screenGui
+            Instance.new("UICorner", notif).CornerRadius = UDim.new(0, 12)
+
+            TS:Create(notif, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+                Position = UDim2.new(0.5, -125, 0, 20)
+            }):Play()
+
+            task.wait(2)
+
+            TS:Create(notif, TweenInfo.new(0.4, Enum.EasingStyle.Sine), {
+                Position = UDim2.new(0.5, -125, 0, -50),
+                BackgroundTransparency = 1,
+                TextTransparency = 1
+            }):Play()
+            task.wait(0.4)
+            notif:Destroy()
+        end)
+    end
+end
+
+-- ═══════════════════════════════════════════════════════════════
+-- 🎭 ВИЗУАЛЬНЫЕ ЭФФЕКТЫ: СЖАТИЕ / РАЗДУВАНИЕ ПЕРСОНАЖА
+-- ═══════════════════════════════════════════════════════════════
+local function shrinkCharacter(callback)
+    if not animationsEnabled then
+        if callback then callback() end
+        return
+    end
+
+    local char = player.Character
+    if not char then
+        if callback then callback() end
+        return
+    end
+
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    if not humanoid then
+        if callback then callback() end
+        return
+    end
+
+    -- Сжимаем персонажа
+    local originalScales = {}
+    local scaleNames = {"BodyDepthScale", "BodyHeightScale", "BodyWidthScale", "HeadScale"}
+
+    for _, scaleName in ipairs(scaleNames) do
+        local scaleObj = humanoid:FindFirstChild(scaleName)
+        if scaleObj then
+            originalScales[scaleName] = scaleObj.Value
+        end
+    end
+
+    -- Анимация сжатия
+    local steps = 15
+    for i = 1, steps do
+        local t = i / steps
+        local scale = 1 - t * 0.85 -- сжимаем до 15% от оригинала
+        for _, scaleName in ipairs(scaleNames) do
+            local scaleObj = humanoid:FindFirstChild(scaleName)
+            if scaleObj and originalScales[scaleName] then
+                scaleObj.Value = originalScales[scaleName] * scale
+            end
+        end
+        task.wait(shrinkAnimationDuration / steps)
+    end
+
+    if callback then callback() end
+
+    -- Восстанавливаем размер
+    return originalScales
+end
+
+local function expandCharacter(originalScales)
+    if not animationsEnabled then return end
+
+    local char = player.Character
+    if not char then return end
+
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return end
+
+    local scaleNames = {"BodyDepthScale", "BodyHeightScale", "BodyWidthScale", "HeadScale"}
+
+    -- Начинаем с маленького размера
+    for _, scaleName in ipairs(scaleNames) do
+        local scaleObj = humanoid:FindFirstChild(scaleName)
+        if scaleObj and originalScales and originalScales[scaleName] then
+            scaleObj.Value = originalScales[scaleName] * 0.15
+        end
+    end
+
+    -- Анимация раздувания с пружинящим эффектом
+    local steps = 20
+    for i = 1, steps do
+        local t = i / steps
+        -- Пружинящий эффект: перелёт и возврат
+        local springScale
+        if t < 0.7 then
+            springScale = (t / 0.7) * 1.15
+        else
+            springScale = 1.15 - (t - 0.7) / 0.3 * 0.15
+        end
+
+        for _, scaleName in ipairs(scaleNames) do
+            local scaleObj = humanoid:FindFirstChild(scaleName)
+            if scaleObj and originalScales and originalScales[scaleName] then
+                scaleObj.Value = originalScales[scaleName] * springScale
+            end
+        end
+        task.wait(expandAnimationDuration / steps)
+    end
+
+    -- Гарантируем восстановление оригинального размера
+    for _, scaleName in ipairs(scaleNames) do
+        local scaleObj = humanoid:FindFirstChild(scaleName)
+        if scaleObj and originalScales and originalScales[scaleName] then
+            scaleObj.Value = originalScales[scaleName]
+        end
+    end
+end
+
+-- ═══════════════════════════════════════════════════════════════
+-- 🌻 СИСТЕМА ЧАСТИЦ: ОПИЛКИ, ШЕЛУХА, ПРИЗРАЧНЫЕ ПОДСОЛНУХИ
+-- ═══════════════════════════════════════════════════════════════
+
+-- Создание 2D частицы опилок на экране
+local function spawnSawdustParticle(parentGui, originPos)
+    local particle = Instance.new("Frame")
+    local size = math.random(4, 12)
+    particle.Size = UDim2.new(0, size, 0, size * (math.random(4, 10) / 10))
+    particle.Position = originPos or UDim2.new(0.5, math.random(-30, 30), 0.5, math.random(-30, 30))
+    particle.BackgroundColor3 = COLORS.PARTICLE_SAWDUST[math.random(1, #COLORS.PARTICLE_SAWDUST)]
+    particle.Rotation = math.random(0, 360)
+    particle.ZIndex = 102
+    particle.Parent = parentGui
+
+    if math.random() > 0.5 then
+        Instance.new("UICorner", particle).CornerRadius = UDim.new(0, 2)
+    end
+
+    local endX = math.random(-300, 300)
+    local endY = math.random(-300, 300)
+    local duration = 0.6 + math.random() * 0.8
+
+    TS:Create(particle, TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        Position = UDim2.new(0.5, endX, 0.5, endY),
+        BackgroundTransparency = 1,
+        Rotation = math.random(-720, 720),
+        Size = UDim2.new(0, 1, 0, 1)
+    }):Play()
+
+    Debris:AddItem(particle, duration + 0.1)
+end
+
+-- Создание 2D частицы шелухи от семечек
+local function spawnSeedHuskParticle(parentGui, originPos)
+    local particle = Instance.new("Frame")
+    local size = math.random(3, 8)
+    particle.Size = UDim2.new(0, size, 0, size * 1.5)
+    particle.Position = originPos or UDim2.new(0.5, math.random(-20, 20), 0.5, math.random(-20, 20))
+    particle.BackgroundColor3 = COLORS.PARTICLE_SEEDS[math.random(1, #COLORS.PARTICLE_SEEDS)]
+    particle.Rotation = math.random(0, 360)
+    particle.ZIndex = 102
+    particle.Parent = parentGui
+
+    Instance.new("UICorner", particle).CornerRadius = UDim.new(0.3, 0)
+
+    -- Добавляем полоску на семечке
+    local stripe = Instance.new("Frame")
+    stripe.Size = UDim2.new(0.3, 0, 1, 0)
+    stripe.Position = UDim2.new(0.35, 0, 0, 0)
+    stripe.BackgroundColor3 = Color3.fromRGB(100, 85, 50)
+    stripe.BackgroundTransparency = 0.5
+    stripe.BorderSizePixel = 0
+    stripe.ZIndex = 103
+    stripe.Parent = particle
+
+    local endX = math.random(-250, 250)
+    local endY = math.random(-250, 250)
+    local duration = 0.7 + math.random() * 0.6
+
+    TS:Create(particle, TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        Position = UDim2.new(0.5, endX, 0.5, endY),
+        BackgroundTransparency = 1,
+        Rotation = math.random(-540, 540),
+        Size = UDim2.new(0, 1, 0, 1)
+    }):Play()
+
+    Debris:AddItem(particle, duration + 0.1)
+end
+
+-- Создание призрачного подсолнуха
+local function spawnGhostSunflower(parentGui, originPos)
+    local sunflower = Instance.new("TextLabel")
+    local size = math.random(20, 40)
+    sunflower.Size = UDim2.new(0, size, 0, size)
+    sunflower.Position = originPos or UDim2.new(0.5, math.random(-40, 40), 0.5, math.random(-40, 40))
+    sunflower.BackgroundTransparency = 1
+    sunflower.Text = "🌻"
+    sunflower.TextSize = size
+    sunflower.TextTransparency = 0.3
+    sunflower.Rotation = math.random(-30, 30)
+    sunflower.ZIndex = 102
+    sunflower.Parent = parentGui
+
+    local endX = math.random(-200, 200)
+    local endY = math.random(-350, -50) -- летят вверх
+    local duration = 1.0 + math.random() * 1.0
+
+    TS:Create(sunflower, TweenInfo.new(duration, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+        Position = UDim2.new(0.5, endX, 0.5, endY),
+        TextTransparency = 1,
+        Rotation = sunflower.Rotation + math.random(-180, 180),
+        Size = UDim2.new(0, size * 1.5, 0, size * 1.5)
+    }):Play()
+
+    -- Пульсация подсолнуха
+    task.spawn(function()
+        for i = 1, 3 do
+            if sunflower.Parent then
+                TS:Create(sunflower, TweenInfo.new(0.15), {TextSize = size * 1.2}):Play()
+                task.wait(0.15)
+                if sunflower.Parent then
+                    TS:Create(sunflower, TweenInfo.new(0.15), {TextSize = size}):Play()
+                    task.wait(0.15)
+                end
+            end
+        end
+    end)
+
+    Debris:AddItem(sunflower, duration + 0.1)
+end
+
+-- Создание 3D частиц в мире (опилки, семечки)
+local function spawn3DParticles(position)
+    if not animationsEnabled then return end
+
+    -- Опилки
+    for i = 1, 15 do
+        local sawdust = Instance.new("Part")
+        local size = math.random(1, 3) / 10
+        sawdust.Size = Vector3.new(size, size * 0.3, size)
+        sawdust.Position = position + Vector3.new(math.random(-2, 2), math.random(0, 3), math.random(-2, 2))
+        sawdust.BrickColor = BrickColor.new("Brick yellow")
+        sawdust.Material = Enum.Material.WoodPlanks
+        sawdust.Anchored = false
+        sawdust.CanCollide = false
+        sawdust.Name = "Sawdust_" .. i
+        sawdust.Parent = workspace
+
+        -- Физика
+        local velocity = Instance.new("BodyVelocity")
+        velocity.Velocity = Vector3.new(math.random(-15, 15), math.random(10, 25), math.random(-15, 15))
+        velocity.MaxForce = Vector3.new(1000, 1000, 1000)
+        velocity.Parent = sawdust
+        Debris:AddItem(velocity, 0.2)
+
+        -- Вращение
+        local angVel = Instance.new("BodyAngularVelocity")
+        angVel.AngularVelocity = Vector3.new(math.random(-10, 10), math.random(-10, 10), math.random(-10, 10))
+        angVel.MaxTorque = Vector3.new(100, 100, 100)
+        angVel.Parent = sawdust
+        Debris:AddItem(angVel, 0.3)
+
+        Debris:AddItem(sawdust, 2)
+    end
+
+    -- Шелуха от семечек
+    for i = 1, 8 do
+        local seed = Instance.new("Part")
+        seed.Size = Vector3.new(0.15, 0.05, 0.1)
+        seed.Position = position + Vector3.new(math.random(-1, 1), math.random(1, 2), math.random(-1, 1))
+        seed.BrickColor = BrickColor.new("Dark stone grey")
+        seed.Material = Enum.Material.SmoothPlastic
+        seed.Anchored = false
+        seed.CanCollide = false
+        seed.Name = "SeedHusk_" .. i
+        seed.Parent = workspace
+
+        local velocity = Instance.new("BodyVelocity")
+        velocity.Velocity = Vector3.new(math.random(-20, 20), math.random(15, 30), math.random(-20, 20))
+        velocity.MaxForce = Vector3.new(500, 500, 500)
+        velocity.Parent = seed
+        Debris:AddItem(velocity, 0.15)
+
+        Debris:AddItem(seed, 2.5)
+    end
+
+    -- Призрачные подсолнухи (BillboardGui в мире)
+    for i = 1, 3 do
+        task.delay(i * 0.15, function()
+            local anchor = Instance.new("Part")
+            anchor.Size = Vector3.new(0.1, 0.1, 0.1)
+            anchor.Position = position + Vector3.new(math.random(-3, 3), math.random(2, 5), math.random(-3, 3))
+            anchor.Transparency = 1
+            anchor.Anchored = true
+            anchor.CanCollide = false
+            anchor.Parent = workspace
+
+            local billboard = Instance.new("BillboardGui")
+            billboard.Size = UDim2.new(0, 50, 0, 50)
+            billboard.Adornee = anchor
+            billboard.AlwaysOnTop = true
+            billboard.Parent = anchor
+
+            local sunflowerLabel = Instance.new("TextLabel")
+            sunflowerLabel.Size = UDim2.new(1, 0, 1, 0)
+            sunflowerLabel.BackgroundTransparency = 1
+            sunflowerLabel.Text = "🌻"
+            sunflowerLabel.TextSize = 40
+            sunflowerLabel.TextTransparency = 0.2
+            sunflowerLabel.Parent = billboard
+
+            -- Анимация подъема и исчезновения
+            local duration = 2 + math.random() * 1
+            local startPos = anchor.Position
+            local endPos = startPos + Vector3.new(math.random(-5, 5), math.random(5, 10), math.random(-5, 5))
+
+            task.spawn(function()
+                local elapsed = 0
+                while elapsed < duration and anchor.Parent do
+                    elapsed = elapsed + task.wait()
+                    local t = elapsed / duration
+                    anchor.Position = startPos:Lerp(endPos, t)
+                    sunflowerLabel.TextTransparency = 0.2 + t * 0.8
+                    sunflowerLabel.Rotation = t * 360
+                end
+                if anchor.Parent then anchor:Destroy() end
+            end)
+
+            Debris:AddItem(anchor, duration + 0.5)
+        end)
+    end
+end
+
+-- Полный выброс частиц при телепорте (экранные)
+local function spawnTeleportParticles(parentGui)
+    -- Опилки
+    for i = 1, 20 do
+        task.delay(i * 0.02, function()
+            spawnSawdustParticle(parentGui)
+        end)
+    end
+
+    -- Шелуха
+    for i = 1, 12 do
+        task.delay(i * 0.03, function()
+            spawnSeedHuskParticle(parentGui)
+        end)
+    end
+
+    -- Призрачные подсолнухи
+    for i = 1, 5 do
+        task.delay(i * 0.1, function()
+            spawnGhostSunflower(parentGui)
+        end)
+    end
+end
+
+-- ═══════════════════════════════════════════════════════════════
+-- 🎥 КИНЕМАТОГРАФИЧНАЯ КАМЕРА (СТИЛЬ GTA)
+-- ═══════════════════════════════════════════════════════════════
+local function cinematicCameraFly(startPos, endPos, callback)
+    if not cameraFlyEnabled or not animationsEnabled then
+        if callback then callback() end
+        return
+    end
+
+    local originalCameraType = Camera.CameraType
+    Camera.CameraType = Enum.CameraType.Scriptable
+
+    -- Рассчитываем путь камеры
+    local distance = (endPos - startPos).Magnitude
+    local midPoint = (startPos + endPos) / 2 + Vector3.new(0, math.min(distance * 0.3, 100), 0)
+
+    -- Добавляем боковое смещение для кинематографичности
+    local direction = (endPos - startPos).Unit
+    local sideOffset = direction:Cross(Vector3.new(0, 1, 0)) * math.min(distance * 0.15, 40)
+    midPoint = midPoint + sideOffset
+
+    local totalDuration = math.clamp(distance / 200, 1.5, 5.0)
+
+    -- Фаза 1: Отлёт от игрока (камера поднимается и отходит)
+    local phase1Duration = totalDuration * 0.3
+    local phase2Duration = totalDuration * 0.4
+    local phase3Duration = totalDuration * 0.3
+
+    -- Начальная позиция камеры (немного позади игрока)
+    local camStartPos = startPos + Vector3.new(0, 5, -10)
+    Camera.CFrame = CFrame.new(camStartPos, startPos)
+
+    -- Фаза 1: Подъём
+    local phase1End = startPos + Vector3.new(0, 30 + distance * 0.1, -20)
+    task.spawn(function()
+        local elapsed = 0
+        while elapsed < phase1Duration do
+            local dt = task.wait()
+            elapsed = elapsed + dt
+            local t = math.clamp(elapsed / phase1Duration, 0, 1)
+            -- Easing
+            t = 1 - (1 - t) * (1 - t) -- EaseOut Quad
+
+            local currentPos = camStartPos:Lerp(phase1End, t)
+            local lookAt = startPos:Lerp(midPoint, t * 0.3)
+            Camera.CFrame = CFrame.new(currentPos, lookAt)
+        end
+
+        -- Фаза 2: Полёт через карту
+        local phase2Start = phase1End
+        local phase2End = endPos + Vector3.new(0, 20, -15)
+        elapsed = 0
+        while elapsed < phase2Duration do
+            local dt = task.wait()
+            elapsed = elapsed + dt
+            local t = math.clamp(elapsed / phase2Duration, 0, 1)
+            -- Smooth step
+            t = t * t * (3 - 2 * t)
+
+            -- Безье-кривая через midPoint
+            local p1 = phase2Start:Lerp(midPoint, t)
+            local p2 = midPoint:Lerp(phase2End, t)
+            local currentPos = p1:Lerp(p2, t)
+            local lookAt = midPoint:Lerp(endPos, t)
+            Camera.CFrame = CFrame.new(currentPos, lookAt)
+        end
+
+        -- Фаза 3: Приземление (камера мягко садится к хомяку)
+        local phase3Start = endPos + Vector3.new(0, 20, -15)
+        local phase3End = endPos + Vector3.new(0, 4, -8)
+        elapsed = 0
+        while elapsed < phase3Duration do
+            local dt = task.wait()
+            elapsed = elapsed + dt
+            local t = math.clamp(elapsed / phase3Duration, 0, 1)
+            -- EaseInOut
+            if t < 0.5 then
+                t = 2 * t * t
+            else
+                t = 1 - (-2 * t + 2) * (-2 * t + 2) / 2
+            end
+
+            local currentPos = phase3Start:Lerp(phase3End, t)
+            Camera.CFrame = CFrame.new(currentPos, endPos)
+        end
+
+        -- Плавный возврат камеры к игроку
+        task.wait(0.3)
+        Camera.CameraType = originalCameraType
+
+        if callback then callback() end
+    end)
+end
+
+-- ═══════════════════════════════════════════════════════════════
+-- 👁️ ШЕЙДЕРНЫЕ ЭФФЕКТЫ: "ХОМЯЧЬЕ ЗРЕНИЕ"
+-- ═══════════════════════════════════════════════════════════════
+local hamsterVisionGui = nil
+local hamsterVisionConnection = nil
+
+local function activateHamsterVision(duration)
+    if not animationsEnabled then return end
+
+    duration = duration or 5
+
+    -- Убираем предыдущий эффект если есть
+    if hamsterVisionGui and hamsterVisionGui.Parent then
+        hamsterVisionGui:Destroy()
+    end
+    if hamsterVisionConnection then
+        hamsterVisionConnection:Disconnect()
+    end
+
+    hamsterVisionActive = true
+    hamsterVisionEndTime = tick() + duration
+
+    -- Создаём GUI для эффекта
+    hamsterVisionGui = Instance.new("ScreenGui")
+    hamsterVisionGui.Name = "HamsterVision"
+    hamsterVisionGui.ResetOnSpawn = false
+    hamsterVisionGui.IgnoreGuiInset = true
+    hamsterVisionGui.DisplayOrder = 1001
+    hamsterVisionGui.Parent = pgui
+
+    -- Эффект рыбьего глаза (виньетка + искажение по краям)
+    local vignette = Instance.new("ImageLabel")
+    vignette.Size = UDim2.new(1.4, 0, 1.4, 0)
+    vignette.Position = UDim2.new(-0.2, 0, -0.2, 0)
+    vignette.BackgroundTransparency = 1
+    vignette.ImageTransparency = 0.3
+    vignette.ZIndex = 1000
+    vignette.Parent = hamsterVisionGui
+
+    -- Чёрная виньетка по краям (имитация рыбьего глаза)
+    local vignetteOverlay = Instance.new("Frame")
+    vignetteOverlay.Size = UDim2.new(1, 0, 1, 0)
+    vignetteOverlay.BackgroundTransparency = 1
+    vignetteOverlay.ZIndex = 1000
+    vignetteOverlay.Parent = hamsterVisionGui
+
+    -- Круглая маска
+    for i = 1, 8 do
+        local edge = Instance.new("Frame")
+        local angle = (i - 1) * math.pi / 4
+        local radius = 0.6
+        edge.Size = UDim2.new(0.3, 0, 0.3, 0)
+        edge.Position = UDim2.new(0.5 + math.cos(angle) * radius - 0.15, 0, 0.5 + math.sin(angle) * radius - 0.15, 0)
+        edge.BackgroundColor3 = Color3.new(0, 0, 0)
+        edge.BackgroundTransparency = 0.5
+        edge.BorderSizePixel = 0
+        edge.ZIndex = 1000
+        edge.Parent = vignetteOverlay
+        Instance.new("UICorner", edge).CornerRadius = UDim.new(1, 0)
+    end
+
+    -- Углы экрана затемняем
+    local corners = {
+        {UDim2.new(0, 0, 0, 0), UDim2.new(0.25, 0, 0.25, 0)},
+        {UDim2.new(0.75, 0, 0, 0), UDim2.new(0.25, 0, 0.25, 0)},
+        {UDim2.new(0, 0, 0.75, 0), UDim2.new(0.25, 0, 0.25, 0)},
+        {UDim2.new(0.75, 0, 0.75, 0), UDim2.new(0.25, 0, 0.25, 0)},
+    }
+
+    for _, cornerData in ipairs(corners) do
+        local corner = Instance.new("Frame")
+        corner.Position = cornerData[1]
+        corner.Size = cornerData[2]
+        corner.BackgroundColor3 = Color3.new(0, 0, 0)
+        corner.BackgroundTransparency = 0.4
+        corner.BorderSizePixel = 0
+        corner.ZIndex = 1000
+        corner.Parent = vignetteOverlay
+    end
+
+    -- Повышенная контрастность через ColorCorrection
+    local colorCorrection = Instance.new("ColorCorrectionEffect")
+    colorCorrection.Name = "HamsterVisionCC"
+    colorCorrection.Contrast = 0.4
+    colorCorrection.Saturation = 0.3
+    colorCorrection.Brightness = 0.05
+    colorCorrection.TintColor = Color3.fromRGB(255, 240, 200) -- Тёплый хомячий оттенок
+    colorCorrection.Parent = Lighting
+
+    -- Легкий блюр
+    local blur = Instance.new("BlurEffect")
+    blur.Name = "HamsterVisionBlur"
+    blur.Size = 3
+    blur.Parent = Lighting
+
+    -- Текст "Хомячье зрение"
+    local visionLabel = Instance.new("TextLabel")
+    visionLabel.Size = UDim2.new(0, 200, 0, 30)
+    visionLabel.Position = UDim2.new(0.5, -100, 0, 10)
+    visionLabel.BackgroundColor3 = COLORS.ACCENT
+    visionLabel.BackgroundTransparency = 0.3
+    visionLabel.Text = "👁️ ХОМЯЧЬЕ ЗРЕНИЕ 👁️"
+    visionLabel.TextColor3 = COLORS.BG_DARK
+    visionLabel.Font = Enum.Font.FredokaOne
+    visionLabel.TextSize = 14
+    visionLabel.ZIndex = 1001
+    visionLabel.Parent = hamsterVisionGui
+    Instance.new("UICorner", visionLabel).CornerRadius = UDim.new(0, 8)
+
+    -- Таймер
+    local timerLabel = Instance.new("TextLabel")
+    timerLabel.Size = UDim2.new(0, 80, 0, 20)
+    timerLabel.Position = UDim2.new(0.5, -40, 0, 42)
+    timerLabel.BackgroundTransparency = 1
+    timerLabel.Text = string.format("%.1f с", duration)
+    timerLabel.TextColor3 = COLORS.ACCENT_SOFT
+    timerLabel.Font = Enum.Font.GothamBold
+    timerLabel.TextSize = 12
+    timerLabel.ZIndex = 1001
+    timerLabel.Parent = hamsterVisionGui
+
+    -- Нос хомяка внизу экрана
+    local noseLabel = Instance.new("TextLabel")
+    noseLabel.Size = UDim2.new(0, 100, 0, 80)
+    noseLabel.Position = UDim2.new(0.5, -50, 1, -60)
+    noseLabel.BackgroundTransparency = 1
+    noseLabel.Text = "🐹"
+    noseLabel.TextSize = 60
+    noseLabel.TextTransparency = 0.5
+    noseLabel.ZIndex = 1001
+    noseLabel.Parent = hamsterVisionGui
+
+    -- Усики по бокам (декор)
+    for side = -1, 1, 2 do
+        for j = 1, 3 do
+            local whisker = Instance.new("Frame")
+            whisker.Size = UDim2.new(0, 80, 0, 1)
+            whisker.Position = UDim2.new(0.5, side * 30, 1, -35 + (j - 2) * 8)
+            whisker.Rotation = side * (10 + (j - 2) * 8)
+            whisker.BackgroundColor3 = Color3.fromRGB(200, 180, 150)
+            whisker.BackgroundTransparency = 0.5
+            whisker.BorderSizePixel = 0
+            whisker.ZIndex = 1001
+            whisker.Parent = hamsterVisionGui
+        end
+    end
+
+    -- Анимация появления
+    TS:Create(visionLabel, TweenInfo.new(0.3, Enum.EasingStyle.Back), {Position = UDim2.new(0.5, -100, 0, 10)}):Play()
+
+    -- Покачивание эффекта
+    hamsterVisionConnection = RunService.Heartbeat:Connect(function()
+        local remaining = hamsterVisionEndTime - tick()
+        if remaining <= 0 then
+            -- Деактивация
+            hamsterVisionActive = false
+
+            -- Плавное удаление
+            TS:Create(colorCorrection, TweenInfo.new(0.5), {Contrast = 0, Saturation = 0, Brightness = 0}):Play()
+            TS:Create(blur, TweenInfo.new(0.5), {Size = 0}):Play()
+
+            if vignetteOverlay then
+                for _, child in ipairs(vignetteOverlay:GetChildren()) do
+                    if child:IsA("Frame") then
+                        TS:Create(child, TweenInfo.new(0.5), {BackgroundTransparency = 1}):Play()
+                    end
+                end
+            end
+
+            task.delay(0.5, function()
+                if colorCorrection.Parent then colorCorrection:Destroy() end
+                if blur.Parent then blur:Destroy() end
+                if hamsterVisionGui and hamsterVisionGui.Parent then hamsterVisionGui:Destroy() end
+            end)
+
+            if hamsterVisionConnection then
+                hamsterVisionConnection:Disconnect()
+                hamsterVisionConnection = nil
+            end
+            return
+        end
+
+        timerLabel.Text = string.format("%.1f с", remaining)
+
+        -- Покачивание камеры (очень лёгкое)
+        local wobble = math.sin(tick() * 3) * 0.3
+        if noseLabel and noseLabel.Parent then
+            noseLabel.Position = UDim2.new(0.5, -50 + math.sin(tick() * 2) * 3, 1, -60 + math.cos(tick() * 1.5) * 2)
+        end
+
+        -- Пульсация контраста
+        if colorCorrection and colorCorrection.Parent then
+            colorCorrection.Contrast = 0.3 + math.sin(tick() * 2) * 0.1
+        end
+    end)
+end
+
+-- ═══════════════════════════════════════════════════════════════
+-- 🖥️ GUI КОНТЕЙНЕР
+-- ═══════════════════════════════════════════════════════════════
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "FindTheChomikGui"
+screenGui.ResetOnSpawn = false
+screenGui.IgnoreGuiInset = true
+screenGui.DisplayOrder = 999
+screenGui.Parent = pgui
+
+-- ═══════════════════════════════════════════════════════════════
+-- 📍 ИНДИКАТОР ЛОКАЦИИ (ЛЕВЫЙ НИЖНИЙ УГОЛ)
+-- ═══════════════════════════════════════════════════════════════
+local locationFrame = Instance.new("Frame")
+locationFrame.Size = UDim2.new(0, 320, 0, 75)
+locationFrame.Position = UDim2.new(0, 10, 1, -85)
+locationFrame.BackgroundColor3 = COLORS.LOCATION_BG
+locationFrame.BackgroundTransparency = 0.15
+locationFrame.ZIndex = 50
+locationFrame.Parent = screenGui
+Instance.new("UICorner", locationFrame).CornerRadius = UDim.new(0, 14)
+
+local locationStroke = Instance.new("UIStroke", locationFrame)
+locationStroke.Thickness = 1.5
+locationStroke.Color = COLORS.LOCATION_ACCENT
+locationStroke.Transparency = 0.4
+
+-- Заголовок локации
+local locationTitle = Instance.new("TextLabel")
+locationTitle.Size = UDim2.new(1, -16, 0, 20)
+locationTitle.Position = UDim2.new(0, 8, 0, 5)
+locationTitle.BackgroundTransparency = 1
+locationTitle.RichText = true
+locationTitle.Text = '📍 <font color="#FFB428">ЛОКАЦИЯ</font>'
+locationTitle.TextColor3 = COLORS.TEXT_WHITE
+locationTitle.Font = Enum.Font.FredokaOne
+locationTitle.TextSize = 12
+locationTitle.TextXAlignment = Enum.TextXAlignment.Left
+locationTitle.ZIndex = 51
+locationTitle.Parent = locationFrame
+
+-- Основной текст локации
+local locationText = Instance.new("TextLabel")
+locationText.Size = UDim2.new(1, -16, 0, 22)
+locationText.Position = UDim2.new(0, 8, 0, 26)
+locationText.BackgroundTransparency = 1
+locationText.Text = "🌿 Равнины [Центр]"
+locationText.TextColor3 = COLORS.ACCENT_SOFT
+locationText.Font = Enum.Font.FredokaOne
+locationText.TextSize = 13
+locationText.TextXAlignment = Enum.TextXAlignment.Left
+locationText.TextTruncate = Enum.TextTruncate.AtEnd
+locationText.ZIndex = 51
+locationText.Parent = locationFrame
+
+-- Координаты
+local locationCoords = Instance.new("TextLabel")
+locationCoords.Size = UDim2.new(1, -16, 0, 16)
+locationCoords.Position = UDim2.new(0, 8, 0, 50)
+locationCoords.BackgroundTransparency = 1
+locationCoords.Text = "X: 0  Y: 0  Z: 0"
+locationCoords.TextColor3 = COLORS.TEXT_DARK
+locationCoords.Font = Enum.Font.Gotham
+locationCoords.TextSize = 10
+locationCoords.TextXAlignment = Enum.TextXAlignment.Left
+locationCoords.ZIndex = 51
+locationCoords.Parent = locationFrame
+
+-- Обновление локации каждую секунду
+task.spawn(function()
+    while screenGui.Parent do
+        local locName, locPos = getCurrentPlayerLocation()
+        locationText.Text = locName
+        locationCoords.Text = string.format("X: %d  Y: %d  Z: %d", math.floor(locPos.X), math.floor(locPos.Y), math.floor(locPos.Z))
+
+        -- Мягкая пульсация иконки
+        TS:Create(locationStroke, TweenInfo.new(0.5), {Transparency = 0.3}):Play()
+        task.wait(0.5)
+        TS:Create(locationStroke, TweenInfo.new(0.5), {Transparency = 0.6}):Play()
+        task.wait(0.5)
+    end
+end)
+
+-- ═══════════════════════════════════════════════════════════════
+-- 🎬 ЗАГРУЗОЧНЫЙ ЭКРАН (РАСШИРЕННЫЙ)
+-- ═══════════════════════════════════════════════════════════════
+local function showLoadingScreen()
+    local loadBg = Instance.new("Frame")
+    loadBg.Size = UDim2.new(1, 0, 1, 0)
+    loadBg.BackgroundColor3 = COLORS.BG_DARK
+    loadBg.BackgroundTransparency = 0.1
+    loadBg.ZIndex = 200
+    loadBg.Parent = screenGui
+
+    local loadFrame = Instance.new("Frame")
+    loadFrame.Size = UDim2.new(0, 340, 0, 240)
+    loadFrame.Position = UDim2.new(0.5, -170, 0.5, -120)
+    loadFrame.BackgroundColor3 = COLORS.BG_DARK
+    loadFrame.ZIndex = 201
+    loadFrame.Parent = screenGui
+    Instance.new("UICorner", loadFrame).CornerRadius = UDim.new(0, 20)
+
+    local loadStroke = Instance.new("UIStroke", loadFrame)
+    loadStroke.Thickness = 3
+    loadStroke.Color = COLORS.ACCENT
+    loadStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+    -- Вращающийся хомяк
+    local spinChomik = Instance.new("TextLabel")
+    spinChomik.Size = UDim2.new(0, 60, 0, 60)
+    spinChomik.Position = UDim2.new(0.5, -30, 0, 20)
+    spinChomik.BackgroundTransparency = 1
+    spinChomik.Text = "🐹"
+    spinChomik.TextSize = 48
+    spinChomik.ZIndex = 202
+    spinChomik.Parent = loadFrame
+
+    local loadTitle = Instance.new("TextLabel")
+    loadTitle.Size = UDim2.new(1, 0, 0, 30)
+    loadTitle.Position = UDim2.new(0, 0, 0, 85)
+    loadTitle.BackgroundTransparency = 1
+    loadTitle.Text = "FIND THE CHOMIK ULTRA"
+    loadTitle.TextColor3 = COLORS.ACCENT
+    loadTitle.Font = Enum.Font.FredokaOne
+    loadTitle.TextSize = 22
+    loadTitle.ZIndex = 202
+    loadTitle.Parent = loadFrame
+
+    local loadSubtitle = Instance.new("TextLabel")
+    loadSubtitle.Size = UDim2.new(1, 0, 0, 18)
+    loadSubtitle.Position = UDim2.new(0, 0, 0, 112)
+    loadSubtitle.BackgroundTransparency = 1
+    loadSubtitle.Text = "✨ Версия с визуальными эффектами ✨"
+    loadSubtitle.TextColor3 = COLORS.TEXT_DIM
+    loadSubtitle.Font = Enum.Font.Gotham
+    loadSubtitle.TextSize = 11
+    loadSubtitle.ZIndex = 202
+    loadSubtitle.Parent = loadFrame
+
+    -- Прогресс-бар
+    local barBg = Instance.new("Frame")
+    barBg.Size = UDim2.new(0.75, 0, 0, 10)
+    barBg.Position = UDim2.new(0.125, 0, 0, 145)
+    barBg.BackgroundColor3 = COLORS.BG_LIGHT
+    barBg.ZIndex = 202
+    barBg.Parent = loadFrame
+    Instance.new("UICorner", barBg).CornerRadius = UDim.new(1, 0)
+
+    local barFill = Instance.new("Frame")
+    barFill.Size = UDim2.new(0, 0, 1, 0)
+    barFill.BackgroundColor3 = COLORS.ACCENT
+    barFill.ZIndex = 203
+    barFill.Parent = barBg
+    Instance.new("UICorner", barFill).CornerRadius = UDim.new(1, 0)
+
+    -- Градиент на прогресс-баре
+    local barGrad = Instance.new("UIGradient", barFill)
+    barGrad.Color = ColorSequence.new(COLORS.ACCENT, COLORS.ACCENT2)
+
+    local loadStatus = Instance.new("TextLabel")
+    loadStatus.Size = UDim2.new(1, 0, 0, 18)
+    loadStatus.Position = UDim2.new(0, 0, 0, 165)
+    loadStatus.BackgroundTransparency = 1
+    loadStatus.Text = "Загрузка хомяков..."
+    loadStatus.TextColor3 = COLORS.TEXT_DIM
+    loadStatus.Font = Enum.Font.Gotham
+    loadStatus.TextSize = 11
+    loadStatus.ZIndex = 202
+    loadStatus.Parent = loadFrame
+
+    -- Процент
+    local loadPercent = Instance.new("TextLabel")
+    loadPercent.Size = UDim2.new(1, 0, 0, 18)
+    loadPercent.Position = UDim2.new(0, 0, 0, 183)
+    loadPercent.BackgroundTransparency = 1
+    loadPercent.Text = "0%"
+    loadPercent.TextColor3 = COLORS.ACCENT
+    loadPercent.Font = Enum.Font.FredokaOne
+    loadPercent.TextSize = 14
+    loadPercent.ZIndex = 202
+    loadPercent.Parent = loadFrame
+
+    -- Декоративные хомяки
+    local decoPositions = {
+        UDim2.new(0.1, 0, 0, 210),
+        UDim2.new(0.3, 0, 0, 210),
+        UDim2.new(0.5, 0, 0, 210),
+        UDim2.new(0.7, 0, 0, 210),
+        UDim2.new(0.9, 0, 0, 210),
+    }
+    local decoLabels = {}
+    for _, dp in ipairs(decoPositions) do
+        local dl = Instance.new("TextLabel")
+        dl.Size = UDim2.new(0, 20, 0, 20)
+        dl.Position = dp
+        dl.BackgroundTransparency = 1
+        dl.Text = "🐹"
+        dl.TextSize = 14
+        dl.TextTransparency = 0.7
+        dl.ZIndex = 202
+        dl.Parent = loadFrame
+        table.insert(decoLabels, dl)
+    end
+
+    -- Анимация вращения
+    task.spawn(function()
+        local angle = 0
+        while spinChomik.Parent do
+            angle = angle + 8
+            spinChomik.Rotation = math.sin(math.rad(angle)) * 15
+            task.wait(0.03)
+        end
+    end)
+
+    -- Анимация декоративных хомяков
+    task.spawn(function()
+        local t = 0
+        while loadFrame.Parent do
+            t = t + 0.05
+            for i, dl in ipairs(decoLabels) do
+                dl.TextTransparency = 0.5 + math.sin(t + i) * 0.3
+                dl.Position = decoPositions[i] + UDim2.new(0, 0, 0, math.sin(t * 2 + i * 0.7) * 3)
+            end
+            task.wait(0.03)
+        end
+    end)
+
+    -- Анимация прогресса
+    local steps = {
+        "Инициализация системы...",
+        "Поиск хомяков в мире...",
+        "Загрузка визуальных эффектов...",
+        "Настройка камеры...",
+        "Инициализация частиц...",
+        "Загрузка шейдеров...",
+        "Построение Dashboard...",
+        "Подготовка Hamster Tinder...",
+        "Калибровка процедурных звуков...",
+        "Система мягкой посадки...",
+        "Финализация... 🐹",
+        "Готово! 🐹✨"
+    }
+
+    for i, step in ipairs(steps) do
+        local progress = i / #steps
+        TS:Create(barFill, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
+            Size = UDim2.new(progress, 0, 1, 0)
+        }):Play()
+        loadStatus.Text = step
+        loadPercent.Text = math.floor(progress * 100) .. "%"
+
+        -- Подсвечиваем соответствующего декоративного хомяка
+        local decoIndex = math.ceil(i / (#steps / #decoLabels))
+        if decoIndex >= 1 and decoIndex <= #decoLabels then
+            TS:Create(decoLabels[decoIndex], TweenInfo.new(0.2), {TextTransparency = 0}):Play()
+        end
+
+        task.wait(0.35)
+    end
+
+    task.wait(0.3)
+    TS:Create(loadBg, TweenInfo.new(0.5), {BackgroundTransparency = 1}):Play()
+    TS:Create(loadFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+        Size = UDim2.new(0, 0, 0, 0),
+        Position = UDim2.new(0.5, 0, 0.5, 0)
+    }):Play()
+    task.wait(0.5)
+    loadBg:Destroy()
+    loadFrame:Destroy()
+end
+
+task.spawn(showLoadingScreen)
+task.wait(4.5) -- Ждём завершения загрузки
+
+-- ═══════════════════════════════════════════════════════════════
+-- 1. 🔔 ПРИВЕТСТВИЕ (РАСШИРЕННОЕ)
+-- ═══════════════════════════════════════════════════════════════
+local function showWelcome()
+    local userId = player.UserId
+    local content = game.Players:GetUserThumbnailAsync(userId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size100x100)
+
+    local stats = player:FindFirstChild("leaderstats")
+    local score = stats and (stats:FindFirstChild("Chomiks") or stats:FindFirstChild("Score") or stats:FindFirstChild("Points"))
+    local countValue = score and score.Value or 0
+
+    local notify = Instance.new("Frame")
+    notify.Size = UDim2.new(0, 350, 0, 110)
+    notify.Position = UDim2.new(1, 30, 1, -130)
+    notify.BackgroundColor3 = COLORS.BG_DARK
+    notify.Parent = screenGui
+    Instance.new("UICorner", notify).CornerRadius = UDim.new(0, 16)
+
+    local nStroke = Instance.new("UIStroke", notify)
+    nStroke.Thickness = 2.5
+    nStroke.Color = COLORS.ACCENT
+    Instance.new("UIGradient", nStroke).Color = ColorSequence.new(COLORS.ACCENT, COLORS.ACCENT2)
+
+    -- Аватар
+    local img = Instance.new("ImageLabel")
+    img.Size = UDim2.new(0, 60, 0, 60)
+    img.Position = UDim2.new(0, 16, 0.5, -30)
+    img.Image = content
+    img.BackgroundColor3 = COLORS.ACCENT
+    img.Parent = notify
+    Instance.new("UICorner", img).CornerRadius = UDim.new(1, 0)
+    Instance.new("UIStroke", img).Color = COLORS.ACCENT_SOFT
+
+    -- Хомяк-бейджик
+    local badge = Instance.new("TextLabel")
+    badge.Size = UDim2.new(0, 26, 0, 26)
+    badge.Position = UDim2.new(1, -20, 0, -8)
+    badge.BackgroundColor3 = COLORS.ACCENT
+    badge.Text = "🐹"
+    badge.TextSize = 16
+    badge.ZIndex = 2
+    badge.Parent = img
+    Instance.new("UICorner", badge).CornerRadius = UDim.new(1, 0)
+
+    -- Текст
+    local txt = Instance.new("TextLabel")
+    txt.Size = UDim2.new(1, -105, 1, 0)
+    txt.Position = UDim2.new(0, 90, 0, 0)
+    txt.BackgroundTransparency = 1
+    txt.RichText = true
+    txt.Text = '<font color="#FFB428">Привет, ' .. player.DisplayName .. '!</font>\n🐹 Хомяков: <font color="#FFDA50">' .. countValue .. '</font> | ⚡ Эффекты ON\n<font color="#8C7355" size="11">Нажми K • Ctrl+Z — возврат • L — Dashboard</font>'
+    txt.TextColor3 = COLORS.TEXT_WHITE
+    txt.Font = Enum.Font.FredokaOne
+    txt.TextSize = 13
+    txt.TextXAlignment = Enum.TextXAlignment.Left
+    txt.TextWrapped = true
+    txt.Parent = notify
+
+    TS:Create(notify, TweenInfo.new(0.7, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        Position = UDim2.new(1, -370, 1, -130)
+    }):Play()
+    playSound(421058968, 0.5)
+
+    -- Пульсация бейджика
+    task.spawn(function()
+        for i = 1, 4 do
+            TS:Create(badge, TweenInfo.new(0.3), {Size = UDim2.new(0, 32, 0, 32), Position = UDim2.new(1, -23, 0, -11)}):Play()
+            task.wait(0.3)
+            TS:Create(badge, TweenInfo.new(0.3), {Size = UDim2.new(0, 26, 0, 26), Position = UDim2.new(1, -20, 0, -8)}):Play()
+            task.wait(0.3)
+        end
+    end)
+
+    -- Мигание обводки
+    task.spawn(function()
+        for i = 1, 3 do
+            TS:Create(nStroke, TweenInfo.new(0.4), {Color = COLORS.ACCENT_SOFT}):Play()
+            task.wait(0.4)
+            TS:Create(nStroke, TweenInfo.new(0.4), {Color = COLORS.ACCENT}):Play()
+            task.wait(0.4)
+        end
+    end)
+
+    task.delay(6, function()
+        TS:Create(notify, TweenInfo.new(0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.In), {
+            Position = UDim2.new(1, 30, 1, -130)
+        }):Play()
+        task.wait(0.5)
+        notify:Destroy()
+    end)
+end
+task.spawn(showWelcome)
+
+-- ═══════════════════════════════════════════════════════════════
+-- 2. 🖼️ ГЛАВНОЕ ОКНО
+-- ═══════════════════════════════════════════════════════════════
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 380, 0, 620)
+mainFrame.Position = UDim2.new(0.5, -190, 0.5, -310)
+mainFrame.BackgroundColor3 = COLORS.BG_DARK
+mainFrame.ClipsDescendants = true
+mainFrame.Parent = screenGui
+Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 22)
+
+-- Появление окна с анимацией
+mainFrame.Size = UDim2.new(0, 0, 0, 0)
+mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+TS:Create(mainFrame, TweenInfo.new(0.7, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+    Size = UDim2.new(0, 380, 0, 620),
+    Position = UDim2.new(0.5, -190, 0.5, -310)
+}):Play()
+
+local mainStroke = Instance.new("UIStroke", mainFrame)
+mainStroke.Thickness = 2.5
+mainStroke.Color = COLORS.ACCENT
+mainStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+-- Пульсирующая рамка
+task.spawn(function()
+    while mainFrame.Parent do
+        TS:Create(mainStroke, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+            Color = COLORS.ACCENT_SOFT,
+            Thickness = 3.5
+        }):Play()
+        task.wait(1.5)
+        TS:Create(mainStroke, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+            Color = COLORS.ACCENT,
+            Thickness = 2.5
+        }):Play()
+        task.wait(1.5)
+    end
+end)
+
+-- Плавающие хомяки на фоне
+local bgContainer = Instance.new("Frame")
+bgContainer.Size = UDim2.new(1, 0, 1, 0)
+bgContainer.BackgroundTransparency = 1
+bgContainer.ClipsDescendants = true
+bgContainer.ZIndex = 0
+bgContainer.Parent = mainFrame
+
+task.spawn(function()
+    while mainFrame.Parent do
+        local emojis = {"🐹", "🌻", "🥕", "🌰"}
+        local floater = Instance.new("TextLabel")
+        floater.BackgroundTransparency = 1
+        floater.Text = emojis[math.random(1, #emojis)]
+        floater.TextSize = math.random(12, 22)
+        floater.TextTransparency = 0.85
+        floater.ZIndex = 0
+        floater.Size = UDim2.new(0, 30, 0, 30)
+        floater.Position = UDim2.new(math.random() * 0.9, 0, 1.05, 0)
+        floater.Rotation = math.random(-30, 30)
+        floater.Parent = bgContainer
+
+        local duration = 6 + math.random() * 4
+        TS:Create(floater, TweenInfo.new(duration, Enum.EasingStyle.Linear), {
+            Position = UDim2.new(floater.Position.X.Scale + (math.random() - 0.5) * 0.3, 0, -0.1, 0),
+            Rotation = floater.Rotation + math.random(-60, 60),
+            TextTransparency = 1
+        }):Play()
+        Debris:AddItem(floater, duration)
+
+        task.wait(2 + math.random() * 3)
+    end
+end)
+
+-- ═══════════════════════════════════════════════════════════════
+-- 📌 ЗАГОЛОВОК
+-- ═══════════════════════════════════════════════════════════════
+local header = Instance.new("Frame")
+header.Size = UDim2.new(1, 0, 0, 68)
+header.BackgroundColor3 = COLORS.BG_MEDIUM
+header.ZIndex = 2
+header.Parent = mainFrame
+Instance.new("UICorner", header).CornerRadius = UDim.new(0, 22)
+
+local headerFix = Instance.new("Frame")
+headerFix.Size = UDim2.new(1, 0, 0, 22)
+headerFix.Position = UDim2.new(0, 0, 1, -22)
+headerFix.BackgroundColor3 = COLORS.BG_MEDIUM
+headerFix.BorderSizePixel = 0
+headerFix.ZIndex = 2
+headerFix.Parent = header
+
+local headerGrad = Instance.new("UIGradient", header)
+headerGrad.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, COLORS.HEADER_LEFT),
+    ColorSequenceKeypoint.new(0.5, COLORS.HEADER_RIGHT),
+    ColorSequenceKeypoint.new(1, COLORS.HEADER_LEFT),
+})
+headerGrad.Transparency = NumberSequence.new({
+    NumberSequenceKeypoint.new(0, 0.65),
+    NumberSequenceKeypoint.new(0.5, 0.4),
+    NumberSequenceKeypoint.new(1, 0.65),
+})
+
+local chomiki = workspace:FindFirstChild("chomiki")
+local chomikCount = chomiki and #chomiki:GetChildren() or 0
+
+local headerText = Instance.new("TextLabel")
+headerText.Size = UDim2.new(1, -20, 1, 0)
+headerText.Position = UDim2.new(0, 10, 0, 0)
+headerText.BackgroundTransparency = 1
+headerText.RichText = true
+headerText.Text = '🐹 FIND THE CHOMIK <font color="#FFE680">[' .. chomikCount .. ']</font> 🐹'
+headerText.TextColor3 = COLORS.TEXT_WHITE
+headerText.Font = Enum.Font.FredokaOne
+headerText.TextSize = 20
+headerText.ZIndex = 3
+headerText.Parent = header
+
+local headerTextStroke = Instance.new("UIStroke", headerText)
+headerTextStroke.Thickness = 1
+headerTextStroke.Color = COLORS.ACCENT2
+headerTextStroke.Transparency = 0.5
+
+-- Разделительная линия
+local headerLine = Instance.new("Frame")
+headerLine.Size = UDim2.new(0.9, 0, 0, 2)
+headerLine.Position = UDim2.new(0.05, 0, 0, 68)
+headerLine.BackgroundColor3 = COLORS.ACCENT
+headerLine.BackgroundTransparency = 0.5
+headerLine.BorderSizePixel = 0
+headerLine.ZIndex = 2
+headerLine.Parent = mainFrame
+Instance.new("UICorner", headerLine).CornerRadius = UDim.new(1, 0)
+
+-- Анимация градиента
+task.spawn(function()
+    local offset = 0
+    while mainFrame.Parent do
+        offset = offset + 0.005
+        headerGrad.Offset = Vector2.new(math.sin(offset) * 0.3, 0)
+        task.wait(0.03)
+    end
+end)
+
+-- ═══════════════════════════════════════════════════════════════
+-- 🔍 СТРОКА ПОИСКА
+-- ═══════════════════════════════════════════════════════════════
+local searchFrame = Instance.new("Frame")
+searchFrame.Size = UDim2.new(0.92, 0, 0, 42)
+searchFrame.Position = UDim2.new(0.04, 0, 0, 78)
+searchFrame.BackgroundColor3 = COLORS.BG_LIGHT
+searchFrame.ZIndex = 2
+searchFrame.Parent = mainFrame
+Instance.new("UICorner", searchFrame).CornerRadius = UDim.new(0, 12)
+
+local searchStroke = Instance.new("UIStroke", searchFrame)
+searchStroke.Thickness = 1.5
+searchStroke.Color = COLORS.ACCENT
+searchStroke.Transparency = 0.5
+
+local searchIcon = Instance.new("TextLabel")
+searchIcon.Size = UDim2.new(0, 35, 1, 0)
+searchIcon.Position = UDim2.new(0, 5, 0, 0)
+searchIcon.BackgroundTransparency = 1
+searchIcon.Text = "🔍"
+searchIcon.TextSize = 18
+searchIcon.ZIndex = 3
+searchIcon.Parent = searchFrame
+
+local searchBox = Instance.new("TextBox")
+searchBox.Size = UDim2.new(1, -45, 1, 0)
+searchBox.Position = UDim2.new(0, 40, 0, 0)
+searchBox.BackgroundTransparency = 1
+searchBox.PlaceholderText = "Найти хомика..."
+searchBox.PlaceholderColor3 = Color3.fromRGB(160, 130, 100)
+searchBox.Text = ""
+searchBox.TextColor3 = COLORS.TEXT_WHITE
+searchBox.Font = Enum.Font.FredokaOne
+searchBox.TextSize = 15
+searchBox.TextXAlignment = Enum.TextXAlignment.Left
+searchBox.ClearTextOnFocus = false
+searchBox.ZIndex = 3
+searchBox.Parent = searchFrame
+
+searchBox.Focused:Connect(function()
+    TS:Create(searchStroke, TweenInfo.new(0.3), {Transparency = 0, Color = COLORS.ACCENT_SOFT}):Play()
+    TS:Create(searchFrame, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(90, 65, 42)}):Play()
+    playSoundSearchFocus()
+end)
+
+searchBox.FocusLost:Connect(function()
+    TS:Create(searchStroke, TweenInfo.new(0.3), {Transparency = 0.5, Color = COLORS.ACCENT}):Play()
+    TS:Create(searchFrame, TweenInfo.new(0.3), {BackgroundColor3 = COLORS.BG_LIGHT}):Play()
+    playSoundSearchBlur()
+end)
+
+-- ═══════════════════════════════════════════════════════════════
+-- ⚡ КНОПКИ ДЕЙСТВИЙ (РАСШИРЕННЫЕ)
+-- ═══════════════════════════════════════════════════════════════
+
+-- Кнопка «Ближайший хомяк»
+local nearestBtn = Instance.new("TextButton")
+nearestBtn.Size = UDim2.new(0.45, 0, 0, 36)
+nearestBtn.Position = UDim2.new(0.04, 0, 0, 126)
+nearestBtn.BackgroundColor3 = COLORS.NEAREST_GREEN
+nearestBtn.Text = ""
+nearestBtn.AutoButtonColor = false
+nearestBtn.ZIndex = 2
+nearestBtn.Parent = mainFrame
+Instance.new("UICorner", nearestBtn).CornerRadius = UDim.new(0, 10)
+
+local nearestStroke = Instance.new("UIStroke", nearestBtn)
+nearestStroke.Thickness = 1.5
+nearestStroke.Color = COLORS.NEAREST_DARK
+
+local nearestIcon = Instance.new("TextLabel")
+nearestIcon.Size = UDim2.new(0, 25, 1, 0)
+nearestIcon.Position = UDim2.new(0, 5, 0, 0)
+nearestIcon.BackgroundTransparency = 1
+nearestIcon.Text = "⚡"
+nearestIcon.TextSize = 16
+nearestIcon.ZIndex = 3
+nearestIcon.Parent = nearestBtn
+
+local nearestLabel = Instance.new("TextLabel")
+nearestLabel.Size = UDim2.new(1, -30, 1, 0)
+nearestLabel.Position = UDim2.new(0, 28, 0, 0)
+nearestLabel.BackgroundTransparency = 1
+nearestLabel.Text = "Ближайший"
+nearestLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+nearestLabel.Font = Enum.Font.FredokaOne
+nearestLabel.TextSize = 12
+nearestLabel.TextXAlignment = Enum.TextXAlignment.Left
+nearestLabel.ZIndex = 3
+nearestLabel.Parent = nearestBtn
+
+-- Кнопка «Hamster Tinder»
+local tinderBtn = Instance.new("TextButton")
+tinderBtn.Size = UDim2.new(0.45, 0, 0, 36)
+tinderBtn.Position = UDim2.new(0.51, 0, 0, 126)
+tinderBtn.BackgroundColor3 = COLORS.LIKE_RED
+tinderBtn.Text = ""
+tinderBtn.AutoButtonColor = false
+tinderBtn.ZIndex = 2
+tinderBtn.Parent = mainFrame
+Instance.new("UICorner", tinderBtn).CornerRadius = UDim.new(0, 10)
+
+local tinderStroke = Instance.new("UIStroke", tinderBtn)
+tinderStroke.Thickness = 1.5
+tinderStroke.Color = COLORS.LIKE_RED_DARK
+
+local tinderIcon = Instance.new("TextLabel")
+tinderIcon.Size = UDim2.new(0, 25, 1, 0)
+tinderIcon.Position = UDim2.new(0, 5, 0, 0)
+tinderIcon.BackgroundTransparency = 1
+tinderIcon.Text = "❤️"
+tinderIcon.TextSize = 14
+tinderIcon.ZIndex = 3
+tinderIcon.Parent = tinderBtn
+
+local tinderLabel = Instance.new("TextLabel")
+tinderLabel.Size = UDim2.new(1, -30, 1, 0)
+tinderLabel.Position = UDim2.new(0, 28, 0, 0)
+tinderLabel.BackgroundTransparency = 1
+tinderLabel.Text = "Hamster Tinder"
+tinderLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+tinderLabel.Font = Enum.Font.FredokaOne
+tinderLabel.TextSize = 12
+tinderLabel.TextXAlignment = Enum.TextXAlignment.Left
+tinderLabel.ZIndex = 3
+tinderLabel.Parent = tinderBtn
+
+-- Hover эффекты
+nearestBtn.MouseEnter:Connect(function()
+    TS:Create(nearestBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(100, 220, 100)}):Play()
+    playSoundHover()
+end)
+nearestBtn.MouseLeave:Connect(function()
+    TS:Create(nearestBtn, TweenInfo.new(0.2), {BackgroundColor3 = COLORS.NEAREST_GREEN}):Play()
+end)
+
+tinderBtn.MouseEnter:Connect(function()
+    TS:Create(tinderBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 110, 130)}):Play()
+    playSoundHover()
+end)
+tinderBtn.MouseLeave:Connect(function()
+    TS:Create(tinderBtn, TweenInfo.new(0.2), {BackgroundColor3 = COLORS.LIKE_RED}):Play()
+end)
+
+-- ═══════════════════════════════════════════════════════════════
+-- 📋 ПОДСКАЗКА (ОБНОВЛЁННАЯ)
+-- ═══════════════════════════════════════════════════════════════
+local keyHint = Instance.new("TextLabel")
+keyHint.Size = UDim2.new(0.92, 0, 0, 16)
+keyHint.Position = UDim2.new(0.04, 0, 0, 166)
+keyHint.BackgroundTransparency = 1
+keyHint.Text = "🐾 K-скрыть • L-Dashboard • Ctrl+Z-назад • T-Tinder 🐾"
+keyHint.TextColor3 = COLORS.TEXT_DARK
+keyHint.Font = Enum.Font.Gotham
+keyHint.TextSize = 9
+keyHint.ZIndex = 2
+keyHint.Parent = mainFrame
+
+-- ═══════════════════════════════════════════════════════════════
+-- 📜 СПИСОК ХОМИКОВ
+-- ═══════════════════════════════════════════════════════════════
+local scroll = Instance.new("ScrollingFrame")
+scroll.Size = UDim2.new(0.92, 0, 0, 360)
+scroll.Position = UDim2.new(0.04, 0, 0, 186)
+scroll.BackgroundTransparency = 1
+scroll.ScrollBarThickness = 6
+scroll.ScrollBarImageColor3 = COLORS.SCROLL_BAR
+scroll.ScrollBarImageTransparency = 0.15
+scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+scroll.VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar
+scroll.BorderSizePixel = 0
+scroll.ZIndex = 2
+scroll.Parent = mainFrame
+
+local listLayout = Instance.new("UIListLayout", scroll)
+listLayout.Padding = UDim.new(0, 5)
+listLayout.SortOrder = Enum.SortOrder.Name
+
+local noResults = Instance.new("TextLabel")
+noResults.Size = UDim2.new(1, 0, 0, 80)
+noResults.BackgroundTransparency = 1
+noResults.Text = "🐹❓\nХомяк не найден..."
+noResults.TextColor3 = COLORS.TEXT_DARK
+noResults.Font = Enum.Font.FredokaOne
+noResults.TextSize = 16
+noResults.ZIndex = 3
+noResults.Visible = false
+noResults.Parent = scroll
+
+-- ═══════════════════════════════════════════════════════════════
+-- 📊 ФУТЕР СО СТАТИСТИКОЙ (РАСШИРЕННЫЙ)
+-- ═══════════════════════════════════════════════════════════════
+local footer = Instance.new("Frame")
+footer.Size = UDim2.new(1, 0, 0, 68)
+footer.Position = UDim2.new(0, 0, 1, -68)
+footer.BackgroundColor3 = COLORS.BG_FOOTER
+footer.BorderSizePixel = 0
+footer.ZIndex = 2
+footer.Parent = mainFrame
+
+local footerLine = Instance.new("Frame")
+footerLine.Size = UDim2.new(0.9, 0, 0, 1)
+footerLine.Position = UDim2.new(0.05, 0, 0, 0)
+footerLine.BackgroundColor3 = COLORS.ACCENT_DIM
+footerLine.BackgroundTransparency = 0.5
+footerLine.BorderSizePixel = 0
+footerLine.ZIndex = 3
+footerLine.Parent = footer
+
+-- Верхняя строка футера
+local footerLeft = Instance.new("TextLabel")
+footerLeft.Size = UDim2.new(0.5, 0, 0, 22)
+footerLeft.Position = UDim2.new(0, 12, 0, 5)
+footerLeft.BackgroundTransparency = 1
+footerLeft.RichText = true
+footerLeft.Text = '🐹 <font color="#FFB428">' .. chomikCount .. '</font> хомяков'
+footerLeft.TextColor3 = COLORS.TEXT_DIM
+footerLeft.Font = Enum.Font.Gotham
+footerLeft.TextSize = 11
+footerLeft.TextXAlignment = Enum.TextXAlignment.Left
+footerLeft.ZIndex = 3
+footerLeft.Parent = footer
+
+local footerRight = Instance.new("TextLabel")
+footerRight.Size = UDim2.new(0.45, 0, 0, 22)
+footerRight.Position = UDim2.new(0.5, 0, 0, 5)
+footerRight.BackgroundTransparency = 1
+footerRight.Text = "⏰ 00:00"
+footerRight.TextColor3 = COLORS.TEXT_DARK
+footerRight.Font = Enum.Font.Gotham
+footerRight.TextSize = 11
+footerRight.TextXAlignment = Enum.TextXAlignment.Right
+footerRight.ZIndex = 3
+footerRight.Parent = footer
+
+-- Нижняя строка футера — статистика телепортов
+local footerTeleports = Instance.new("TextLabel")
+footerTeleports.Size = UDim2.new(0.5, 0, 0, 18)
+footerTeleports.Position = UDim2.new(0, 12, 0, 28)
+footerTeleports.BackgroundTransparency = 1
+footerTeleports.RichText = true
+footerTeleports.Text = '🚀 Телепортов: <font color="#FFB428">0</font>'
+footerTeleports.TextColor3 = COLORS.TEXT_DARK
+footerTeleports.Font = Enum.Font.Gotham
+footerTeleports.TextSize = 10
+footerTeleports.TextXAlignment = Enum.TextXAlignment.Left
+footerTeleports.ZIndex = 3
+footerTeleports.Parent = footer
+
+local footerDistance = Instance.new("TextLabel")
+footerDistance.Size = UDim2.new(0.45, 0, 0, 18)
+footerDistance.Position = UDim2.new(0.5, 0, 0, 28)
+footerDistance.BackgroundTransparency = 1
+footerDistance.RichText = true
+footerDistance.Text = '📏 Дистанция: <font color="#FFB428">0</font> м'
+footerDistance.TextColor3 = COLORS.TEXT_DARK
+footerDistance.Font = Enum.Font.Gotham
+footerDistance.TextSize = 10
+footerDistance.TextXAlignment = Enum.TextXAlignment.Right
+footerDistance.ZIndex = 3
+footerDistance.Parent = footer
+
+-- Кнопка Ctrl+Z в футере
+local ctrlZBtn = Instance.new("TextButton")
+ctrlZBtn.Size = UDim2.new(0.92, 0, 0, 18)
+ctrlZBtn.Position = UDim2.new(0.04, 0, 0, 48)
+ctrlZBtn.BackgroundColor3 = COLORS.BG_LIGHT
+ctrlZBtn.BackgroundTransparency = 0.5
+ctrlZBtn.Text = "⏪ Ctrl+Z: Вернуться назад"
+ctrlZBtn.TextColor3 = COLORS.TEXT_DARK
+ctrlZBtn.Font = Enum.Font.Gotham
+ctrlZBtn.TextSize = 9
+ctrlZBtn.AutoButtonColor = false
+ctrlZBtn.ZIndex = 3
+ctrlZBtn.Parent = footer
+Instance.new("UICorner", ctrlZBtn).CornerRadius = UDim.new(0, 6)
+
+ctrlZBtn.MouseButton1Click:Connect(function()
+    restorePosition()
+end)
+
+ctrlZBtn.MouseEnter:Connect(function()
+    if canCtrlZ then
+        TS:Create(ctrlZBtn, TweenInfo.new(0.2), {BackgroundTransparency = 0, TextColor3 = COLORS.TEXT_WHITE}):Play()
+    end
+end)
+ctrlZBtn.MouseLeave:Connect(function()
+    TS:Create(ctrlZBtn, TweenInfo.new(0.2), {BackgroundTransparency = 0.5, TextColor3 = COLORS.TEXT_DARK}):Play()
+end)
+
+-- Живые часы + статистика
+local startTime = tick()
+task.spawn(function()
+    while mainFrame.Parent do
+        local elapsed = math.floor(tick() - startTime)
+        local mins = math.floor(elapsed / 60)
+        local secs = elapsed % 60
+        footerRight.Text = string.format("⏰ %02d:%02d", mins, secs)
+        footerTeleports.Text = '🚀 Телепортов: <font color="#FFB428">' .. teleportCount .. '</font>'
+        footerDistance.Text = '📏 Дистанция: <font color="#FFB428">' .. formatDistance(totalDistanceTraveled) .. '</font> м'
+
+        -- Обновляем состояние кнопки Ctrl+Z
+        if canCtrlZ then
+            ctrlZBtn.TextColor3 = COLORS.ACCENT_SOFT
+            ctrlZBtn.Text = "⏪ Ctrl+Z: Вернуться назад (доступно)"
+        else
+            ctrlZBtn.TextColor3 = COLORS.TEXT_DARK
+            ctrlZBtn.Text = "⏪ Ctrl+Z: Нет точки возврата"
+        end
+
+        task.wait(1)
+    end
+end)
+
+-- ═══════════════════════════════════════════════════════════════
+-- 🎉 КОНФЕТТИ + СПЕЦИАЛЬНЫЕ ЧАСТИЦЫ ПРИ ТЕЛЕПОРТЕ
+-- ═══════════════════════════════════════════════════════════════
+local flash = Instance.new("Frame")
+flash.Size = UDim2.new(2, 0, 2, 0)
+flash.Position = UDim2.new(-0.5, 0, -0.5, 0)
+flash.BackgroundColor3 = COLORS.FLASH
+flash.BackgroundTransparency = 1
+flash.ZIndex = 100
+flash.Parent = screenGui
+
+local function spawnConfetti()
+    for i = 1, 14 do
+        local c = Instance.new("Frame")
+        local size = math.random(5, 16)
+        c.Size = UDim2.new(0, size, 0, size * (math.random(5, 15) / 10))
+        c.Position = UDim2.new(0.5, math.random(-40, 40), 0.5, math.random(-40, 40))
+        c.BackgroundColor3 = COLORS.CONFETTI[math.random(1, #COLORS.CONFETTI)]
+        c.Rotation = math.random(0, 360)
+        c.ZIndex = 101
+        c.Parent = screenGui
+
+        local cornerRadius = math.random() > 0.5 and UDim.new(1, 0) or UDim.new(0, 3)
+        Instance.new("UICorner", c).CornerRadius = cornerRadius
+
+        local endX = math.random(-350, 350)
+        local endY = math.random(-350, 350)
+
+        TS:Create(c, TweenInfo.new(0.8 + math.random() * 0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            Position = UDim2.new(0.5, endX, 0.5, endY),
+            BackgroundTransparency = 1,
+            Rotation = math.random(-360, 360),
+            Size = UDim2.new(0, 2, 0, 2)
+        }):Play()
+        Debris:AddItem(c, 1.5)
+    end
+end
+
+-- ═══════════════════════════════════════════════════════════════
+-- 🎆 ЭФФЕКТ "ЧЕРВОТОЧИНЫ" ПРИ ТЕЛЕПОРТЕ
+-- ═══════════════════════════════════════════════════════════════
+local function spawnWormholeEffect()
+    if not animationsEnabled then return end
+
+    local wormhole = Instance.new("Frame")
+    wormhole.Size = UDim2.new(0, 0, 0, 0)
+    wormhole.Position = UDim2.new(0.5, 0, 0.5, 0)
+    wormhole.BackgroundTransparency = 1
+    wormhole.ZIndex = 99
+    wormhole.Parent = screenGui
+
+    -- Кольца червоточины
+    local rings = {}
+    for i = 1, 8 do
+        local ring = Instance.new("Frame")
+        ring.Size = UDim2.new(0, 0, 0, 0)
+        ring.Position = UDim2.new(0.5, 0, 0.5, 0)
+        ring.BackgroundTransparency = 1
+        ring.ZIndex = 99
+        ring.Parent = screenGui
+        Instance.new("UICorner", ring).CornerRadius = UDim.new(1, 0)
+
+        local ringStroke = Instance.new("UIStroke", ring)
+        ringStroke.Thickness = 3
+        ringStroke.Color = lerpColor(COLORS.WORMHOLE_PURPLE, COLORS.WORMHOLE_BLUE, i / 8)
+        ringStroke.Transparency = 0.3
+
+        table.insert(rings, ring)
+
+        -- Анимация расширения кольца
+        task.delay(i * 0.05, function()
+            local targetSize = 200 + i * 80
+            TS:Create(ring, TweenInfo.new(0.6 + i * 0.05, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                Size = UDim2.new(0, targetSize, 0, targetSize),
+                Position = UDim2.new(0.5, -targetSize/2, 0.5, -targetSize/2),
+            }):Play()
+
+            TS:Create(ringStroke, TweenInfo.new(0.4 + i * 0.08), {Transparency = 1}):Play()
+        end)
+
+        Debris:AddItem(ring, 1.5)
+    end
+
+    -- Центральная вспышка
+    local centerFlash = Instance.new("Frame")
+    centerFlash.Size = UDim2.new(0, 20, 0, 20)
+    centerFlash.Position = UDim2.new(0.5, -10, 0.5, -10)
+    centerFlash.BackgroundColor3 = COLORS.WORMHOLE_BLUE
+    centerFlash.ZIndex = 100
+    centerFlash.Parent = screenGui
+    Instance.new("UICorner", centerFlash).CornerRadius = UDim.new(1, 0)
+
+    TS:Create(centerFlash, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        Size = UDim2.new(0, 600, 0, 600),
+        Position = UDim2.new(0.5, -300, 0.5, -300),
+        BackgroundTransparency = 1
+    }):Play()
+    Debris:AddItem(centerFlash, 0.5)
+
+    wormhole:Destroy()
+end
+
+-- ═══════════════════════════════════════════════════════════════
+-- 🚀 ФУНКЦИЯ ТЕЛЕПОРТАЦИИ (ПОЛНАЯ ВЕРСИЯ С ЭФФЕКТАМИ)
+-- ═══════════════════════════════════════════════════════════════
+local func
