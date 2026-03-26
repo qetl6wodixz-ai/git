@@ -1,0 +1,1909 @@
+--// ═══════════════════════════════════════════════════════════════
+--// 🔍 ULTRA DANCE FINDER v4.0 — CATEGORIES EDITION
+--// Категории: Roblox Built-in | Авторские | Танцы | Эмоции
+--// Звуки • Копирование • Deep Scan • Фильтры • Избранное
+--// ═══════════════════════════════════════════════════════════════
+
+------------------------------------------------------------
+-- ОЧИСТКА
+------------------------------------------------------------
+if game.CoreGui:FindFirstChild("UltraDanceFinderV4") then
+    game.CoreGui:FindFirstChild("UltraDanceFinderV4"):Destroy()
+end
+
+------------------------------------------------------------
+-- SERVICES
+------------------------------------------------------------
+local Players         = game:GetService("Players")
+local TweenService    = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local StarterPlayer   = game:GetService("StarterPlayer")
+local Lighting        = game:GetService("Lighting")
+local SoundService    = game:GetService("SoundService")
+local RunService      = game:GetService("RunService")
+local ContentProvider = game:GetService("ContentProvider")
+local InsertService   = game:GetService("InsertService")
+
+local LocalPlayer = Players.LocalPlayer
+local Character   = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local Humanoid    = Character:WaitForChild("Humanoid")
+
+------------------------------------------------------------
+-- ПЕРЕМЕННЫЕ
+------------------------------------------------------------
+local foundAnimations   = {}
+local currentTrack      = nil
+local currentAnim       = nil
+local animSpeed         = 1
+local isDragging        = false
+local dragStart, startPos
+local scanComplete      = false
+local allButtons        = {}
+local seenIds           = {}
+local isMinimized       = false
+local currentFilter     = "all"
+local totalScanned      = 0
+local scanStartTime     = 0
+local isScanning        = false
+local favoriteAnims     = {}
+local VERSION           = "4.0"
+local activePlayingCard = nil
+
+------------------------------------------------------------
+-- 📦 БАЗА ROBLOX ВСТРОЕННЫХ АНИМАЦИЙ (Known IDs)
+-- Все стандартные ID, которые Roblox использует по умолчанию
+------------------------------------------------------------
+local ROBLOX_DEFAULT_IDS = {
+    -- ═══ R15 Default Animate ═══
+    ["507766388"]  = "R15 Idle 1",
+    ["507766666"]  = "R15 Idle 2",
+    ["507777826"]  = "R15 Walk",
+    ["507767714"]  = "R15 Run",
+    ["507765000"]  = "R15 Jump",
+    ["507766655"]  = "R15 Fall",
+    ["507765644"]  = "R15 Climb",
+    ["507768375"]  = "R15 Sit",
+    ["2506281703"]  = "R15 Swim Idle",
+    ["2510196951"]  = "R15 Swim",
+
+    -- ═══ R6 Default Animate ═══
+    ["180435571"]  = "R6 Idle 1",
+    ["180435792"]  = "R6 Idle 2",
+    ["180426354"]  = "R6 Walk",
+    ["125750702"]  = "R6 Run",
+    ["125750145"]  = "R6 Jump",
+    ["180436148"]  = "R6 Fall",
+    ["180436334"]  = "R6 Climb",
+    ["178130996"]  = "R6 Sit",
+
+    -- ═══ R15 Emotes (Стандартные) ═══
+    ["3576686446"]  = "Emote: Wave",
+    ["3576689978"]  = "Emote: Laugh",
+    ["3576692362"]  = "Emote: Point",
+    ["3576695432"]  = "Emote: Dance 1",
+    ["3576698007"]  = "Emote: Dance 2",
+    ["3576702167"]  = "Emote: Dance 3",
+    ["3576717965"]  = "Emote: Cheer",
+
+    -- ═══ Roblox Avatar Animate Extended ═══
+    ["616006778"]  = "R15 Idle Anim 1",
+    ["616008087"]  = "R15 Idle Anim 2",
+    ["616010382"]  = "R15 Walk Anim",
+    ["616013216"]  = "R15 Run Anim",
+    ["616012453"]  = "R15 Jump Anim",
+    ["616005863"]  = "R15 Fall Anim",
+    ["616003713"]  = "R15 Climb Anim",
+    ["616001890"]  = "R15 Swim Anim",
+
+    -- ═══ Old Default ═══
+    ["125750702"]  = "Classic Run",
+    ["125750145"]  = "Classic Jump",
+    ["180426354"]  = "Classic Walk",
+    ["180435571"]  = "Classic Idle",
+
+    -- ═══ Roblox Catalog Emotes ═══
+    ["5104377791"]  = "Hype Dance",
+    ["5104382788"]  = "Floss",
+    ["5104383774"]  = "Orange Justice",
+    ["5104381757"]  = "Electro Shuffle",
+    ["5104378498"]  = "Smooth Moves",
+    ["5917459365"]  = "Default Dance",
+    ["5104350831"]  = "Salute",
+    ["5104350303"]  = "Wave Emote",
+    ["5104377206"]  = "Dab",
+    ["5104336142"]  = "Laugh Emote",
+    ["5104362648"]  = "Backflip",
+    ["5104336786"]  = "Headless Horseman",
+    ["616163682"]   = "Robot Dance",
+    ["616168032"]   = "Zombie Dance",
+    ["742638842"]   = "Gangnam Style",
+
+    -- ═══ Roblox Tool Anims ═══
+    ["507768375"]  = "Tool None",
+    ["507768375"]  = "Tool Slash",
+    ["507768375"]  = "Tool Lunge",
+
+    -- ═══ More Roblox Catalog ═══
+    ["4940561103"]  = "Shrug",
+    ["4940565389"]  = "Hello",
+    ["4940571116"]  = "Tilt",
+    ["4940582875"]  = "Stadium",
+    ["4940589038"]  = "Superhero Reveal",
+    ["4940593498"]  = "Twirl",
+
+    -- ═══ Bundle Animations ═══
+    ["845397899"]   = "Werewolf Idle",
+    ["845400520"]   = "Werewolf Walk",
+    ["845402811"]   = "Werewolf Run",
+    ["845405689"]   = "Werewolf Jump",
+    ["837013990"]   = "Ninja Idle",
+    ["837015015"]   = "Ninja Walk",
+    ["837016553"]   = "Ninja Run",
+    ["837017774"]   = "Ninja Jump",
+    ["782841498"]   = "Mage Idle",
+    ["782842708"]   = "Mage Walk",
+    ["782843869"]   = "Mage Run",
+    ["782847020"]   = "Mage Jump",
+    ["616096002"]   = "Stylish Idle",
+    ["616098538"]   = "Stylish Walk",
+    ["616099794"]   = "Stylish Run",
+    ["616100796"]   = "Stylish Jump",
+
+    -- ═══ Toy Code / Promo Emotes ═══
+    ["3360686446"]  = "Promo Emote 1",
+    ["3360689978"]  = "Promo Emote 2",
+}
+
+-- Быстрый lookup
+local function isRobloxDefault(animId)
+    return ROBLOX_DEFAULT_IDS[tostring(animId)] ~= nil
+end
+
+local function getRobloxName(animId)
+    return ROBLOX_DEFAULT_IDS[tostring(animId)]
+end
+
+------------------------------------------------------------
+-- 🔊 ЗВУКОВАЯ СИСТЕМА
+------------------------------------------------------------
+local SFX = {}
+
+local function createSound(name, soundId, volume, pitch)
+    local sound = Instance.new("Sound")
+    sound.Name = "DF4_" .. name
+    sound.SoundId = "rbxassetid://" .. soundId
+    sound.Volume = volume or 0.5
+    sound.PlaybackSpeed = pitch or 1
+    sound.Parent = SoundService
+    SFX[name] = sound
+    return sound
+end
+
+createSound("click",         6895079853, 0.35, 1.2)
+createSound("hover",         6895079853, 0.1,  1.9)
+createSound("scanStart",     6026984224, 0.5,  1.0)
+createSound("scanPing",      6895079853, 0.12, 2.2)
+createSound("scanComplete",  4612373030, 0.55, 1.0)
+createSound("playAnim",      6026984224, 0.45, 1.3)
+createSound("stopAnim",      6895079853, 0.35, 0.55)
+createSound("copyID",        6895079853, 0.4,  1.5)
+createSound("copyScript",    4612373030, 0.35, 1.6)
+createSound("error",         6895079853, 0.45, 0.35)
+createSound("minimize",      6895079853, 0.25, 1.0)
+createSound("maximize",      6895079853, 0.25, 1.15)
+createSound("close",         6895079853, 0.35, 0.45)
+createSound("search",        6895079853, 0.06, 2.4)
+createSound("tabSwitch",     6895079853, 0.25, 1.4)
+createSound("speedChange",   6895079853, 0.25, 1.65)
+createSound("favorite",      4612373030, 0.35, 1.5)
+createSound("notification",  6026984224, 0.25, 1.2)
+createSound("cardAppear",    6895079853, 0.05, 2.8)
+createSound("exportAll",     4612373030, 0.45, 0.9)
+createSound("deepScan",      6026984224, 0.55, 0.75)
+createSound("guiOpen",       4612373030, 0.5,  1.1)
+createSound("categoryPing",  6895079853, 0.15, 1.8)
+createSound("robloxFound",   4612373030, 0.2,  1.3)
+createSound("authorFound",   6026984224, 0.2,  1.5)
+createSound("scrollTick",    6895079853, 0.03, 3.0)
+
+local function playSound(name)
+    if SFX[name] then
+        local s = SFX[name]:Clone()
+        s.Parent = SoundService
+        s:Play()
+        game:GetService("Debris"):AddItem(s, 3)
+    end
+end
+
+------------------------------------------------------------
+-- GUI СОЗДАНИЕ
+------------------------------------------------------------
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "UltraDanceFinderV4"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.Parent = game.CoreGui
+
+-- ═══════════════════════════════════════════════
+-- ГЛАВНЫЙ ФРЕЙМ
+-- ═══════════════════════════════════════════════
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 470, 0, 650)
+MainFrame.Position = UDim2.new(0.5, -235, 0.5, -325)
+MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 20)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.ClipsDescendants = true
+MainFrame.Parent = ScreenGui
+
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 16)
+
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Color = Color3.fromRGB(130, 80, 255)
+MainStroke.Thickness = 2.5
+MainStroke.Parent = MainFrame
+
+-- Фоновый градиент
+local GradientBG = Instance.new("Frame")
+GradientBG.Size = UDim2.new(1, 0, 0, 160)
+GradientBG.BackgroundColor3 = Color3.fromRGB(20, 12, 45)
+GradientBG.BorderSizePixel = 0
+GradientBG.ZIndex = 0
+GradientBG.Parent = MainFrame
+
+local BGGradient = Instance.new("UIGradient")
+BGGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(35, 18, 70)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 10, 20))
+}
+BGGradient.Rotation = 90
+BGGradient.Parent = GradientBG
+
+-- ═══════════════════════════════════════════════
+-- TITLE BAR
+-- ═══════════════════════════════════════════════
+local TitleBar = Instance.new("Frame")
+TitleBar.Size = UDim2.new(1, 0, 0, 56)
+TitleBar.BackgroundColor3 = Color3.fromRGB(16, 14, 30)
+TitleBar.BorderSizePixel = 0
+TitleBar.ZIndex = 5
+TitleBar.Parent = MainFrame
+Instance.new("UICorner", TitleBar).CornerRadius = UDim.new(0, 16)
+
+local TitleFix = Instance.new("Frame")
+TitleFix.Size = UDim2.new(1, 0, 0, 20)
+TitleFix.Position = UDim2.new(0, 0, 1, -20)
+TitleFix.BackgroundColor3 = Color3.fromRGB(16, 14, 30)
+TitleFix.BorderSizePixel = 0
+TitleFix.ZIndex = 5
+TitleFix.Parent = TitleBar
+
+-- Разделитель с анимированным градиентом
+local TitleDivider = Instance.new("Frame")
+TitleDivider.Size = UDim2.new(1, -24, 0, 2)
+TitleDivider.Position = UDim2.new(0, 12, 1, 0)
+TitleDivider.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+TitleDivider.BorderSizePixel = 0
+TitleDivider.ZIndex = 5
+TitleDivider.Parent = TitleBar
+
+local DivGradient = Instance.new("UIGradient")
+DivGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0,   Color3.fromRGB(130, 80, 255)),
+    ColorSequenceKeypoint.new(0.3, Color3.fromRGB(255, 80, 180)),
+    ColorSequenceKeypoint.new(0.6, Color3.fromRGB(80, 200, 255)),
+    ColorSequenceKeypoint.new(1,   Color3.fromRGB(130, 80, 255))
+}
+DivGradient.Parent = TitleDivider
+Instance.new("UICorner", TitleDivider).CornerRadius = UDim.new(0, 1)
+
+-- Иконка + заголовок
+local TitleIcon = Instance.new("TextLabel")
+TitleIcon.Size = UDim2.new(0, 32, 0, 32)
+TitleIcon.Position = UDim2.new(0, 14, 0, 6)
+TitleIcon.BackgroundTransparency = 1
+TitleIcon.Text = "🔍"
+TitleIcon.TextSize = 22
+TitleIcon.ZIndex = 6
+TitleIcon.Parent = TitleBar
+
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Size = UDim2.new(0, 240, 0, 22)
+TitleLabel.Position = UDim2.new(0, 48, 0, 4)
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Text = "Ultra Dance Finder"
+TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleLabel.TextSize = 17
+TitleLabel.Font = Enum.Font.GothamBlack
+TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+TitleLabel.ZIndex = 6
+TitleLabel.Parent = TitleBar
+
+local SubTitle = Instance.new("TextLabel")
+SubTitle.Size = UDim2.new(0, 300, 0, 16)
+SubTitle.Position = UDim2.new(0, 48, 0, 26)
+SubTitle.BackgroundTransparency = 1
+SubTitle.Text = "v" .. VERSION .. " • Roblox & Author Anims • Scan • Copy"
+SubTitle.TextColor3 = Color3.fromRGB(120, 80, 220)
+SubTitle.TextSize = 9
+SubTitle.Font = Enum.Font.GothamSemibold
+SubTitle.TextXAlignment = Enum.TextXAlignment.Left
+SubTitle.ZIndex = 6
+SubTitle.Parent = TitleBar
+
+-- Кнопка версии/инфо
+local VersionBadge = Instance.new("TextLabel")
+VersionBadge.Size = UDim2.new(0, 40, 0, 16)
+VersionBadge.Position = UDim2.new(0, 48, 0, 38)
+VersionBadge.BackgroundColor3 = Color3.fromRGB(130, 80, 255)
+VersionBadge.Text = " v4.0 "
+VersionBadge.TextColor3 = Color3.fromRGB(255, 255, 255)
+VersionBadge.TextSize = 8
+VersionBadge.Font = Enum.Font.GothamBold
+VersionBadge.ZIndex = 7
+VersionBadge.Parent = TitleBar
+Instance.new("UICorner", VersionBadge).CornerRadius = UDim.new(0, 4)
+
+-- ═══ Title Bar кнопки ═══
+local btnSize = UDim2.new(0, 34, 0, 34)
+
+-- Экспорт
+local ExportBtn = Instance.new("TextButton")
+ExportBtn.Size = btnSize
+ExportBtn.Position = UDim2.new(1, -160, 0, 11)
+ExportBtn.BackgroundColor3 = Color3.fromRGB(35, 150, 75)
+ExportBtn.Text = "📤"
+ExportBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ExportBtn.TextSize = 15
+ExportBtn.Font = Enum.Font.GothamBold
+ExportBtn.BorderSizePixel = 0
+ExportBtn.ZIndex = 7
+ExportBtn.Parent = TitleBar
+Instance.new("UICorner", ExportBtn).CornerRadius = UDim.new(0, 10)
+
+-- Минимизация
+local MinBtn = Instance.new("TextButton")
+MinBtn.Size = btnSize
+MinBtn.Position = UDim2.new(1, -118, 0, 11)
+MinBtn.BackgroundColor3 = Color3.fromRGB(220, 155, 0)
+MinBtn.Text = "—"
+MinBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinBtn.TextSize = 16
+MinBtn.Font = Enum.Font.GothamBold
+MinBtn.BorderSizePixel = 0
+MinBtn.ZIndex = 7
+MinBtn.Parent = TitleBar
+Instance.new("UICorner", MinBtn).CornerRadius = UDim.new(0, 10)
+
+-- Закрытие
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = btnSize
+CloseBtn.Position = UDim2.new(1, -76, 0, 11)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(195, 35, 35)
+CloseBtn.Text = "✕"
+CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseBtn.TextSize = 15
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.BorderSizePixel = 0
+CloseBtn.ZIndex = 7
+CloseBtn.Parent = TitleBar
+Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 10)
+
+-- ═══════════════════════════════════════════════
+-- КОНТЕНТ
+-- ═══════════════════════════════════════════════
+local ContentFrame = Instance.new("Frame")
+ContentFrame.Name = "Content"
+ContentFrame.Size = UDim2.new(1, -20, 1, -66)
+ContentFrame.Position = UDim2.new(0, 10, 0, 61)
+ContentFrame.BackgroundTransparency = 1
+ContentFrame.ZIndex = 2
+ContentFrame.Parent = MainFrame
+
+-- ═══════════════════════════════════════════════
+-- СТРОКА ПОИСКА
+-- ═══════════════════════════════════════════════
+local SearchFrame = Instance.new("Frame")
+SearchFrame.Size = UDim2.new(1, 0, 0, 38)
+SearchFrame.Position = UDim2.new(0, 0, 0, 0)
+SearchFrame.BackgroundColor3 = Color3.fromRGB(22, 20, 38)
+SearchFrame.BorderSizePixel = 0
+SearchFrame.ZIndex = 3
+SearchFrame.Parent = ContentFrame
+Instance.new("UICorner", SearchFrame).CornerRadius = UDim.new(0, 10)
+
+local SearchStroke = Instance.new("UIStroke")
+SearchStroke.Color = Color3.fromRGB(45, 38, 80)
+SearchStroke.Thickness = 1.5
+SearchStroke.Parent = SearchFrame
+
+local SearchIcon = Instance.new("TextLabel")
+SearchIcon.Size = UDim2.new(0, 32, 1, 0)
+SearchIcon.Position = UDim2.new(0, 8, 0, 0)
+SearchIcon.BackgroundTransparency = 1
+SearchIcon.Text = "🔎"
+SearchIcon.TextSize = 15
+SearchIcon.ZIndex = 4
+SearchIcon.Parent = SearchFrame
+
+local SearchInput = Instance.new("TextBox")
+SearchInput.Size = UDim2.new(1, -80, 1, 0)
+SearchInput.Position = UDim2.new(0, 38, 0, 0)
+SearchInput.BackgroundTransparency = 1
+SearchInput.Text = ""
+SearchInput.PlaceholderText = "Поиск по имени, ID, пути, источнику..."
+SearchInput.PlaceholderColor3 = Color3.fromRGB(70, 65, 110)
+SearchInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+SearchInput.TextSize = 12
+SearchInput.Font = Enum.Font.Gotham
+SearchInput.TextXAlignment = Enum.TextXAlignment.Left
+SearchInput.ClearTextOnFocus = false
+SearchInput.ZIndex = 4
+SearchInput.Parent = SearchFrame
+
+local ClearSearchBtn = Instance.new("TextButton")
+ClearSearchBtn.Size = UDim2.new(0, 26, 0, 26)
+ClearSearchBtn.Position = UDim2.new(1, -32, 0, 6)
+ClearSearchBtn.BackgroundColor3 = Color3.fromRGB(55, 45, 85)
+ClearSearchBtn.Text = "✕"
+ClearSearchBtn.TextColor3 = Color3.fromRGB(160, 150, 200)
+ClearSearchBtn.TextSize = 10
+ClearSearchBtn.Font = Enum.Font.GothamBold
+ClearSearchBtn.BorderSizePixel = 0
+ClearSearchBtn.Visible = false
+ClearSearchBtn.ZIndex = 5
+ClearSearchBtn.Parent = SearchFrame
+Instance.new("UICorner", ClearSearchBtn).CornerRadius = UDim.new(0, 7)
+
+-- ═══════════════════════════════════════════════
+-- КНОПКИ СКАНИРОВАНИЯ
+-- ═══════════════════════════════════════════════
+local ControlFrame = Instance.new("Frame")
+ControlFrame.Size = UDim2.new(1, 0, 0, 40)
+ControlFrame.Position = UDim2.new(0, 0, 0, 42)
+ControlFrame.BackgroundTransparency = 1
+ControlFrame.ZIndex = 3
+ControlFrame.Parent = ContentFrame
+
+local ScanBtn = Instance.new("TextButton")
+ScanBtn.Size = UDim2.new(0.33, -3, 1, 0)
+ScanBtn.Position = UDim2.new(0, 0, 0, 0)
+ScanBtn.BackgroundColor3 = Color3.fromRGB(40, 95, 230)
+ScanBtn.Text = "🔍 Scan"
+ScanBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ScanBtn.TextSize = 12
+ScanBtn.Font = Enum.Font.GothamBold
+ScanBtn.BorderSizePixel = 0
+ScanBtn.ZIndex = 4
+ScanBtn.Parent = ControlFrame
+Instance.new("UICorner", ScanBtn).CornerRadius = UDim.new(0, 10)
+
+local DeepScanBtn = Instance.new("TextButton")
+DeepScanBtn.Size = UDim2.new(0.36, -3, 1, 0)
+DeepScanBtn.Position = UDim2.new(0.33, 2, 0, 0)
+DeepScanBtn.BackgroundColor3 = Color3.fromRGB(120, 40, 220)
+DeepScanBtn.Text = "⚡ Deep Scan"
+DeepScanBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+DeepScanBtn.TextSize = 12
+DeepScanBtn.Font = Enum.Font.GothamBold
+DeepScanBtn.BorderSizePixel = 0
+DeepScanBtn.ZIndex = 4
+DeepScanBtn.Parent = ControlFrame
+Instance.new("UICorner", DeepScanBtn).CornerRadius = UDim.new(0, 10)
+
+local StopBtn = Instance.new("TextButton")
+StopBtn.Size = UDim2.new(0.31, -3, 1, 0)
+StopBtn.Position = UDim2.new(0.69, 3, 0, 0)
+StopBtn.BackgroundColor3 = Color3.fromRGB(190, 35, 35)
+StopBtn.Text = "⏹ Stop"
+StopBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+StopBtn.TextSize = 12
+StopBtn.Font = Enum.Font.GothamBold
+StopBtn.BorderSizePixel = 0
+StopBtn.ZIndex = 4
+StopBtn.Parent = ControlFrame
+Instance.new("UICorner", StopBtn).CornerRadius = UDim.new(0, 10)
+
+-- ═══════════════════════════════════════════════
+-- PROGRESS BAR
+-- ═══════════════════════════════════════════════
+local ProgressOuter = Instance.new("Frame")
+ProgressOuter.Size = UDim2.new(1, 0, 0, 5)
+ProgressOuter.Position = UDim2.new(0, 0, 0, 86)
+ProgressOuter.BackgroundColor3 = Color3.fromRGB(20, 18, 35)
+ProgressOuter.BorderSizePixel = 0
+ProgressOuter.ZIndex = 3
+ProgressOuter.Visible = false
+ProgressOuter.Parent = ContentFrame
+Instance.new("UICorner", ProgressOuter).CornerRadius = UDim.new(0, 3)
+
+local ProgressInner = Instance.new("Frame")
+ProgressInner.Size = UDim2.new(0, 0, 1, 0)
+ProgressInner.BackgroundColor3 = Color3.fromRGB(130, 80, 255)
+ProgressInner.BorderSizePixel = 0
+ProgressInner.ZIndex = 4
+ProgressInner.Parent = ProgressOuter
+Instance.new("UICorner", ProgressInner).CornerRadius = UDim.new(0, 3)
+
+local PGradient = Instance.new("UIGradient")
+PGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0,   Color3.fromRGB(80, 120, 255)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(180, 80, 255)),
+    ColorSequenceKeypoint.new(1,   Color3.fromRGB(255, 80, 180))
+}
+PGradient.Parent = ProgressInner
+
+-- ═══════════════════════════════════════════════
+-- SPEED CONTROL
+-- ═══════════════════════════════════════════════
+local SpeedFrame = Instance.new("Frame")
+SpeedFrame.Size = UDim2.new(1, 0, 0, 30)
+SpeedFrame.Position = UDim2.new(0, 0, 0, 94)
+SpeedFrame.BackgroundColor3 = Color3.fromRGB(16, 14, 30)
+SpeedFrame.BorderSizePixel = 0
+SpeedFrame.ZIndex = 3
+SpeedFrame.Parent = ContentFrame
+Instance.new("UICorner", SpeedFrame).CornerRadius = UDim.new(0, 8)
+
+local SpeedLabel = Instance.new("TextLabel")
+SpeedLabel.Size = UDim2.new(0, 90, 1, 0)
+SpeedLabel.Position = UDim2.new(0, 8, 0, 0)
+SpeedLabel.BackgroundTransparency = 1
+SpeedLabel.Text = "⚡ Speed: 1.0x"
+SpeedLabel.TextColor3 = Color3.fromRGB(130, 120, 190)
+SpeedLabel.TextSize = 10
+SpeedLabel.Font = Enum.Font.GothamBold
+SpeedLabel.TextXAlignment = Enum.TextXAlignment.Left
+SpeedLabel.ZIndex = 4
+SpeedLabel.Parent = SpeedFrame
+
+local speeds = {0.25, 0.5, 1, 1.5, 2, 3}
+local speedButtons = {}
+for i, spd in ipairs(speeds) do
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 44, 0, 22)
+    btn.Position = UDim2.new(0, 94 + (i - 1) * 48, 0, 4)
+    btn.BackgroundColor3 = spd == 1 and Color3.fromRGB(130, 80, 255) or Color3.fromRGB(30, 28, 50)
+    btn.Text = spd .. "x"
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.TextSize = 10
+    btn.Font = Enum.Font.GothamBold
+    btn.BorderSizePixel = 0
+    btn.ZIndex = 5
+    btn.Parent = SpeedFrame
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+    speedButtons[i] = btn
+
+    btn.MouseButton1Click:Connect(function()
+        playSound("speedChange")
+        animSpeed = spd
+        SpeedLabel.Text = "⚡ Speed: " .. spd .. "x"
+        if currentTrack then currentTrack:AdjustSpeed(spd) end
+        for _, c in ipairs(speedButtons) do
+            TweenService:Create(c, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(30, 28, 50)}):Play()
+        end
+        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(130, 80, 255)}):Play()
+    end)
+    btn.MouseEnter:Connect(function() playSound("hover") end)
+end
+
+-- ═══════════════════════════════════════════════════════
+-- 📂 ВКЛАДКИ КАТЕГОРИЙ (ГЛАВНАЯ НОВИНКА v4.0)
+-- ═══════════════════════════════════════════════════════
+local CatFrame = Instance.new("Frame")
+CatFrame.Size = UDim2.new(1, 0, 0, 56)
+CatFrame.Position = UDim2.new(0, 0, 0, 128)
+CatFrame.BackgroundColor3 = Color3.fromRGB(14, 12, 26)
+CatFrame.BorderSizePixel = 0
+CatFrame.ZIndex = 3
+CatFrame.Parent = ContentFrame
+Instance.new("UICorner", CatFrame).CornerRadius = UDim.new(0, 10)
+
+local CatStroke = Instance.new("UIStroke")
+CatStroke.Color = Color3.fromRGB(40, 35, 70)
+CatStroke.Thickness = 1
+CatStroke.Parent = CatFrame
+
+-- Заголовок категорий
+local CatTitle = Instance.new("TextLabel")
+CatTitle.Size = UDim2.new(1, 0, 0, 16)
+CatTitle.Position = UDim2.new(0, 8, 0, 2)
+CatTitle.BackgroundTransparency = 1
+CatTitle.Text = "📂 КАТЕГОРИИ"
+CatTitle.TextColor3 = Color3.fromRGB(100, 90, 150)
+CatTitle.TextSize = 8
+CatTitle.Font = Enum.Font.GothamBlack
+CatTitle.TextXAlignment = Enum.TextXAlignment.Left
+CatTitle.ZIndex = 4
+CatTitle.Parent = CatFrame
+
+-- Верхний ряд категорий
+local tabData = {
+    -- Ряд 1 (главные категории)
+    {name = "all",      text = "📋 Все",           color = Color3.fromRGB(130, 80, 255),  row = 1, order = 1},
+    {name = "roblox",   text = "🏠 Roblox",        color = Color3.fromRGB(0, 160, 255),   row = 1, order = 2},
+    {name = "author",   text = "🎨 Авторские",     color = Color3.fromRGB(255, 100, 50),  row = 1, order = 3},
+    {name = "playing",  text = "🎵 Играющие",      color = Color3.fromRGB(50, 200, 100),  row = 1, order = 4},
+    -- Ряд 2 (типы анимаций)
+    {name = "dance",    text = "💃 Танцы",          color = Color3.fromRGB(255, 60, 150),  row = 2, order = 1},
+    {name = "emote",    text = "😊 Эмоции",         color = Color3.fromRGB(255, 180, 40),  row = 2, order = 2},
+    {name = "movement", text = "🏃 Движение",      color = Color3.fromRGB(60, 200, 120),  row = 2, order = 3},
+    {name = "fav",      text = "⭐ Избранное",      color = Color3.fromRGB(255, 210, 40),  row = 2, order = 4},
+}
+
+local tabButtons = {}
+
+for _, tab in ipairs(tabData) do
+    local perRow = 4
+    local yOffset = tab.row == 1 and 16 or 36
+    local xPos = (tab.order - 1) / perRow
+
+    local tabBtn = Instance.new("TextButton")
+    tabBtn.Size = UDim2.new(1 / perRow, -4, 0, 18)
+    tabBtn.Position = UDim2.new(xPos, 2, 0, yOffset)
+    tabBtn.BackgroundColor3 = tab.name == "all" and tab.color or Color3.fromRGB(24, 22, 40)
+    tabBtn.Text = tab.text
+    tabBtn.TextColor3 = Color3.fromRGB(240, 240, 255)
+    tabBtn.TextSize = 9
+    tabBtn.Font = Enum.Font.GothamBold
+    tabBtn.BorderSizePixel = 0
+    tabBtn.ZIndex = 5
+    tabBtn.Name = "Tab_" .. tab.name
+    tabBtn.Parent = CatFrame
+    Instance.new("UICorner", tabBtn).CornerRadius = UDim.new(0, 6)
+
+    tabButtons[tab.name] = {btn = tabBtn, data = tab}
+
+    tabBtn.MouseButton1Click:Connect(function()
+        playSound("tabSwitch")
+        currentFilter = tab.name
+
+        for _, tb in pairs(tabButtons) do
+            TweenService:Create(tb.btn, TweenInfo.new(0.2), {
+                BackgroundColor3 = Color3.fromRGB(24, 22, 40)
+            }):Play()
+        end
+        TweenService:Create(tabBtn, TweenInfo.new(0.2), {
+            BackgroundColor3 = tab.color
+        }):Play()
+
+        -- Фильтрация по категории
+        for _, item in pairs(allButtons) do
+            local show = true
+            local n = string.lower(item.data.name)
+            local src = string.lower(item.data.source or "")
+            local cat = item.data.category or "unknown"
+
+            if currentFilter == "roblox" then
+                show = (cat == "roblox")
+            elseif currentFilter == "author" then
+                show = (cat == "author")
+            elseif currentFilter == "playing" then
+                show = (src:find("active") or src:find("playing") or src:find("humanoidtrack")) ~= nil
+            elseif currentFilter == "dance" then
+                show = n:find("dance") or n:find("танец") or n:find("shuffle")
+                    or n:find("floss") or n:find("groove") or n:find("boogie")
+                    or n:find("twerk") or n:find("robot") or n:find("zombie")
+                    or n:find("gangnam")
+            elseif currentFilter == "emote" then
+                show = n:find("emote") or n:find("wave") or n:find("laugh")
+                    or n:find("point") or n:find("cheer") or n:find("salute")
+                    or n:find("shrug") or n:find("clap") or n:find("dab")
+                    or n:find("hello") or n:find("tilt") or n:find("stadium")
+                    or n:find("superhero") or n:find("twirl") or n:find("backflip")
+            elseif currentFilter == "movement" then
+                show = n:find("idle") or n:find("walk") or n:find("run")
+                    or n:find("jump") or n:find("climb") or n:find("fall")
+                    or n:find("swim") or n:find("sit") or n:find("fly")
+            elseif currentFilter == "fav" then
+                show = (favoriteAnims[item.data.id] == true)
+            end
+
+            item.frame.Visible = show
+        end
+    end)
+
+    tabBtn.MouseEnter:Connect(function() playSound("hover") end)
+end
+
+-- ═══════════════════════════════════════════════
+-- СТАТИСТИКА
+-- ═══════════════════════════════════════════════
+local StatsFrame = Instance.new("Frame")
+StatsFrame.Size = UDim2.new(1, 0, 0, 30)
+StatsFrame.Position = UDim2.new(0, 0, 0, 188)
+StatsFrame.BackgroundColor3 = Color3.fromRGB(14, 12, 26)
+StatsFrame.BorderSizePixel = 0
+StatsFrame.ZIndex = 3
+StatsFrame.Parent = ContentFrame
+Instance.new("UICorner", StatsFrame).CornerRadius = UDim.new(0, 8)
+
+-- Статус
+local StatusIcon = Instance.new("TextLabel")
+StatusIcon.Size = UDim2.new(0, 18, 1, 0)
+StatusIcon.Position = UDim2.new(0, 6, 0, 0)
+StatusIcon.BackgroundTransparency = 1
+StatusIcon.Text = "⏸"
+StatusIcon.TextSize = 11
+StatusIcon.ZIndex = 4
+StatusIcon.Parent = StatsFrame
+
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Size = UDim2.new(0.32, 0, 1, 0)
+StatusLabel.Position = UDim2.new(0, 24, 0, 0)
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.Text = "Готов к работе"
+StatusLabel.TextColor3 = Color3.fromRGB(100, 95, 145)
+StatusLabel.TextSize = 9
+StatusLabel.Font = Enum.Font.Gotham
+StatusLabel.TextXAlignment = Enum.TextXAlignment.Left
+StatusLabel.TextTruncate = Enum.TextTruncate.AtEnd
+StatusLabel.ZIndex = 4
+StatusLabel.Parent = StatsFrame
+
+-- Счётчики (цветные)
+local RobloxCount = Instance.new("TextLabel")
+RobloxCount.Size = UDim2.new(0, 56, 0, 18)
+RobloxCount.Position = UDim2.new(0.36, 0, 0, 6)
+RobloxCount.BackgroundColor3 = Color3.fromRGB(0, 80, 140)
+RobloxCount.Text = " 🏠 0 "
+RobloxCount.TextColor3 = Color3.fromRGB(100, 200, 255)
+RobloxCount.TextSize = 9
+RobloxCount.Font = Enum.Font.GothamBold
+RobloxCount.ZIndex = 5
+RobloxCount.Parent = StatsFrame
+Instance.new("UICorner", RobloxCount).CornerRadius = UDim.new(0, 5)
+
+local AuthorCount = Instance.new("TextLabel")
+AuthorCount.Size = UDim2.new(0, 56, 0, 18)
+AuthorCount.Position = UDim2.new(0.36, 60, 0, 6)
+AuthorCount.BackgroundColor3 = Color3.fromRGB(120, 50, 20)
+AuthorCount.Text = " 🎨 0 "
+AuthorCount.TextColor3 = Color3.fromRGB(255, 160, 80)
+AuthorCount.TextSize = 9
+AuthorCount.Font = Enum.Font.GothamBold
+AuthorCount.ZIndex = 5
+AuthorCount.Parent = StatsFrame
+Instance.new("UICorner", AuthorCount).CornerRadius = UDim.new(0, 5)
+
+local TotalCount = Instance.new("TextLabel")
+TotalCount.Size = UDim2.new(0, 56, 0, 18)
+TotalCount.Position = UDim2.new(0.36, 120, 0, 6)
+TotalCount.BackgroundColor3 = Color3.fromRGB(55, 30, 100)
+TotalCount.Text = " 📊 0 "
+TotalCount.TextColor3 = Color3.fromRGB(180, 140, 255)
+TotalCount.TextSize = 9
+TotalCount.Font = Enum.Font.GothamBold
+TotalCount.ZIndex = 5
+TotalCount.Parent = StatsFrame
+Instance.new("UICorner", TotalCount).CornerRadius = UDim.new(0, 5)
+
+local TimeLabel = Instance.new("TextLabel")
+TimeLabel.Size = UDim2.new(0, 50, 0, 18)
+TimeLabel.Position = UDim2.new(1, -56, 0, 6)
+TimeLabel.BackgroundColor3 = Color3.fromRGB(20, 60, 45)
+TimeLabel.Text = " ⏱ 0s "
+TimeLabel.TextColor3 = Color3.fromRGB(80, 200, 140)
+TimeLabel.TextSize = 9
+TimeLabel.Font = Enum.Font.GothamBold
+TimeLabel.ZIndex = 5
+TimeLabel.Parent = StatsFrame
+Instance.new("UICorner", TimeLabel).CornerRadius = UDim.new(0, 5)
+
+-- ═══════════════════════════════════════════════
+-- СПИСОК РЕЗУЛЬТАТОВ
+-- ═══════════════════════════════════════════════
+local ResultsFrame = Instance.new("ScrollingFrame")
+ResultsFrame.Size = UDim2.new(1, 0, 1, -225)
+ResultsFrame.Position = UDim2.new(0, 0, 0, 222)
+ResultsFrame.BackgroundColor3 = Color3.fromRGB(12, 11, 22)
+ResultsFrame.BorderSizePixel = 0
+ResultsFrame.ScrollBarThickness = 5
+ResultsFrame.ScrollBarImageColor3 = Color3.fromRGB(130, 80, 255)
+ResultsFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+ResultsFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+ResultsFrame.ZIndex = 3
+ResultsFrame.Parent = ContentFrame
+Instance.new("UICorner", ResultsFrame).CornerRadius = UDim.new(0, 12)
+
+Instance.new("UIStroke", ResultsFrame).Color = Color3.fromRGB(35, 30, 65)
+
+local RLayout = Instance.new("UIListLayout")
+RLayout.SortOrder = Enum.SortOrder.LayoutOrder
+RLayout.Padding = UDim.new(0, 4)
+RLayout.Parent = ResultsFrame
+
+local RPad = Instance.new("UIPadding")
+RPad.PaddingTop = UDim.new(0, 6)
+RPad.PaddingBottom = UDim.new(0, 6)
+RPad.PaddingLeft = UDim.new(0, 6)
+RPad.PaddingRight = UDim.new(0, 6)
+RPad.Parent = ResultsFrame
+
+-- ═══════════════════════════════════════════════
+-- УВЕДОМЛЕНИЯ
+-- ═══════════════════════════════════════════════
+local NotifContainer = Instance.new("Frame")
+NotifContainer.Size = UDim2.new(0, 300, 0, 350)
+NotifContainer.Position = UDim2.new(1, -310, 0, 10)
+NotifContainer.BackgroundTransparency = 1
+NotifContainer.ZIndex = 50
+NotifContainer.Parent = ScreenGui
+
+local NLayout = Instance.new("UIListLayout")
+NLayout.Padding = UDim.new(0, 5)
+NLayout.Parent = NotifContainer
+
+local function showNotification(text, notifType, duration)
+    playSound("notification")
+    duration = duration or 3
+
+    local colors = {
+        success  = {bg = Color3.fromRGB(20, 50, 30),  stroke = Color3.fromRGB(50, 200, 90),  icon = "✅"},
+        error    = {bg = Color3.fromRGB(50, 20, 20),  stroke = Color3.fromRGB(210, 50, 50),  icon = "❌"},
+        info     = {bg = Color3.fromRGB(20, 25, 50),  stroke = Color3.fromRGB(70, 110, 240), icon = "ℹ️"},
+        warning  = {bg = Color3.fromRGB(50, 40, 15),  stroke = Color3.fromRGB(240, 170, 40), icon = "⚠️"},
+        copy     = {bg = Color3.fromRGB(30, 20, 50),  stroke = Color3.fromRGB(130, 80, 255), icon = "📋"},
+        roblox   = {bg = Color3.fromRGB(15, 35, 55),  stroke = Color3.fromRGB(0, 160, 255),  icon = "🏠"},
+        author   = {bg = Color3.fromRGB(50, 30, 15),  stroke = Color3.fromRGB(255, 120, 50), icon = "🎨"},
+    }
+
+    local c = colors[notifType] or colors.info
+
+    local notif = Instance.new("Frame")
+    notif.Size = UDim2.new(1, 0, 0, 42)
+    notif.BackgroundColor3 = c.bg
+    notif.BorderSizePixel = 0
+    notif.ZIndex = 51
+    notif.BackgroundTransparency = 1
+    notif.Parent = NotifContainer
+    Instance.new("UICorner", notif).CornerRadius = UDim.new(0, 10)
+
+    local ns = Instance.new("UIStroke")
+    ns.Color = c.stroke
+    ns.Thickness = 1.5
+    ns.Transparency = 1
+    ns.Parent = notif
+
+    local ni = Instance.new("TextLabel")
+    ni.Size = UDim2.new(0, 28, 1, 0)
+    ni.Position = UDim2.new(0, 8, 0, 0)
+    ni.BackgroundTransparency = 1
+    ni.Text = c.icon
+    ni.TextSize = 15
+    ni.ZIndex = 52
+    ni.Parent = notif
+
+    local nt = Instance.new("TextLabel")
+    nt.Size = UDim2.new(1, -44, 1, 0)
+    nt.Position = UDim2.new(0, 36, 0, 0)
+    nt.BackgroundTransparency = 1
+    nt.Text = text
+    nt.TextColor3 = Color3.fromRGB(225, 220, 250)
+    nt.TextSize = 10
+    nt.Font = Enum.Font.GothamSemibold
+    nt.TextXAlignment = Enum.TextXAlignment.Left
+    nt.TextWrapped = true
+    nt.ZIndex = 52
+    nt.Parent = notif
+
+    TweenService:Create(notif, TweenInfo.new(0.3, Enum.EasingStyle.Back), {BackgroundTransparency = 0}):Play()
+    TweenService:Create(ns, TweenInfo.new(0.3), {Transparency = 0}):Play()
+
+    task.delay(duration, function()
+        TweenService:Create(notif, TweenInfo.new(0.3), {BackgroundTransparency = 1}):Play()
+        TweenService:Create(ns, TweenInfo.new(0.3), {Transparency = 1}):Play()
+        task.wait(0.35)
+        notif:Destroy()
+    end)
+end
+
+-- ═══════════════════════════════════════════════
+-- ФУНКЦИИ АНИМАЦИИ
+-- ═══════════════════════════════════════════════
+
+local function stopAnimation()
+    if currentTrack then
+        pcall(function() currentTrack:Stop() end)
+        pcall(function() currentTrack:Destroy() end)
+        currentTrack = nil
+    end
+    if currentAnim then
+        pcall(function() currentAnim:Destroy() end)
+        currentAnim = nil
+    end
+    StatusIcon.Text = "⏹"
+    StatusLabel.Text = "Остановлено"
+    StatusLabel.TextColor3 = Color3.fromRGB(190, 60, 60)
+
+    -- Убираем подсветку с играющей карточки
+    if activePlayingCard then
+        pcall(function()
+            local glow = activePlayingCard:FindFirstChild("PlayingGlow")
+            if glow then glow:Destroy() end
+        end)
+        activePlayingCard = nil
+    end
+end
+
+local function playAnimation(animId, cardFrame)
+    Character = LocalPlayer.Character
+    if not Character then playSound("error"); showNotification("Персонаж не найден!", "error"); return end
+    Humanoid = Character:FindFirstChildOfClass("Humanoid")
+    if not Humanoid then playSound("error"); showNotification("Humanoid не найден!", "error"); return end
+
+    stopAnimation()
+
+    local id = tostring(animId)
+    if not id:find("rbxassetid://") then id = "rbxassetid://" .. id end
+
+    local success, err = pcall(function()
+        currentAnim = Instance.new("Animation")
+        currentAnim.AnimationId = id
+        local animator = Humanoid:FindFirstChildOfClass("Animator")
+        if not animator then animator = Instance.new("Animator"); animator.Parent = Humanoid end
+        currentTrack = animator:LoadAnimation(currentAnim)
+        currentTrack.Priority = Enum.AnimationPriority.Action4
+        currentTrack.Looped = true
+        currentTrack:Play()
+        currentTrack:AdjustSpeed(animSpeed)
+    end)
+
+    if success then
+        playSound("playAnim")
+        StatusIcon.Text = "▶"
+        StatusLabel.Text = "Играет: " .. tostring(animId)
+        StatusLabel.TextColor3 = Color3.fromRGB(50, 210, 90)
+        showNotification("▶ Анимация: " .. tostring(animId), "success", 2)
+
+        -- Подсветка играющей карточки
+        if cardFrame then
+            activePlayingCard = cardFrame
+            local glow = Instance.new("UIStroke")
+            glow.Name = "PlayingGlow"
+            glow.Color = Color3.fromRGB(50, 255, 100)
+            glow.Thickness = 2
+            glow.Parent = cardFrame
+        end
+    else
+        playSound("error")
+        StatusIcon.Text = "❌"
+        StatusLabel.Text = "Ошибка"
+        StatusLabel.TextColor3 = Color3.fromRGB(240, 60, 60)
+        showNotification("Ошибка: " .. tostring(err), "error")
+    end
+end
+
+-- ═══════════════════════════════════════════════
+-- ОПРЕДЕЛЕНИЕ ТИПА И КАТЕГОРИИ
+-- ═══════════════════════════════════════════════
+
+local function getAnimType(name)
+    local n = string.lower(name)
+    if n:find("dance") or n:find("shuffle") or n:find("floss") or n:find("groove")
+       or n:find("boogie") or n:find("robot") or n:find("zombie") or n:find("gangnam")
+       or n:find("hype") or n:find("orange justice") or n:find("smooth") then
+        return "dance", "💃", Color3.fromRGB(255, 60, 150)
+    elseif n:find("emote") or n:find("wave") or n:find("laugh") or n:find("point")
+       or n:find("cheer") or n:find("salute") or n:find("shrug") or n:find("clap")
+       or n:find("dab") or n:find("hello") or n:find("twirl") or n:find("backflip")
+       or n:find("stadium") or n:find("superhero") or n:find("tilt") then
+        return "emote", "😊", Color3.fromRGB(255, 180, 40)
+    elseif n:find("idle") or n:find("walk") or n:find("run") or n:find("jump")
+       or n:find("climb") or n:find("fall") or n:find("swim") or n:find("sit")
+       or n:find("fly") or n:find("land") then
+        return "movement", "🏃", Color3.fromRGB(60, 200, 120)
+    elseif n:find("attack") or n:find("swing") or n:find("slash") or n:find("punch")
+       or n:find("kick") or n:find("shoot") or n:find("combat") or n:find("tool") then
+        return "combat", "⚔", Color3.fromRGB(255, 90, 70)
+    else
+        return "other", "🎭", Color3.fromRGB(140, 130, 200)
+    end
+end
+
+local function getCategory(animId)
+    if isRobloxDefault(tostring(animId)) then
+        return "roblox"
+    else
+        return "author"
+    end
+end
+
+-- ═══════════════════════════════════════════════
+-- СОЗДАНИЕ ДЕТАЛИЗИРОВАННОЙ КАРТОЧКИ
+-- ═══════════════════════════════════════════════
+
+local robloxCountNum = 0
+local authorCountNum = 0
+
+local function createAnimCard(data, order)
+    playSound("cardAppear")
+
+    local animType, typeIcon, typeColor = getAnimType(data.name)
+    local category = data.category or getCategory(data.id)
+    data.category = category
+
+    local isRblx = (category == "roblox")
+    local catColor = isRblx and Color3.fromRGB(0, 140, 240) or Color3.fromRGB(255, 110, 40)
+    local catIcon  = isRblx and "🏠" or "🎨"
+    local catText  = isRblx and "ROBLOX" or "АВТОРСКАЯ"
+    local catBg    = isRblx and Color3.fromRGB(10, 35, 60) or Color3.fromRGB(55, 28, 10)
+
+    -- Обновляем счётчики
+    if isRblx then robloxCountNum = robloxCountNum + 1 else authorCountNum = authorCountNum + 1 end
+    RobloxCount.Text = " 🏠 " .. robloxCountNum .. " "
+    AuthorCount.Text = " 🎨 " .. authorCountNum .. " "
+    TotalCount.Text  = " 📊 " .. #foundAnimations .. " "
+
+    local card = Instance.new("Frame")
+    card.Size = UDim2.new(1, -6, 0, 82)
+    card.BackgroundColor3 = Color3.fromRGB(20, 18, 36)
+    card.BorderSizePixel = 0
+    card.LayoutOrder = order
+    card.Name = "Card_" .. order
+    card.ZIndex = 4
+    card.ClipsDescendants = true
+    card.Parent = ResultsFrame
+    Instance.new("UICorner", card).CornerRadius = UDim.new(0, 11)
+
+    -- Цветная полоска слева (тип анимации)
+    local colorBar = Instance.new("Frame")
+    colorBar.Size = UDim2.new(0, 4, 1, -8)
+    colorBar.Position = UDim2.new(0, 3, 0, 4)
+    colorBar.BackgroundColor3 = typeColor
+    colorBar.BorderSizePixel = 0
+    colorBar.ZIndex = 6
+    colorBar.Parent = card
+    Instance.new("UICorner", colorBar).CornerRadius = UDim.new(0, 2)
+
+    -- Категория badge (ROBLOX / АВТОРСКАЯ) — вверху
+    local catBadge = Instance.new("TextLabel")
+    catBadge.Size = UDim2.new(0, 0, 0, 14)
+    catBadge.Position = UDim2.new(0, 14, 0, 4)
+    catBadge.AutomaticSize = Enum.AutomaticSize.X
+    catBadge.BackgroundColor3 = catBg
+    catBadge.Text = "  " .. catIcon .. " " .. catText .. "  "
+    catBadge.TextColor3 = catColor
+    catBadge.TextSize = 7
+    catBadge.Font = Enum.Font.GothamBlack
+    catBadge.ZIndex = 7
+    catBadge.Parent = card
+    Instance.new("UICorner", catBadge).CornerRadius = UDim.new(0, 4)
+
+    local catBadgeStroke = Instance.new("UIStroke")
+    catBadgeStroke.Color = catColor
+    catBadgeStroke.Thickness = 1
+    catBadgeStroke.Transparency = 0.5
+    catBadgeStroke.Parent = catBadge
+
+    -- Тип badge
+    local typeBadge = Instance.new("TextLabel")
+    typeBadge.Size = UDim2.new(0, 0, 0, 14)
+    typeBadge.Position = UDim2.new(0, isRblx and 80 or 96, 0, 4)
+    typeBadge.AutomaticSize = Enum.AutomaticSize.X
+    typeBadge.BackgroundColor3 = Color3.fromRGB(30, 28, 50)
+    typeBadge.Text = "  " .. typeIcon .. " " .. animType:upper() .. "  "
+    typeBadge.TextColor3 = typeColor
+    typeBadge.TextSize = 7
+    typeBadge.Font = Enum.Font.GothamBold
+    typeBadge.ZIndex = 7
+    typeBadge.Parent = card
+    Instance.new("UICorner", typeBadge).CornerRadius = UDim.new(0, 4)
+
+    -- Иконка + Название
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Size = UDim2.new(1, -145, 0, 16)
+    nameLabel.Position = UDim2.new(0, 14, 0, 20)
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.Text = typeIcon .. " " .. data.name
+    nameLabel.TextColor3 = Color3.fromRGB(235, 230, 255)
+    nameLabel.TextSize = 12
+    nameLabel.Font = Enum.Font.GothamBold
+    nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+    nameLabel.TextTruncate = Enum.TextTruncate.AtEnd
+    nameLabel.ZIndex = 6
+    nameLabel.Parent = card
+
+    -- Если Roblox — показываем оригинальное имя
+    if isRblx and getRobloxName(data.id) then
+        local rName = Instance.new("TextLabel")
+        rName.Size = UDim2.new(1, -145, 0, 12)
+        rName.Position = UDim2.new(0, 14, 0, 36)
+        rName.BackgroundTransparency = 1
+        rName.Text = "🏷 " .. getRobloxName(data.id)
+        rName.TextColor3 = Color3.fromRGB(0, 160, 240)
+        rName.TextSize = 9
+        rName.Font = Enum.Font.GothamSemibold
+        rName.TextXAlignment = Enum.TextXAlignment.Left
+        rName.ZIndex = 6
+        rName.Parent = card
+    end
+
+    -- ID (кликабельный для копирования)
+    local idBtn = Instance.new("TextButton")
+    idBtn.Size = UDim2.new(1, -145, 0, 13)
+    idBtn.Position = UDim2.new(0, 14, 0, isRblx and 49 or 38)
+    idBtn.BackgroundTransparency = 1
+    idBtn.Text = "🆔 " .. data.id .. "  (нажми чтобы скопировать)"
+    idBtn.TextColor3 = typeColor
+    idBtn.TextSize = 9
+    idBtn.Font = Enum.Font.GothamSemibold
+    idBtn.TextXAlignment = Enum.TextXAlignment.Left
+    idBtn.BorderSizePixel = 0
+    idBtn.ZIndex = 6
+    idBtn.Parent = card
+
+    idBtn.MouseButton1Click:Connect(function()
+        playSound("copyID")
+        if setclipboard then setclipboard(tostring(data.id))
+        elseif toclipboard then toclipboard(tostring(data.id)) end
+        showNotification("ID скопирован: " .. data.id, "copy", 1.5)
+        idBtn.Text = "✅ ID скопирован!"
+        task.wait(1.2)
+        idBtn.Text = "🆔 " .. data.id .. "  (нажми чтобы скопировать)"
+    end)
+
+    -- Путь + источник
+    local pathLabel = Instance.new("TextLabel")
+    pathLabel.Size = UDim2.new(1, -145, 0, 12)
+    pathLabel.Position = UDim2.new(0, 14, 0, isRblx and 63 or 53)
+    pathLabel.BackgroundTransparency = 1
+    pathLabel.Text = "📁 " .. data.path .. "  •  " .. data.source
+    pathLabel.TextColor3 = Color3.fromRGB(65, 60, 100)
+    pathLabel.TextSize = 8
+    pathLabel.Font = Enum.Font.Gotham
+    pathLabel.TextXAlignment = Enum.TextXAlignment.Left
+    pathLabel.TextTruncate = Enum.TextTruncate.AtEnd
+    pathLabel.ZIndex = 6
+    pathLabel.Parent = card
+
+    -- ═══ ПРАВАЯ ПАНЕЛЬ ═══
+
+    -- Play
+    local playBtn = Instance.new("TextButton")
+    playBtn.Size = UDim2.new(0, 62, 0, 26)
+    playBtn.Position = UDim2.new(1, -70, 0, 4)
+    playBtn.BackgroundColor3 = Color3.fromRGB(35, 160, 60)
+    playBtn.Text = "▶ Play"
+    playBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    playBtn.TextSize = 10
+    playBtn.Font = Enum.Font.GothamBold
+    playBtn.BorderSizePixel = 0
+    playBtn.ZIndex = 7
+    playBtn.Parent = card
+    Instance.new("UICorner", playBtn).CornerRadius = UDim.new(0, 7)
+
+    playBtn.MouseButton1Click:Connect(function()
+        playAnimation(data.id, card)
+        TweenService:Create(playBtn, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(70, 255, 100)}):Play()
+        task.wait(0.15)
+        TweenService:Create(playBtn, TweenInfo.new(0.25), {BackgroundColor3 = Color3.fromRGB(35, 160, 60)}):Play()
+    end)
+
+    -- Copy Script
+    local copyScriptBtn = Instance.new("TextButton")
+    copyScriptBtn.Size = UDim2.new(0, 62, 0, 18)
+    copyScriptBtn.Position = UDim2.new(1, -70, 0, 33)
+    copyScriptBtn.BackgroundColor3 = Color3.fromRGB(45, 40, 75)
+    copyScriptBtn.Text = "📜 Script"
+    copyScriptBtn.TextColor3 = Color3.fromRGB(185, 175, 225)
+    copyScriptBtn.TextSize = 8
+    copyScriptBtn.Font = Enum.Font.GothamBold
+    copyScriptBtn.BorderSizePixel = 0
+    copyScriptBtn.ZIndex = 7
+    copyScriptBtn.Parent = card
+    Instance.new("UICorner", copyScriptBtn).CornerRadius = UDim.new(0, 6)
+
+    copyScriptBtn.MouseButton1Click:Connect(function()
+        playSound("copyScript")
+        local scriptText = string.format([[
+-- ═══ %s Animation ═══
+-- Name: %s | ID: %s | Category: %s
+local anim = Instance.new("Animation")
+anim.AnimationId = "rbxassetid://%s"
+local player = game.Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local humanoid = char:WaitForChild("Humanoid")
+local animator = humanoid:FindFirstChildOfClass("Animator") or Instance.new("Animator", humanoid)
+local track = animator:LoadAnimation(anim)
+track.Priority = Enum.AnimationPriority.Action4
+track.Looped = true
+track:Play()
+-- track:Stop() -- Uncomment to stop]],
+            category:upper(), data.name, data.id, category, data.id
+        )
+        if setclipboard then setclipboard(scriptText)
+        elseif toclipboard then toclipboard(scriptText) end
+        showNotification("📜 Скрипт скопирован: " .. data.name, "copy", 2)
+        copyScriptBtn.Text = "✅ Done"
+        task.wait(1)
+        copyScriptBtn.Text = "📜 Script"
+    end)
+
+    -- Copy ID only
+    local copyIdBtn = Instance.new("TextButton")
+    copyIdBtn.Size = UDim2.new(0, 28, 0, 18)
+    copyIdBtn.Position = UDim2.new(1, -70, 0, 54)
+    copyIdBtn.BackgroundColor3 = Color3.fromRGB(40, 36, 65)
+    copyIdBtn.Text = "🆔"
+    copyIdBtn.TextSize = 10
+    copyIdBtn.Font = Enum.Font.GothamBold
+    copyIdBtn.BorderSizePixel = 0
+    copyIdBtn.ZIndex = 7
+    copyIdBtn.Parent = card
+    Instance.new("UICorner", copyIdBtn).CornerRadius = UDim.new(0, 5)
+
+    copyIdBtn.MouseButton1Click:Connect(function()
+        playSound("copyID")
+        if setclipboard then setclipboard(data.id) elseif toclipboard then toclipboard(data.id) end
+        showNotification("🆔 " .. data.id, "copy", 1)
+        copyIdBtn.Text = "✅"
+        task.wait(0.8)
+        copyIdBtn.Text = "🆔"
+    end)
+
+    -- Favorite
+    local favBtn = Instance.new("TextButton")
+    favBtn.Size = UDim2.new(0, 28, 0, 18)
+    favBtn.Position = UDim2.new(1, -38, 0, 54)
+    favBtn.BackgroundColor3 = favoriteAnims[data.id] and Color3.fromRGB(160, 130, 20) or Color3.fromRGB(40, 36, 65)
+    favBtn.Text = favoriteAnims[data.id] and "⭐" or "☆"
+    favBtn.TextSize = 12
+    favBtn.Font = Enum.Font.GothamBold
+    favBtn.BorderSizePixel = 0
+    favBtn.ZIndex = 7
+    favBtn.Parent = card
+    Instance.new("UICorner", favBtn).CornerRadius = UDim.new(0, 5)
+
+    favBtn.MouseButton1Click:Connect(function()
+        playSound("favorite")
+        favoriteAnims[data.id] = not favoriteAnims[data.id]
+        favBtn.Text = favoriteAnims[data.id] and "⭐" or "☆"
+        TweenService:Create(favBtn, TweenInfo.new(0.2), {
+            BackgroundColor3 = favoriteAnims[data.id] and Color3.fromRGB(160, 130, 20) or Color3.fromRGB(40, 36, 65)
+        }):Play()
+        if favoriteAnims[data.id] then
+            showNotification("⭐ " .. data.name, "info", 1)
+        end
+    end)
+
+    -- Hover
+    card.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            TweenService:Create(card, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(30, 28, 52)}):Play()
+        end
+    end)
+    card.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            TweenService:Create(card, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(20, 18, 36)}):Play()
+        end
+    end)
+
+    for _, btn in pairs({playBtn, copyScriptBtn, copyIdBtn, favBtn, idBtn}) do
+        btn.MouseEnter:Connect(function() playSound("hover") end)
+    end
+
+    -- Анимация появления
+    card.BackgroundTransparency = 1
+    TweenService:Create(card, TweenInfo.new(0.3, Enum.EasingStyle.Quint), {BackgroundTransparency = 0}):Play()
+
+    table.insert(allButtons, {frame = card, data = data, animType = animType})
+    return card
+end
+
+-- ═══════════════════════════════════════════════
+-- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ СКАНИРОВАНИЯ
+-- ═══════════════════════════════════════════════
+
+local function clearResults()
+    for _, c in pairs(ResultsFrame:GetChildren()) do
+        if c:IsA("Frame") then c:Destroy() end
+    end
+    allButtons = {}
+    foundAnimations = {}
+    robloxCountNum = 0
+    authorCountNum = 0
+end
+
+local function extractId(s)
+    if not s or s == "" then return nil end
+    local id = s:match("(%d+)")
+    if id and tonumber(id) > 0 then return id end
+    return nil
+end
+
+local function getShortPath(inst)
+    local parts = {}
+    local cur = inst
+    local d = 0
+    while cur and cur ~= game and d < 6 do
+        table.insert(parts, 1, cur.Name)
+        cur = cur.Parent
+        d = d + 1
+    end
+    return table.concat(parts, " › ")
+end
+
+local function isDuplicate(id)
+    if seenIds[id] then return true end
+    seenIds[id] = true
+    return false
+end
+
+-- ═══════════════════════════════════════════════
+-- СКАНИРОВАНИЕ
+-- ═══════════════════════════════════════════════
+
+local function scanInstance(root, deepScan)
+    local count = 0
+
+    local function rec(obj, depth)
+        if depth > (deepScan and 35 or 20) then return end
+        local ok, children = pcall(function() return obj:GetChildren() end)
+        if not ok then return end
+
+        for _, child in pairs(children) do
+            totalScanned = totalScanned + 1
+
+            if child:IsA("Animation") then
+                local id = extractId(child.AnimationId)
+                if id and not isDuplicate(id) then
+                    count = count + 1
+                    playSound("scanPing")
+                    local cat = getCategory(id)
+                    if cat == "roblox" then playSound("robloxFound") else playSound("authorFound") end
+                    table.insert(foundAnimations, {
+                        name = child.Name ~= "Animation" and child.Name or (child.Parent and child.Parent.Name .. "_Anim" or "Animation"),
+                        id = id, path = getShortPath(child), source = "Animation", category = cat
+                    })
+                end
+            end
+
+            if child:IsA("Animator") then
+                pcall(function()
+                    for _, track in pairs(child:GetPlayingAnimationTracks()) do
+                        if track.Animation then
+                            local id = extractId(track.Animation.AnimationId)
+                            if id and not isDuplicate(id) then
+                                count = count + 1
+                                table.insert(foundAnimations, {
+                                    name = track.Animation.Name ~= "Animation" and track.Animation.Name or track.Name,
+                                    id = id, path = getShortPath(child) .. " › Playing",
+                                    source = "ActiveTrack", category = getCategory(id)
+                                })
+                            end
+                        end
+                    end
+                end)
+            end
+
+            if child:IsA("AnimationController") then
+                pcall(function()
+                    for _, track in pairs(child:GetPlayingAnimationTracks()) do
+                        if track.Animation then
+                            local id = extractId(track.Animation.AnimationId)
+                            if id and not isDuplicate(id) then
+                                count = count + 1
+                                table.insert(foundAnimations, {
+                                    name = track.Animation.Name, id = id,
+                                    path = getShortPath(child) .. " › AnimCtrl",
+                                    source = "AnimController", category = getCategory(id)
+                                })
+                            end
+                        end
+                    end
+                end)
+            end
+
+            if child:IsA("Humanoid") then
+                pcall(function()
+                    local animator = child:FindFirstChildOfClass("Animator")
+                    if animator then
+                        for _, track in pairs(animator:GetPlayingAnimationTracks()) do
+                            if track.Animation then
+                                local id = extractId(track.Animation.AnimationId)
+                                if id and not isDuplicate(id) then
+                                    count = count + 1
+                                    table.insert(foundAnimations, {
+                                        name = track.Animation.Name ~= "Animation" and track.Animation.Name or (child.Parent and child.Parent.Name or "Anim"),
+                                        id = id, path = getShortPath(child) .. " › Humanoid",
+                                        source = "HumanoidTrack", category = getCategory(id)
+                                    })
+                                end
+                            end
+                        end
+                    end
+                end)
+            end
+
+            if child:IsA("StringValue") then
+                local id = extractId(child.Value)
+                if id and not isDuplicate(id) then
+                    local n = child.Name:lower()
+                    if n:find("anim") or n:find("dance") or n:find("emote") or n:find("motion") then
+                        count = count + 1
+                        table.insert(foundAnimations, {
+                            name = child.Name, id = id, path = getShortPath(child),
+                            source = "StringValue", category = getCategory(id)
+                        })
+                    end
+                end
+            end
+
+            if child:IsA("IntValue") or child:IsA("NumberValue") then
+                local val = tostring(math.floor(child.Value))
+                if tonumber(val) and tonumber(val) > 1000 then
+                    local n = child.Name:lower()
+                    if n:find("anim") or n:find("dance") or n:find("emote") or n:find("id") then
+                        if not isDuplicate(val) then
+                            count = count + 1
+                            table.insert(foundAnimations, {
+                                name = child.Name, id = val, path = getShortPath(child),
+                                source = "Value", category = getCategory(val)
+                            })
+                        end
+                    end
+                end
+            end
+
+            if deepScan and (child:IsA("ModuleScript") or child:IsA("LocalScript")) then
+                pcall(function()
+                    if decompile then
+                        local code = decompile(child)
+                        if code then
+                            for id in code:gmatch("rbxassetid://(%d+)") do
+                                if tonumber(id) > 1000 and not isDuplicate(id) then
+                                    count = count + 1
+                                    table.insert(foundAnimations, {
+                                        name = child.Name .. " [code]", id = id,
+                                        path = getShortPath(child),
+                                        source = child.ClassName, category = getCategory(id)
+                                    })
+                                end
+                            end
+                            for id in code:gmatch("[Aa]nim[ation]*[Ii]?[Dd]?%s*[:=]%s*[\"']?(%d+)") do
+                                if tonumber(id) > 1000 and not isDuplicate(id) then
+                                    count = count + 1
+                                    table.insert(foundAnimations, {
+                                        name = child.Name .. " [parsed]", id = id,
+                                        path = getShortPath(child),
+                                        source = "ScriptParsed", category = getCategory(id)
+                                    })
+                                end
+                            end
+                        end
+                    end
+                end)
+            end
+
+            pcall(function() rec(child, depth + 1) end)
+            if totalScanned % 100 == 0 then task.wait() end
+        end
+    end
+
+    rec(root, 0)
+    return count
+end
+
+-- ═══════════════════════════════════════════════
+-- ПОЛНОЕ СКАНИРОВАНИЕ
+-- ═══════════════════════════════════════════════
+
+local function performScan(deepScan)
+    if isScanning then showNotification("Сканирование уже идёт!", "warning"); return end
+
+    clearResults()
+    seenIds = {}
+    scanComplete = false
+    isScanning = true
+    totalScanned = 0
+    scanStartTime = tick()
+
+    playSound(deepScan and "deepScan" or "scanStart")
+    ProgressOuter.Visible = true
+    ProgressInner.Size = UDim2.new(0, 0, 1, 0)
+
+    StatusIcon.Text = "🔍"
+    StatusLabel.Text = "Сканирование..."
+    StatusLabel.TextColor3 = Color3.fromRGB(255, 200, 40)
+
+    showNotification(
+        deepScan and "⚡ Deep Scan: скрипты + GC + nil" or "🔍 Быстрое сканирование...",
+        deepScan and "warning" or "info", 2
+    )
+
+    task.spawn(function()
+        local places = {
+            {game:GetService("Workspace"), "Workspace"},
+            {ReplicatedStorage, "ReplicatedStorage"},
+            {StarterPlayer, "StarterPlayer"},
+            {Lighting, "Lighting"},
+            {SoundService, "SoundService"},
+        }
+
+        local opt = {
+            {"ReplicatedFirst", function() return game:GetService("ReplicatedFirst") end},
+            {"StarterGui",      function() return game:GetService("StarterGui") end},
+            {"StarterPack",     function() return game:GetService("StarterPack") end},
+            {"PlayerGui",       function() return LocalPlayer:FindFirstChild("PlayerGui") end},
+            {"Backpack",        function() return LocalPlayer:FindFirstChild("Backpack") end},
+            {"Character",       function() return LocalPlayer.Character end},
+        }
+
+        for _, p in ipairs(opt) do
+            pcall(function()
+                local inst = p[2]()
+                if inst then table.insert(places, {inst, p[1]}) end
+            end)
+        end
+
+        for _, player in pairs(Players:GetPlayers()) do
+            pcall(function()
+                if player.Character and player ~= LocalPlayer then
+                    table.insert(places, {player.Character, "👤 " .. player.Name})
+                end
+            end)
+        end
+
+        -- Deep Scan extras
+        if deepScan then
+            pcall(function()
+                if getnilinstances then
+                    for _, inst in pairs(getnilinstances()) do
+                        if inst:IsA("Animation") then
+                            local id = extractId(inst.AnimationId)
+                            if id and not isDuplicate(id) then
+                                table.insert(foundAnimations, {
+                                    name = inst.Name .. " [nil]", id = id,
+                                    path = "NilInstance › " .. inst.Name,
+                                    source = "NilInstance", category = getCategory(id)
+                                })
+                            end
+                        end
+                    end
+                end
+            end)
+
+            pcall(function()
+                if getgc then
+                    for _, v in pairs(getgc(true)) do
+                        if typeof(v) == "Instance" and v:IsA("Animation") then
+                            local id = extractId(v.AnimationId)
+                            if id and not isDuplicate(id) then
+                                table.insert(foundAnimations, {
+                                    name = v.Name .. " [gc]", id = id,
+                                    path = "GC › " .. v.Name,
+                                    source = "GarbageCollector", category = getCategory(id)
+                                })
+                            end
+                        end
+                        if typeof(v) == "table" then
+                            pcall(function()
+                                for key, val in pairs(v) do
+                                    if typeof(val) == "string" then
+                                        local id = val:match("rbxassetid://(%d+)")
+                                        if id and tonumber(id) > 1000 and tostring(key):lower():find("anim") then
+                                            if not isDuplicate(id) then
+                                                table.insert(foundAnimations, {
+                                                    name = tostring(key), id = id,
+                                                    path = "GC_Table", source = "GC_Table",
+                                                    category = getCategory(id)
+                                                })
+                                            end
+                                        end
+                                    end
+                                    if typeof(val) == "number" and val > 10000 and tostring(key):lower():find("anim") then
+                                        local idStr = tostring(math.floor(val))
+                                        if not isDuplicate(idStr) then
+                                            table.insert(foundAnimations, {
+                                                name = tostring(key), id = idStr,
+                                                path = "GC_Table", source = "GC_Table",
+                                                category = getCategory(idStr)
+                                            })
+                                        end
+                                    end
+                                end
+                            end)
+                        end
+                    end
+                end
+            end)
+        end
+
+        local total = #places
+        for idx, place in ipairs(places) do
+            if place[1] then
+                StatusLabel.Text = place[2] .. "..."
+                TweenService:Create(ProgressInner, TweenInfo.new(0.3), {
+                    Size = UDim2.new(idx / total, 0, 1, 0)
+                }):Play()
+                pcall(function() scanInstance(place[1], deepScan) end)
+                RobloxCount.Text = " 🏠 " .. robloxCountNum .. " "
+                AuthorCount.Text = " 🎨 " .. authorCountNum .. " "
+                TotalCount.Text  = " 📊 " .. #foundAnimations .. " "
+                TimeLabel.Text   = " ⏱ " .. string.format("%.1f", tick() - scanStartTime) .. "s "
+                task.wait()
+            end
+        end
+
+        TweenService:Create(ProgressInner, TweenInfo.new(0.3), {Size = UDim2.new(1, 0, 1, 0)}):Play()
+        StatusLabel.Text = "Создание списка..."
+
+        -- Сортировка: сначала авторские, потом Roblox
+        table.sort(foundAnimations, function(a, b)
+            if a.category ~= b.category then
+                return a.category == "author"
+            end
+            return a.name < b.name
+        end)
+
+        task.wait(0.15)
+
+        for i, data in ipairs(foundAnimations) do
+            createAnimCard(data, i)
+            if i % 12 == 0 then task.wait() end
+        end
+
+        scanComplete = true
+        isScanning = false
+        local elapsed = string.format("%.1f", tick() - scanStartTime)
+        TimeLabel.Text = " ⏱ " .. elapsed .. "s "
+
+        task.wait(0.5)
+        ProgressOuter.Visible = false
+
+        if #foundAnimations == 0 then
+            playSound("error")
+            StatusIcon.Text = "😕"
+            StatusLabel.Text = "Не найдено"
+            StatusLabel.TextColor3 = Color3.fromRGB(240, 170, 40)
+            showNotification("Не найдено анимаций. Потанцуй в игре и нажми Scan!", "warning", 4)
+
+            local hint = Instance.new("Frame")
+            hint.Size = UDim2.new(1, -6, 0, 100)
+            hint.BackgroundColor3 = Color3.fromRGB(25, 22, 45)
+            hint.BorderSizePixel = 0
+            hint.ZIndex = 4
+            hint.Parent = ResultsFrame
+            Instance.new("UICorner", hint).CornerRadius = UDim.new(0, 10)
+
+            local ht = Instance.new("TextLabel")
+            ht.Size = UDim2.new(1, -16, 1, 0)
+            ht.Position = UDim2.new(0, 8, 0, 0)
+            ht.BackgroundTransparency = 1
+            ht.Text = "💡 Советы:\n\n🏠 Roblox анимации — встроенные в Roblox (idle, walk, run, стандартные эмоции)\n🎨 Авторские — загруженные автором игры (уникальные танцы, эмоции)\n\n• Потанцуй/используй эмоцию → Scan\n• Попроси других игроков → Scan\n• ⚡ Deep Scan ищет в скриптах и памяти"
+            ht.TextColor3 = Color3.fromRGB(160, 150, 210)
+            ht.TextSize = 9
+            ht.Font = Enum.Font.Gotham
+            ht.TextWrapped = true
+            ht.TextXAlignment = Enum.TextXAlignment.Left
+            ht.TextYAlignment = Enum.TextYAlignment.Center
+            ht.ZIndex = 5
+            ht.Parent = hint
+        else
+            playSound("scanComplete")
+            StatusIcon.Text = "✅"
+            StatusLabel.Text = robloxCountNum .. " Roblox + " .. authorCountNum .. " Авторских"
+            StatusLabel.TextColor3 = Color3.fromRGB(50, 210, 90)
+            showNotification(
+                "Найдено: 🏠 " .. robloxCountNum .. " Roblox + 🎨 " .. authorCountNum .. " Авторских за " .. elapsed .. "s",
+                "success", 4
+            )
+        end
+    end)
+end
+
+-- ═══════════════════════════════════════════════
+-- ПОИСК
+-- ═══════════════════════════════════════════════
+local lastSearchT = 0
+SearchInput:GetPropertyChangedSignal("Text"):Connect(function()
+    local q = SearchInput.Text:lower()
+    ClearSearchBtn.Visible = q ~= ""
+    if tick() - lastSearchT > 0.15 then playSound("search"); lastSearchT = tick() end
+    TweenService:Create(SearchStroke, TweenInfo.new(0.2), {
+        Color = q ~= "" and Color3.fromRGB(130, 80, 255) or Color3.fromRGB(45, 38, 80)
+    }):Play()
+
+    for _, item in pairs(allButtons) do
+        if q == "" then
+            item.frame.Visible = true
+        else
+            local m = (item.data.name:lower():find(q, 1, true))
+                or (item.data.id:find(q, 1, true))
+                or (item.data.path:lower():find(q, 1, true))
+                or (item.data.source:lower():find(q, 1, true))
+                or (item.data.category:lower():find(q, 1, true))
+            item.frame.Visible = m ~= nil
+        end
+    end
+end)
+
+ClearSearchBtn.MouseButton1Click:Connect(function()
+    playSound("click"); SearchInput.Text = ""
+end)
+
+-- ═══════════════════════════════════════════════
+-- СОБЫТИЯ КНОПОК
+-- ═══════════════════════════════════════════════
+ScanBtn.MouseButton1Click:Connect(function() playSound("click"); performScan(false) end)
+DeepScanBtn.MouseButton1Click:Connect(function() playSound("click"); performScan(true) end)
+StopBtn.MouseButton1Click:Connect(function()
+    playSound("stopAnim"); stopAnimation()
+    showNotification("⏹ Остановлено", "info", 1.5)
+end)
+
+ExportBtn.MouseButton1Click:Connect(function()
+    playSound("exportAll")
+    if #foundAnimations == 0 then showNotification("Нечего экспортировать!", "warning"); return end
+
+    local lines = {
+        "-- ═══ Ultra Dance Finder v4.0 Export ═══",
+        "-- Game: " .. tostring(game.PlaceId),
+        "-- Roblox: " .. robloxCountNum .. " | Author: " .. authorCountNum,
+        "-- Date: " .. os.date("%Y-%m-%d %H:%M:%S"),
+        "",
+        "local RobloxAnimations = {"
+    }
+    for _, d in ipairs(foundAnimations) do
+        if d.category == "roblox" then
+            table.insert(lines, string.format('    {name="%s", id=%s},', d.name:gsub('"','\\"'), d.id))
+        end
+    end
+    table.insert(lines, "}")
+    table.insert(lines, "")
+    table.insert(lines, "local AuthorAnimations = {")
+    for _, d in ipairs(foundAnimations) do
+        if d.category == "author" then
+            table.insert(lines, string.format('    {name="%s", id=%s},', d.name:gsub('"','\\"'), d.id))
+        end
+    end
+    table.insert(lines, "}")
+
+    local txt = table.concat(lines, "\n")
+    if setclipboard then setclipboard(txt) elseif toclipboard then toclipboard(txt) end
+    showNotification("📤 Экспорт: " .. #foundAnimations .. " анимаций", "success", 3)
+end)
+
+CloseBtn.MouseButton1Click:Connect(function()
+    playSound("close"); stopAnimation()
+    TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+        Size = UDim2.new(0,0,0,0), Position = UDim2.new(0.5,0,0.5,0)
+    }):Play()
+    task.wait(0.35)
+    for _, s in pairs(SFX) do s:Destroy() end
+    ScreenGui:Destroy()
+end)
+
+MinBtn.MouseButton1Click:Connect(function()
+    isMinimized = not isMinimized
+    playSound(isMinimized and "minimize" or "maximize")
+    if isMinimized then
+        TweenService:Create(MainFrame, TweenInfo.new(0.35, Enum.EasingStyle.Quint), {
+            Size = UDim2.new(0, 470, 0, 56)
+        }):Play()
+        ContentFrame.Visible = false
+        MinBtn.Text = "+"
+    else
+        ContentFrame.Visible = true
+        TweenService:Create(MainFrame, TweenInfo.new(0.35, Enum.EasingStyle.Quint), {
+            Size = UDim2.new(0, 470, 0, 650)
+        }):Play()
+        MinBtn.Text = "—"
+    end
+end)
+
+-- ═══════════════════════════════════════════════
+-- HOVER
+-- ═══════════════════════════════════════════════
+local function addH(b, n, h)
+    b.MouseEnter:Connect(function()
+        playSound("hover")
+        TweenService:Create(b, TweenInfo.new(0.15), {BackgroundColor3 = h}):Play()
+    end)
+    b.MouseLeave:Connect(function()
+        TweenService:Create(b, TweenInfo.new(0.15), {BackgroundColor3 = n}):Play()
+    end)
+end
+
+addH(ScanBtn,     Color3.fromRGB(40,95,230),  Color3.fromRGB(65,125,255))
+addH(DeepScanBtn, Color3.fromRGB(120,40,220), Color3.fromRGB(155,70,255))
+addH(StopBtn,     Color3.fromRGB(190,35,35),  Color3.fromRGB(235,65,65))
+addH(CloseBtn,    Color3.fromRGB(195,35,35),  Color3.fromRGB(245,65,65))
+addH(MinBtn,      Color3.fromRGB(220,155,0),  Color3.fromRGB(250,195,30))
+addH(ExportBtn,   Color3.fromRGB(35,150,75),  Color3.fromRGB(55,190,95))
+
+-- ═══════════════════════════════════════════════
+-- DRAG
+-- ═══════════════════════════════════════════════
+TitleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        isDragging = true; dragStart = input.Position; startPos = MainFrame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then isDragging = false end
+        end)
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if isDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local d = input.Position - dragStart
+        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + d.X, startPos.Y.Scale, startPos.Y.Offset + d.Y)
+    end
+end)
+
+-- ═══════════════════════════════════════════════
+-- РЕСПАВН
+-- ═══════════════════════════════════════════════
+LocalPlayer.CharacterAdded:Connect(function(c)
+    Character = c; Humanoid = c:WaitForChild("Humanoid")
+    currentTrack = nil; currentAnim = nil
+    StatusIcon.Text = "🔄"; StatusLabel.Text = "Персонаж перезагружен"
+    StatusLabel.TextColor3 = Color3.fromRGB(100, 95, 145)
+    showNotification("🔄 Респавн. Анимация сброшена.", "info", 2)
+end)
+
+-- ═══════════════════════════════════════════════
+-- RAINBOW + ANIMATIONS
+-- ═══════════════════════════════════════════════
+task.spawn(function()
+    local hue = 0
+    while ScreenGui.Parent do
+        hue = (hue + 0.003) % 1
+        MainStroke.Color = Color3.fromHSV(hue, 0.6, 1)
+        pcall(function()
+            DivGradient.Offset = Vector2.new(math.sin(tick() * 0.7) * 0.4, 0)
+        end)
+        if isScanning then
+            local p = (math.sin(tick() * 5) + 1) / 2
+            StatusLabel.TextColor3 = Color3.fromRGB(200 + p * 55, 175 + p * 40, 40)
+        end
+        task.wait(0.03)
+    end
+end)
+
+-- ═══════════════════════════════════════════════
+-- HOTKEY
+-- ═══════════════════════════════════════════════
+UserInputService.InputBegan:Connect(function(input, gpe)
+    if gpe then return end
+    if input.KeyCode == Enum.KeyCode.RightControl then
+        playSound("minimize"); MainFrame.Visible = not MainFrame.Visible
+    end
+end)
+
+-- ═══════════════════════════════════════════════
+-- ПОЯВЛЕНИЕ
+-- ═══════════════════════════════════════════════
+MainFrame.Size = UDim2.new(0,0,0,0)
+MainFrame.Position = UDim2.new(0.5,0,0.5,0)
+MainFrame.BackgroundTransparency = 1
+
+task.wait(0.1)
+playSound("guiOpen")
+
+TweenService:Create(MainFrame, TweenInfo.new(0.6, Enum.EasingStyle.Back), {
+    Size = UDim2.new(0, 470, 0, 650),
+    Position = UDim2.new(0.5, -235, 0.5, -325),
+    BackgroundTransparency = 0
+}):Play()
+
+task.wait(0.65)
+showNotification("🔍 Ultra Dance Finder v4.0 загружен!", "success", 3)
+
+print("═══════════════════════════════════════════════")
+print("✅ Ultra Dance Finder v4.0 — Categories Edition")
+print("")
+print("📂 КАТЕГОРИИ:")
+print("   🏠 Roblox — встроенные анимации Roblox")
+print("   🎨 Авторские — загруженные автором игры")
+print("   💃 Танцы  |  😊 Эмоции  |  🏃 Движение")
+print("   🎵 Играющие  |  ⭐ Избранное")
+print("")
+print("🔍 Scan — быстрый поиск")
+print("⚡ Deep Scan — скрипты + GC + nil")
+print("📋 Copy: ID / Script / Export")
+print("⌨  RightCtrl — показать/скрыть")
+print("═══════════════════════════════════════════════")
