@@ -1,0 +1,1996 @@
+--[[
+╔═══════════════════════════════════════════════════════════════════════╗
+║   ____  _____    _    ____    ____    ___  _     _____ ____  _       ║
+║  | __ )| ____|  / \  |  _ \  |  _ \  / _ \| |   | ____|  _ \| |     ║
+║  |  _ \|  _|   / _ \ | |_) | | |_) || | | | |   |  _| | |_) | |     ║
+║  | |_) | |___ / ___ \|  _ <  |  _ < | |_| | |___| |___|  __/|_|     ║
+║  |____/|_____/_/   \_\_| \_\ |_| \_\ \___/|_____|_____|_|   (_)     ║
+║                                                                       ║
+║  ULTIMATE BADGE TELEPORTER v4.0                                       ║
+║  50+ Badges | 7 Categories | Ultra FX | 1s Auto-TP                   ║
+║  Hotkey: RightControl                                                 ║
+╚═══════════════════════════════════════════════════════════════════════╝
+]]
+
+-- ═══════════════════════════════════════
+-- СЕРВИСЫ
+-- ═══════════════════════════════════════
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local SoundService = game:GetService("SoundService")
+local Lighting = game:GetService("Lighting")
+local StarterGui = game:GetService("StarterGui")
+
+local player = Players.LocalPlayer
+local mouse = player:GetMouse()
+
+local function getChar() return player.Character or player.CharacterAdded:Wait() end
+local function getRoot() local c = getChar() return c and c:FindFirstChild("HumanoidRootPart") end
+local function getHumanoid() local c = getChar() return c and c:FindFirstChildOfClass("Humanoid") end
+
+-- ═══════════════════════════════════════
+-- CLEANUP
+-- ═══════════════════════════════════════
+pcall(function()
+    if game.CoreGui:FindFirstChild("BearUltraTP") then game.CoreGui:FindFirstChild("BearUltraTP"):Destroy() end
+    if SoundService:FindFirstChild("BearUltraSounds") then SoundService:FindFirstChild("BearUltraSounds"):Destroy() end
+    if Lighting:FindFirstChild("BearTPBlur") then Lighting:FindFirstChild("BearTPBlur"):Destroy() end
+    if Lighting:FindFirstChild("BearTPColor") then Lighting:FindFirstChild("BearTPColor"):Destroy() end
+    if Lighting:FindFirstChild("BearTPBloom") then Lighting:FindFirstChild("BearTPBloom"):Destroy() end
+end)
+
+-- ═══════════════════════════════════════
+-- ЦВЕТОВАЯ ПАЛИТРА (Ultra Dark Theme)
+-- ═══════════════════════════════════════
+local C = {
+    Bg          = Color3.fromRGB(12, 12, 18),
+    BgSecondary = Color3.fromRGB(18, 18, 26),
+    Surface     = Color3.fromRGB(24, 24, 34),
+    SurfaceHigh = Color3.fromRGB(32, 32, 44),
+    Card        = Color3.fromRGB(28, 28, 40),
+    CardHover   = Color3.fromRGB(38, 38, 54),
+    CardActive  = Color3.fromRGB(45, 35, 55),
+    
+    Red         = Color3.fromRGB(200, 35, 35),
+    RedLight    = Color3.fromRGB(240, 60, 60),
+    RedDark     = Color3.fromRGB(150, 20, 20),
+    RedGlow     = Color3.fromRGB(255, 80, 80),
+    
+    Green       = Color3.fromRGB(45, 210, 100),
+    GreenDark   = Color3.fromRGB(30, 160, 75),
+    Yellow      = Color3.fromRGB(255, 200, 50),
+    YellowDark  = Color3.fromRGB(200, 155, 30),
+    Orange      = Color3.fromRGB(255, 140, 50),
+    Blue        = Color3.fromRGB(70, 150, 255),
+    BlueDark    = Color3.fromRGB(40, 100, 200),
+    Cyan        = Color3.fromRGB(0, 220, 200),
+    Purple      = Color3.fromRGB(170, 70, 240),
+    PurpleLight = Color3.fromRGB(200, 110, 255),
+    Pink        = Color3.fromRGB(255, 80, 160),
+    Gold        = Color3.fromRGB(255, 215, 60),
+    
+    Text        = Color3.fromRGB(240, 240, 250),
+    TextSub     = Color3.fromRGB(170, 170, 190),
+    TextMuted   = Color3.fromRGB(100, 100, 125),
+    TextDim     = Color3.fromRGB(65, 65, 85),
+    
+    Divider     = Color3.fromRGB(45, 45, 65),
+    Shadow      = Color3.fromRGB(0, 0, 0),
+    
+    CStory      = Color3.fromRGB(170, 80, 230),
+    CVictory    = Color3.fromRGB(255, 190, 40),
+    CSecret     = Color3.fromRGB(45, 210, 140),
+    CSeasonal   = Color3.fromRGB(255, 130, 50),
+    CSkins      = Color3.fromRGB(80, 160, 255),
+    CSpecial    = Color3.fromRGB(255, 220, 60),
+    CCryptic    = Color3.fromRGB(210, 60, 255),
+    CScan       = Color3.fromRGB(0, 230, 200),
+}
+
+-- ═══════════════════════════════════════
+-- ЗВУКОВАЯ СИСТЕМА (расширенная)
+-- ═══════════════════════════════════════
+local SFX = {}
+local SoundFolder = Instance.new("Folder")
+SoundFolder.Name = "BearUltraSounds"
+SoundFolder.Parent = SoundService
+
+local SoundDefs = {
+    Click        = {Id="rbxassetid://6895079853", Vol=0.5,  Pitch=1.2},
+    ClickSoft    = {Id="rbxassetid://6895079853", Vol=0.25, Pitch=1.6},
+    Hover        = {Id="rbxassetid://6895079853", Vol=0.12, Pitch=2.0},
+    HoverDeep    = {Id="rbxassetid://6895079853", Vol=0.18, Pitch=0.9},
+    Teleport     = {Id="rbxassetid://2767979186", Vol=0.8,  Pitch=1.0},
+    TeleportEnd  = {Id="rbxassetid://2767979186", Vol=0.5,  Pitch=1.6},
+    Success      = {Id="rbxassetid://4612373233", Vol=0.65, Pitch=1.0},
+    SuccessHigh  = {Id="rbxassetid://4612373233", Vol=0.5,  Pitch=1.4},
+    Error        = {Id="rbxassetid://4590657391", Vol=0.5,  Pitch=1.0},
+    Warning      = {Id="rbxassetid://4590657391", Vol=0.3,  Pitch=1.5},
+    Open         = {Id="rbxassetid://6895079853", Vol=0.45, Pitch=0.7},
+    Close        = {Id="rbxassetid://6895079853", Vol=0.35, Pitch=0.5},
+    Expand       = {Id="rbxassetid://6895079853", Vol=0.3,  Pitch=1.4},
+    Collapse     = {Id="rbxassetid://6895079853", Vol=0.25, Pitch=1.0},
+    Whoosh       = {Id="rbxassetid://2767979186", Vol=0.4,  Pitch=1.8},
+    Ding         = {Id="rbxassetid://4612373233", Vol=0.4,  Pitch=1.8},
+    Complete     = {Id="rbxassetid://1837756592", Vol=0.8,  Pitch=1.2},
+    Scan         = {Id="rbxassetid://6895079853", Vol=0.35, Pitch=2.2},
+    Tick         = {Id="rbxassetid://6895079853", Vol=0.2,  Pitch=2.5},
+    Pop          = {Id="rbxassetid://6895079853", Vol=0.3,  Pitch=1.8},
+    Notification = {Id="rbxassetid://4612373233", Vol=0.35, Pitch=1.6},
+}
+
+for name, data in pairs(SoundDefs) do
+    local s = Instance.new("Sound")
+    s.Name = name
+    s.SoundId = data.Id
+    s.Volume = data.Vol
+    s.PlaybackSpeed = data.Pitch
+    s.Parent = SoundFolder
+    SFX[name] = s
+end
+
+local function play(name)
+    local s = SFX[name]
+    if s then
+        local clone = s:Clone()
+        clone.Parent = SoundFolder
+        clone:Play()
+        game:GetService("Debris"):AddItem(clone, 3)
+    end
+end
+
+-- ═══════════════════════════════════════
+-- ДАННЫЕ БЕЙДЖЕЙ
+-- ═══════════════════════════════════════
+local Categories = {
+    {
+        Name = "Story & Lore",
+        Icon = "📖",
+        Color = C.CStory,
+        Glow = Color3.fromRGB(140, 60, 200),
+        Desc = "Бейджи связанные с сюжетом, историей и лором игры BEAR",
+        Badges = {
+            {N="37 MILES",E="🛤️",P=Vector3.new(-320,8,185),D="Секретная записка о 37 милях — дальняя зона леса",Df="Сложный",H="Далеко от основной карты, за лесом"},
+            {N="THE ALMIGHTY",E="⚡",P=Vector3.new(0,155,0),D="Вершина мира — поднимись на самый верх карты",Df="Средний",H="Самая высокая точка карты"},
+            {N="DAYS",E="📅",P=Vector3.new(145,5,-278),D="Календарь на стене — взаимодействуй с ним",Df="Лёгкий",H="Внутри здания, на стене"},
+            {N="Sam",E="👤",P=Vector3.new(-88,3,210),D="Найди мемориал Sam — за домом на кладбище",Df="Средний",H="Кладбище или задний двор"},
+            {N="Whitey",E="🤍",P=Vector3.new(265,12,-45),D="Белая фигура в секретной скрытой комнате",Df="Сложный",H="Скрытая комната за стеной"},
+            {N="Tomb Keeper",E="⚰️",P=Vector3.new(-210,-5,290),D="Хранитель гробницы — подземелье кладбища",Df="Сложный",H="Под кладбищем, вход скрыт"},
+            {N="Bear",E="🐻",P=Vector3.new(50,4,50),D="Основной бейдж Bear — центральная зона",Df="Лёгкий",H="Рядом со спавном"},
+            {N="Darkness Called...",E="🌑",P=Vector3.new(-180,-22,-165),D="Тьма зовёт — самый глубокий подвал",Df="Экстремальный",H="Самое тёмное место, глубоко внизу"},
+            {N="Looking for closure.",E="🔍",P=Vector3.new(178,8,135),D="В поисках завершения — скрытая записка в мебели",Df="Средний",H="Спрятана в мебели"},
+            {N="Rain Come Down",E="🌧️",P=Vector3.new(0,45,-190),D="Дождь идёт — открытая зона на крыше",Df="Средний",H="Крыша во время дождя"},
+            {N="IN THE FACE OF RED",E="🔴",P=Vector3.new(-135,6,-88),D="Красная комната с алым освещением",Df="Сложный",H="Комната с красным светом"},
+            {N="Track 03",E="🎵",P=Vector3.new(92,3,-155),D="Трек 03 — найди музыкальную шкатулку",Df="Средний",H="Музыкальная шкатулка"},
+            {N="BONUS TRACK",E="🎶",P=Vector3.new(95,3,-162),D="Бонусный трек — секрет рядом с шкатулкой",Df="Средний",H="Рядом с Track 03"},
+            {N="BEHIND THE DOOR",E="🚪",P=Vector3.new(-255,4,68),D="За запертой секретной дверью",Df="Сложный",H="Дверь которую нельзя открыть обычно"},
+            {N="unusual authority.",E="👑",P=Vector3.new(210,18,78),D="Необычная власть — верхний этаж",Df="Средний",H="Верхний этаж главного здания"},
+            {N="What Have I Become",E="😰",P=Vector3.new(-75,-12,175),D="Зеркало в тёмном подвале — отражение",Df="Сложный",H="Зеркало в подвале"},
+        }
+    },
+    {
+        Name = "Victory & Gameplay",
+        Icon = "🏆",
+        Color = C.CVictory,
+        Glow = Color3.fromRGB(220, 160, 20),
+        Desc = "Бейджи за победы, игровой процесс и достижения",
+        Badges = {
+            {N="HELPING HAND",E="🤝",P=Vector3.new(30,5,-30),D="Помоги другому игроку выжить в раунде",Df="Средний",H="Спаси другого выжившего"},
+            {N="Bear Victory",E="🐻‍❄️",P=Vector3.new(15,5,15),D="Победа как Bear — убей всех выживших",Df="Средний",H="Выиграй раунд за медведя"},
+            {N="Survivor Victory!",E="🎉",P=Vector3.new(-15,5,-15),D="Выживи до конца раунда — победа!",Df="Средний",H="Доживи до конца"},
+            {N="Survivor Graduation",E="🎓",P=Vector3.new(-15,5,30),D="Выпуск — одержи множество побед",Df="Сложный",H="Много побед подряд"},
+            {N="EXTERMINATOR",E="💀",P=Vector3.new(45,5,-45),D="Истребитель — массовое уничтожение",Df="Сложный",H="Убей всех быстро"},
+            {N="Saved",E="💾",P=Vector3.new(60,5,0),D="Прогресс сохранён автоматически",Df="Лёгкий",H="Играй достаточно"},
+            {N="Progress",E="📊",P=Vector3.new(60,5,30),D="Достигни определённого уровня опыта",Df="Средний",H="Набери XP"},
+            {N="Unanimous Decision",E="🗳️",P=Vector3.new(75,5,-20),D="Все проголосовали единогласно",Df="Редкий",H="Все игроки = один выбор"},
+            {N="MasterScript",E="💻",P=Vector3.new(120,25,-100),D="Секрет разработчика — скрытая комната",Df="Легендарный",H="Dev room"},
+        }
+    },
+    {
+        Name = "Secrets & Easter Eggs",
+        Icon = "🥚",
+        Color = C.CSecret,
+        Glow = Color3.fromRGB(30, 180, 120),
+        Desc = "Скрытые секреты, пасхалки и необычные находки",
+        Badges = {
+            {N="Hedgehog",E="🦔",P=Vector3.new(195,3,240),D="Спрятанный ёжик в кустах",Df="Средний",H="В кустах, маленький"},
+            {N="Chicken",E="🐔",P=Vector3.new(-155,6,165),D="Секретная курица — слушай звуки",Df="Средний",H="Слушай кудахтанье"},
+            {N="Undead Code",E="🧟",P=Vector3.new(-240,-8,-200),D="Зашифрованное послание нежити",Df="Сложный",H="Подземелье, шифр на стене"},
+            {N="Yoro's resting place",E="😴",P=Vector3.new(280,2,-170),D="Мемориал Yoro на краю карты",Df="Средний",H="Тихое место на отшибе"},
+            {N="Haunted Mansion",E="👻",P=Vector3.new(-300,10,-80),D="Дом с привидениями — войди если осмелишься",Df="Средний",H="Большой тёмный дом"},
+            {N="Cheeda's magic badge",E="✨",P=Vector3.new(5,35,-5),D="Магический бейдж от создателя Cheedaman",Df="Легендарный",H="Секрет Cheedaman"},
+            {N="Pizza (Badge)",E="🍕",P=Vector3.new(110,4,180),D="Кусок пиццы на кухне",Df="Лёгкий",H="Кухня / столовая"},
+            {N="Party time",E="🎊",P=Vector3.new(-40,8,90),D="Время вечеринки — комната с украшениями",Df="Средний",H="Праздничная комната"},
+            {N="Taco Lair!!",E="🌮",P=Vector3.new(340,-5,120),D="Тайное логово тако — секретный проход",Df="Сложный",H="Секретный тоннель"},
+            {N="Under Meow",E="🐱",P=Vector3.new(-120,-15,45),D="Секрет под полом — найди кота",Df="Средний",H="Под полом"},
+            {N="Mutan Crab",E="🦀",P=Vector3.new(380,1,-220),D="Мутант-краб на берегу воды",Df="Средний",H="У воды"},
+            {N="get stick bugged lol",E="🪲",P=Vector3.new(-195,7,-255),D="Мем-пасхалка stick bug на стене",Df="Лёгкий",H="Классический мем"},
+            {N="Who dat bear",E="🐻",P=Vector3.new(155,10,55),D="Загадочный силуэт медведя",Df="Средний",H="Силуэт в тени"},
+        }
+    },
+    {
+        Name = "Seasonal & Events",
+        Icon = "🎃",
+        Color = C.CSeasonal,
+        Glow = Color3.fromRGB(220, 110, 30),
+        Desc = "Сезонные ивенты: Хэллоуин, Рождество и другие",
+        Badges = {
+            {N="POP THE PUMPKIN",E="🎃",P=Vector3.new(-60,4,250),D="Лопни тыкву — Хэллоуин ивент",Df="Сезонный",H="Тыквы на Хэллоуин"},
+            {N="Saint Nick II",E="🎅",P=Vector3.new(200,6,200),D="Святой Николай — Рождество",Df="Сезонный",H="Рождественские подарки"},
+        }
+    },
+    {
+        Name = "Skins & Characters",
+        Icon = "🎭",
+        Color = C.CSkins,
+        Glow = Color3.fromRGB(60, 130, 220),
+        Desc = "Бейджи связанные со скинами и персонажами",
+        Badges = {
+            {N="Robot Bear",E="🤖",P=Vector3.new(85,4,-210),D="Робот-медведь — технологическая зона",Df="Средний",H="Зона механизмов"},
+            {N="Psycho Bear",E="🔪",P=Vector3.new(-170,3,-130),D="Психо-медведь — жуткая атмосфера",Df="Сложный",H="Комната ужаса"},
+            {N="Poisonous Pal LOL",E="☠️",P=Vector3.new(230,5,130),D="Ядовитый друг — токсичная зелёная зона",Df="Средний",H="Зелёная токсичная зона"},
+            {N="Henry Stickman LOL",E="🕴️",P=Vector3.new(-280,8,150),D="Отсылка к Henry Stickmin",Df="Средний",H="Пасхалка Henry Stickmin"},
+            {N="Atrocity?!?",E="😱",P=Vector3.new(310,-3,-60),D="Нечто ужасное скрыто здесь",Df="Сложный",H="Страшная находка"},
+            {N="Error Error Mal City",E="⚠️",P=Vector3.new(-350,6,-170),D="Зона визуальных глитчей и ошибок",Df="Сложный",H="Глитч-зона"},
+            {N="Oh No",E="😨",P=Vector3.new(140,-8,270),D="Неожиданная пугающая находка",Df="Средний",H="За углом"},
+            {N="you are a kitten :3",E="🐱",P=Vector3.new(-30,6,-240),D="Милая пасхалка — маленький котёнок",Df="Лёгкий",H="Найди котёнка :3"},
+        }
+    },
+    {
+        Name = "Special & OG",
+        Icon = "⭐",
+        Color = C.CSpecial,
+        Glow = Color3.fromRGB(220, 190, 40),
+        Desc = "Особые и эксклюзивные бейджи для ветеранов",
+        Badges = {
+            {N="OG Alpha Player",E="🏅",P=Vector3.new(0,5,0),D="Только для игроков альфа-версии",Df="Эксклюзив",H="Альфа-тестеры"},
+        }
+    },
+    {
+        Name = "Cryptic & Encoded",
+        Icon = "🔮",
+        Color = C.CCryptic,
+        Glow = Color3.fromRGB(180, 40, 220),
+        Desc = "Зашифрованные, криптические и загадочные бейджи",
+        Badges = {
+            {N="YOU MUST SPECIFY A NAME",E="❓",P=Vector3.new(-400,2,0),D="Загадочная надпись на краю мира",Df="Легендарный",H="Край карты"},
+            {N="@",E="📧",P=Vector3.new(0,-30,400),D="Символ @ спрятан в глубине",Df="Легендарный",H="Глубоко под картой"},
+            {N="▓",E="⬛",P=Vector3.new(420,0,-300),D="Закодированный невидимый блок",Df="Легендарный",H="Невидимый, далеко"},
+            {N="۩",E="🕌",P=Vector3.new(-380,15,-350),D="Мистический арабский символ",Df="Легендарный",H="Самый дальний угол"},
+            {N="dG9rZW4=",E="🔐",P=Vector3.new(350,-15,350),D="Base64='token' — криптический секрет",Df="Легендарный",H="Декодируй и найди"},
+        }
+    },
+}
+
+-- Подсчёт
+local totalBadges = 0
+for _,cat in ipairs(Categories) do totalBadges = totalBadges + #cat.Badges end
+
+-- ═══════════════════════════════════════
+-- УТИЛИТЫ
+-- ═══════════════════════════════════════
+local function lerp(a, b, t) return a + (b - a) * t end
+local function lerpColor(a, b, t)
+    return Color3.new(lerp(a.R, b.R, t), lerp(a.G, b.G, t), lerp(a.B, b.B, t))
+end
+
+local function getDiffColor(d)
+    local map = {
+        ["Лёгкий"] = C.Green,
+        ["Средний"] = C.Yellow,
+        ["Сложный"] = C.Orange,
+        ["Экстремальный"] = C.RedGlow,
+        ["Легендарный"] = C.Purple,
+        ["Редкий"] = C.Blue,
+        ["Сезонный"] = C.Orange,
+        ["Эксклюзив"] = C.Gold,
+        ["Недоступен"] = C.TextMuted,
+    }
+    return map[d] or C.TextMuted
+end
+
+local function getDiffIcon(d)
+    local map = {
+        ["Лёгкий"] = "●",
+        ["Средний"] = "●●",
+        ["Сложный"] = "●●●",
+        ["Экстремальный"] = "●●●●",
+        ["Легендарный"] = "★★★",
+        ["Редкий"] = "◆◆",
+        ["Сезонный"] = "❄",
+        ["Эксклюзив"] = "♛",
+    }
+    return map[d] or "?"
+end
+
+-- ═══════════════════════════════════════
+-- СОЗДАНИЕ GUI
+-- ═══════════════════════════════════════
+local Gui = Instance.new("ScreenGui")
+Gui.Name = "BearUltraTP"
+Gui.ResetOnSpawn = false
+Gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+Gui.DisplayOrder = 999
+Gui.Parent = game.CoreGui
+
+-- ─── NOTIFICATION SYSTEM ───
+local NotifHolder = Instance.new("Frame")
+NotifHolder.Name = "Notifs"
+NotifHolder.Size = UDim2.new(0, 300, 1, 0)
+NotifHolder.Position = UDim2.new(1, -310, 0, 10)
+NotifHolder.BackgroundTransparency = 1
+NotifHolder.Parent = Gui
+local NotifLayout = Instance.new("UIListLayout", NotifHolder)
+NotifLayout.SortOrder = Enum.SortOrder.LayoutOrder
+NotifLayout.Padding = UDim.new(0, 6)
+NotifLayout.VerticalAlignment = Enum.VerticalAlignment.Top
+
+local notifCount = 0
+local function notify(title, text, color, duration)
+    notifCount = notifCount + 1
+    play("Notification")
+    
+    local nf = Instance.new("Frame")
+    nf.Size = UDim2.new(1, 0, 0, 60)
+    nf.BackgroundColor3 = C.Surface
+    nf.BorderSizePixel = 0
+    nf.LayoutOrder = notifCount
+    nf.BackgroundTransparency = 1
+    nf.Parent = NotifHolder
+    Instance.new("UICorner", nf).CornerRadius = UDim.new(0, 12)
+    
+    local ns = Instance.new("UIStroke", nf)
+    ns.Color = color or C.Red
+    ns.Thickness = 1.5
+    ns.Transparency = 0.3
+    
+    -- Glow stripe
+    local stripe = Instance.new("Frame", nf)
+    stripe.Size = UDim2.new(0, 4, 0.7, 0)
+    stripe.Position = UDim2.new(0, 8, 0.15, 0)
+    stripe.BackgroundColor3 = color or C.Red
+    stripe.BorderSizePixel = 0
+    Instance.new("UICorner", stripe).CornerRadius = UDim.new(0, 2)
+    
+    local nt = Instance.new("TextLabel", nf)
+    nt.Text = title
+    nt.Font = Enum.Font.GothamBold
+    nt.TextSize = 13
+    nt.TextColor3 = color or C.Red
+    nt.BackgroundTransparency = 1
+    nt.Size = UDim2.new(1, -24, 0, 20)
+    nt.Position = UDim2.new(0, 18, 0, 8)
+    nt.TextXAlignment = Enum.TextXAlignment.Left
+    
+    local nd = Instance.new("TextLabel", nf)
+    nd.Text = text
+    nd.Font = Enum.Font.Gotham
+    nd.TextSize = 11
+    nd.TextColor3 = C.TextSub
+    nd.BackgroundTransparency = 1
+    nd.Size = UDim2.new(1, -24, 0, 16)
+    nd.Position = UDim2.new(0, 18, 0, 28)
+    nd.TextXAlignment = Enum.TextXAlignment.Left
+    nd.TextTruncate = Enum.TextTruncate.AtEnd
+    
+    -- Progress bar
+    local pb = Instance.new("Frame", nf)
+    pb.Size = UDim2.new(1, -16, 0, 3)
+    pb.Position = UDim2.new(0, 8, 1, -8)
+    pb.BackgroundColor3 = C.Divider
+    pb.BorderSizePixel = 0
+    Instance.new("UICorner", pb).CornerRadius = UDim.new(0, 2)
+    
+    local pf = Instance.new("Frame", pb)
+    pf.Size = UDim2.new(1, 0, 1, 0)
+    pf.BackgroundColor3 = color or C.Red
+    pf.BorderSizePixel = 0
+    Instance.new("UICorner", pf).CornerRadius = UDim.new(0, 2)
+    
+    -- Animate in
+    TweenService:Create(nf, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        BackgroundTransparency = 0
+    }):Play()
+    
+    -- Progress drain
+    TweenService:Create(pf, TweenInfo.new(duration or 4, Enum.EasingStyle.Linear), {
+        Size = UDim2.new(0, 0, 1, 0)
+    }):Play()
+    
+    task.delay(duration or 4, function()
+        TweenService:Create(nf, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+            BackgroundTransparency = 1,
+            Position = UDim2.new(1, 50, 0, 0)
+        }):Play()
+        task.wait(0.35)
+        if nf then nf:Destroy() end
+    end)
+end
+
+-- ─── TOGGLE BUTTON ───
+local Toggle = Instance.new("TextButton")
+Toggle.Name = "Toggle"
+Toggle.Size = UDim2.new(0, 52, 0, 52)
+Toggle.Position = UDim2.new(0, 14, 0.5, -26)
+Toggle.BackgroundColor3 = C.Red
+Toggle.Text = ""
+Toggle.AutoButtonColor = false
+Toggle.ZIndex = 100
+Toggle.Parent = Gui
+Instance.new("UICorner", Toggle).CornerRadius = UDim.new(0, 16)
+
+local ToggleStroke = Instance.new("UIStroke", Toggle)
+ToggleStroke.Color = C.RedLight
+ToggleStroke.Thickness = 2
+ToggleStroke.Transparency = 0.3
+
+local ToggleIcon = Instance.new("TextLabel", Toggle)
+ToggleIcon.Text = "🐻"
+ToggleIcon.Font = Enum.Font.GothamBold
+ToggleIcon.TextSize = 26
+ToggleIcon.BackgroundTransparency = 1
+ToggleIcon.Size = UDim2.new(1, 0, 1, 0)
+ToggleIcon.ZIndex = 101
+
+-- Glow effect behind toggle
+local ToggleGlow = Instance.new("ImageLabel", Toggle)
+ToggleGlow.Size = UDim2.new(1, 30, 1, 30)
+ToggleGlow.Position = UDim2.new(0.5, 0, 0.5, 0)
+ToggleGlow.AnchorPoint = Vector2.new(0.5, 0.5)
+ToggleGlow.BackgroundTransparency = 1
+ToggleGlow.Image = "rbxassetid://5028857084"
+ToggleGlow.ImageColor3 = C.Red
+ToggleGlow.ImageTransparency = 0.7
+ToggleGlow.ZIndex = 99
+
+-- Pulsing glow
+task.spawn(function()
+    while Toggle and Toggle.Parent do
+        TweenService:Create(ToggleGlow, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+            ImageTransparency = 0.4, Size = UDim2.new(1, 50, 1, 50)
+        }):Play()
+        task.wait(1.5)
+        TweenService:Create(ToggleGlow, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+            ImageTransparency = 0.8, Size = UDim2.new(1, 20, 1, 20)
+        }):Play()
+        task.wait(1.5)
+    end
+end)
+
+-- ─── MAIN FRAME ───
+local Main = Instance.new("Frame")
+Main.Name = "Main"
+Main.Size = UDim2.new(0, 460, 0, 640)
+Main.Position = UDim2.new(0.5, -230, 0.5, -320)
+Main.BackgroundColor3 = C.Bg
+Main.BorderSizePixel = 0
+Main.ClipsDescendants = true
+Main.Visible = true
+Main.Parent = Gui
+Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 18)
+
+local MainStroke = Instance.new("UIStroke", Main)
+MainStroke.Thickness = 2
+MainStroke.Transparency = 0.2
+
+-- Animated rainbow border
+task.spawn(function()
+    local h = 0
+    while MainStroke and MainStroke.Parent do
+        h = (h + 0.002) % 1
+        MainStroke.Color = Color3.fromHSV(h, 0.6, 0.95)
+        RunService.Heartbeat:Wait()
+    end
+end)
+
+-- Background pattern (animated dots)
+local BgPattern = Instance.new("Frame", Main)
+BgPattern.Size = UDim2.new(1, 0, 1, 0)
+BgPattern.BackgroundTransparency = 1
+BgPattern.ZIndex = 0
+
+for i = 1, 20 do
+    local dot = Instance.new("Frame", BgPattern)
+    dot.Size = UDim2.new(0, math.random(2, 5), 0, math.random(2, 5))
+    dot.Position = UDim2.new(math.random() * 0.95, 0, math.random() * 0.95, 0)
+    dot.BackgroundColor3 = C.Red
+    dot.BackgroundTransparency = math.random(85, 96) / 100
+    dot.BorderSizePixel = 0
+    dot.ZIndex = 0
+    Instance.new("UICorner", dot).CornerRadius = UDim.new(1, 0)
+    
+    task.spawn(function()
+        while dot and dot.Parent do
+            local newY = math.random() * 0.95
+            local newX = math.random() * 0.95
+            TweenService:Create(dot, TweenInfo.new(math.random(4, 10), Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+                Position = UDim2.new(newX, 0, newY, 0),
+                BackgroundTransparency = math.random(80, 97) / 100
+            }):Play()
+            task.wait(math.random(4, 10))
+        end
+    end)
+end
+
+-- ─── TITLE BAR ───
+local Title = Instance.new("Frame", Main)
+Title.Name = "Title"
+Title.Size = UDim2.new(1, 0, 0, 58)
+Title.BackgroundColor3 = C.Red
+Title.BorderSizePixel = 0
+Title.ZIndex = 10
+Instance.new("UICorner", Title).CornerRadius = UDim.new(0, 18)
+
+local TitleFix = Instance.new("Frame", Title)
+TitleFix.Size = UDim2.new(1, 0, 0, 24)
+TitleFix.Position = UDim2.new(0, 0, 1, -24)
+TitleFix.BackgroundColor3 = C.Red
+TitleFix.BorderSizePixel = 0
+TitleFix.ZIndex = 10
+
+-- Title gradient
+local TG = Instance.new("UIGradient", Title)
+TG.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(200, 35, 35)),
+    ColorSequenceKeypoint.new(0.3, Color3.fromRGB(220, 45, 50)),
+    ColorSequenceKeypoint.new(0.7, Color3.fromRGB(200, 30, 45)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(160, 25, 30)),
+}
+
+-- Animated shimmer on title
+task.spawn(function()
+    local offset = 0
+    while TG and TG.Parent do
+        offset = (offset + 0.005) % 1
+        TG.Offset = Vector2.new(math.sin(offset * math.pi * 2) * 0.3, 0)
+        RunService.Heartbeat:Wait()
+    end
+end)
+
+-- Bear icon animated
+local BearIcon = Instance.new("TextLabel", Title)
+BearIcon.Text = "🐻"
+BearIcon.Font = Enum.Font.GothamBold
+BearIcon.TextSize = 28
+BearIcon.BackgroundTransparency = 1
+BearIcon.Size = UDim2.new(0, 40, 0, 40)
+BearIcon.Position = UDim2.new(0, 14, 0, 9)
+BearIcon.ZIndex = 11
+
+-- Wobble animation on bear icon
+task.spawn(function()
+    while BearIcon and BearIcon.Parent do
+        TweenService:Create(BearIcon, TweenInfo.new(0.3, Enum.EasingStyle.Back), {
+            Rotation = 8, TextSize = 32
+        }):Play()
+        task.wait(0.4)
+        TweenService:Create(BearIcon, TweenInfo.new(0.3, Enum.EasingStyle.Back), {
+            Rotation = -8, TextSize = 26
+        }):Play()
+        task.wait(0.4)
+        TweenService:Create(BearIcon, TweenInfo.new(0.2), {
+            Rotation = 0, TextSize = 28
+        }):Play()
+        task.wait(3)
+    end
+end)
+
+local TitleLbl = Instance.new("TextLabel", Title)
+TitleLbl.Text = "BEAR ROLEPLAY"
+TitleLbl.Font = Enum.Font.GothamBold
+TitleLbl.TextSize = 18
+TitleLbl.TextColor3 = C.Text
+TitleLbl.BackgroundTransparency = 1
+TitleLbl.Size = UDim2.new(1, -140, 0, 24)
+TitleLbl.Position = UDim2.new(0, 56, 0, 8)
+TitleLbl.TextXAlignment = Enum.TextXAlignment.Left
+TitleLbl.ZIndex = 11
+
+local SubTitle = Instance.new("TextLabel", Title)
+SubTitle.Text = "Ultimate Badge Teleporter v4.0"
+SubTitle.Font = Enum.Font.Gotham
+SubTitle.TextSize = 11
+SubTitle.TextColor3 = Color3.fromRGB(255, 180, 180)
+SubTitle.BackgroundTransparency = 1
+SubTitle.Size = UDim2.new(1, -140, 0, 16)
+SubTitle.Position = UDim2.new(0, 56, 0, 32)
+SubTitle.TextXAlignment = Enum.TextXAlignment.Left
+SubTitle.ZIndex = 11
+
+-- Title buttons
+local function makeTitleBtn(text, posX)
+    local b = Instance.new("TextButton", Title)
+    b.Text = text
+    b.Font = Enum.Font.GothamBold
+    b.TextSize = 18
+    b.TextColor3 = Color3.new(1,1,1)
+    b.BackgroundTransparency = 1
+    b.Size = UDim2.new(0, 44, 0, 58)
+    b.Position = UDim2.new(1, posX, 0, 0)
+    b.AutoButtonColor = false
+    b.ZIndex = 12
+    
+    b.MouseEnter:Connect(function()
+        play("Hover")
+        TweenService:Create(b, TweenInfo.new(0.12), {
+            TextColor3 = C.Yellow, TextSize = 22
+        }):Play()
+    end)
+    b.MouseLeave:Connect(function()
+        TweenService:Create(b, TweenInfo.new(0.12), {
+            TextColor3 = C.Text, TextSize = 18
+        }):Play()
+    end)
+    return b
+end
+
+local MinBtn = makeTitleBtn("─", -88)
+local CloseBtn = makeTitleBtn("✕", -44)
+
+-- ─── STATUS BAR ───
+local Status = Instance.new("Frame", Main)
+Status.Size = UDim2.new(1, -28, 0, 36)
+Status.Position = UDim2.new(0, 14, 0, 62)
+Status.BackgroundColor3 = C.Surface
+Status.BorderSizePixel = 0
+Status.ZIndex = 5
+Instance.new("UICorner", Status).CornerRadius = UDim.new(0, 10)
+
+local StatusStroke = Instance.new("UIStroke", Status)
+StatusStroke.Color = C.Divider
+StatusStroke.Thickness = 1
+
+-- Animated status dot
+local StatusDot = Instance.new("Frame", Status)
+StatusDot.Size = UDim2.new(0, 10, 0, 10)
+StatusDot.Position = UDim2.new(0, 12, 0.5, -5)
+StatusDot.BackgroundColor3 = C.Green
+StatusDot.ZIndex = 6
+Instance.new("UICorner", StatusDot).CornerRadius = UDim.new(1, 0)
+
+-- Dot glow
+local DotGlow = Instance.new("Frame", StatusDot)
+DotGlow.Size = UDim2.new(1, 8, 1, 8)
+DotGlow.Position = UDim2.new(0.5, 0, 0.5, 0)
+DotGlow.AnchorPoint = Vector2.new(0.5, 0.5)
+DotGlow.BackgroundColor3 = C.Green
+DotGlow.BackgroundTransparency = 0.7
+DotGlow.ZIndex = 5
+Instance.new("UICorner", DotGlow).CornerRadius = UDim.new(1, 0)
+
+-- Pulse dot
+task.spawn(function()
+    while DotGlow and DotGlow.Parent do
+        TweenService:Create(DotGlow, TweenInfo.new(0.8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+            Size = UDim2.new(1, 16, 1, 16), BackgroundTransparency = 0.9
+        }):Play()
+        task.wait(0.8)
+        TweenService:Create(DotGlow, TweenInfo.new(0.8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+            Size = UDim2.new(1, 6, 1, 6), BackgroundTransparency = 0.6
+        }):Play()
+        task.wait(0.8)
+    end
+end)
+
+local StatusText = Instance.new("TextLabel", Status)
+StatusText.Text = "✅ Готов к телепортации"
+StatusText.Font = Enum.Font.GothamSemibold
+StatusText.TextSize = 12
+StatusText.TextColor3 = C.TextSub
+StatusText.BackgroundTransparency = 1
+StatusText.Size = UDim2.new(1, -80, 1, 0)
+StatusText.Position = UDim2.new(0, 28, 0, 0)
+StatusText.TextXAlignment = Enum.TextXAlignment.Left
+StatusText.TextTruncate = Enum.TextTruncate.AtEnd
+StatusText.ZIndex = 6
+
+-- Badge counter in status
+local BadgeCounter = Instance.new("TextLabel", Status)
+BadgeCounter.Text = totalBadges .. " 📌"
+BadgeCounter.Font = Enum.Font.GothamBold
+BadgeCounter.TextSize = 12
+BadgeCounter.TextColor3 = C.Red
+BadgeCounter.BackgroundTransparency = 1
+BadgeCounter.Size = UDim2.new(0, 50, 1, 0)
+BadgeCounter.Position = UDim2.new(1, -58, 0, 0)
+BadgeCounter.ZIndex = 6
+
+local function setStatus(txt, col)
+    StatusText.Text = txt
+    StatusText.TextColor3 = col or C.TextSub
+    StatusDot.BackgroundColor3 = col or C.Green
+    DotGlow.BackgroundColor3 = col or C.Green
+end
+
+-- ─── SEARCH BAR ───
+local Search = Instance.new("Frame", Main)
+Search.Size = UDim2.new(1, -28, 0, 36)
+Search.Position = UDim2.new(0, 14, 0, 102)
+Search.BackgroundColor3 = C.Surface
+Search.BorderSizePixel = 0
+Search.ZIndex = 5
+Instance.new("UICorner", Search).CornerRadius = UDim.new(0, 10)
+
+local SearchStroke = Instance.new("UIStroke", Search)
+SearchStroke.Color = C.Divider
+SearchStroke.Thickness = 1
+
+local SIcon = Instance.new("TextLabel", Search)
+SIcon.Text = "🔍"
+SIcon.TextSize = 16
+SIcon.Font = Enum.Font.GothamBold
+SIcon.BackgroundTransparency = 1
+SIcon.Size = UDim2.new(0, 30, 1, 0)
+SIcon.Position = UDim2.new(0, 8, 0, 0)
+SIcon.ZIndex = 6
+
+local SBox = Instance.new("TextBox", Search)
+SBox.PlaceholderText = "Поиск бейджа по названию..."
+SBox.PlaceholderColor3 = C.TextDim
+SBox.Text = ""
+SBox.Font = Enum.Font.Gotham
+SBox.TextSize = 12
+SBox.TextColor3 = C.Text
+SBox.BackgroundTransparency = 1
+SBox.Size = UDim2.new(1, -50, 1, 0)
+SBox.Position = UDim2.new(0, 38, 0, 0)
+SBox.TextXAlignment = Enum.TextXAlignment.Left
+SBox.ClearTextOnFocus = false
+SBox.ZIndex = 6
+
+SBox.Focused:Connect(function()
+    play("ClickSoft")
+    TweenService:Create(SearchStroke, TweenInfo.new(0.2), {Color = C.Red}):Play()
+    TweenService:Create(Search, TweenInfo.new(0.2), {BackgroundColor3 = C.SurfaceHigh}):Play()
+end)
+SBox.FocusLost:Connect(function()
+    TweenService:Create(SearchStroke, TweenInfo.new(0.2), {Color = C.Divider}):Play()
+    TweenService:Create(Search, TweenInfo.new(0.2), {BackgroundColor3 = C.Surface}):Play()
+end)
+
+-- ─── QUICK ACTION BAR ───
+local QuickBar = Instance.new("Frame", Main)
+QuickBar.Size = UDim2.new(1, -28, 0, 36)
+QuickBar.Position = UDim2.new(0, 14, 0, 142)
+QuickBar.BackgroundTransparency = 1
+QuickBar.ZIndex = 5
+
+local function makeQuickBtn(text, col, px, w)
+    local b = Instance.new("TextButton", QuickBar)
+    b.Text = text
+    b.Font = Enum.Font.GothamBold
+    b.TextSize = 11
+    b.TextColor3 = C.Text
+    b.BackgroundColor3 = col
+    b.Size = UDim2.new(0, w, 1, 0)
+    b.Position = UDim2.new(0, px, 0, 0)
+    b.AutoButtonColor = false
+    b.ZIndex = 6
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 10)
+    
+    local bStroke = Instance.new("UIStroke", b)
+    bStroke.Color = lerpColor(col, Color3.new(1,1,1), 0.3)
+    bStroke.Thickness = 1
+    bStroke.Transparency = 0.7
+    
+    b.MouseEnter:Connect(function()
+        play("Hover")
+        TweenService:Create(b, TweenInfo.new(0.15), {
+            BackgroundColor3 = lerpColor(col, Color3.new(1,1,1), 0.15),
+            Size = UDim2.new(0, w + 2, 1, 2)
+        }):Play()
+        TweenService:Create(bStroke, TweenInfo.new(0.15), {Transparency = 0.3}):Play()
+    end)
+    b.MouseLeave:Connect(function()
+        TweenService:Create(b, TweenInfo.new(0.15), {
+            BackgroundColor3 = col,
+            Size = UDim2.new(0, w, 1, 0)
+        }):Play()
+        TweenService:Create(bStroke, TweenInfo.new(0.15), {Transparency = 0.7}):Play()
+    end)
+    
+    -- Ripple effect on click
+    b.MouseButton1Click:Connect(function()
+        local ripple = Instance.new("Frame", b)
+        ripple.Size = UDim2.new(0, 0, 0, 0)
+        ripple.Position = UDim2.new(0.5, 0, 0.5, 0)
+        ripple.AnchorPoint = Vector2.new(0.5, 0.5)
+        ripple.BackgroundColor3 = Color3.new(1,1,1)
+        ripple.BackgroundTransparency = 0.7
+        ripple.BorderSizePixel = 0
+        ripple.ZIndex = 10
+        Instance.new("UICorner", ripple).CornerRadius = UDim.new(1, 0)
+        
+        TweenService:Create(ripple, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            Size = UDim2.new(2, 0, 3, 0),
+            BackgroundTransparency = 1
+        }):Play()
+        game:GetService("Debris"):AddItem(ripple, 0.5)
+    end)
+    
+    return b
+end
+
+local TPAllBtn = makeQuickBtn("⚡ TP ВСЕ", C.Red, 0, 92)
+local ExpandBtn = makeQuickBtn("📂 Раскрыть", C.Surface, 98, 94)
+local CollapseBtn = makeQuickBtn("📁 Свернуть", C.Surface, 198, 90)
+local ScanBtn = makeQuickBtn("🔍 Скан", C.CScan, 294, 72)
+local SoundBtn = makeQuickBtn("🔊", C.Surface, 372, 58)
+
+local soundEnabled = true
+SoundBtn.MouseButton1Click:Connect(function()
+    soundEnabled = not soundEnabled
+    SoundBtn.Text = soundEnabled and "🔊" or "🔇"
+    SoundFolder.Parent = soundEnabled and SoundService or nil
+    notify(soundEnabled and "🔊 Звук" or "🔇 Звук", soundEnabled and "Звуки включены" or "Звуки выключены", C.Blue, 2)
+end)
+
+-- ─── PROGRESS BAR (для TP ALL) ───
+local ProgressFrame = Instance.new("Frame", Main)
+ProgressFrame.Size = UDim2.new(1, -28, 0, 6)
+ProgressFrame.Position = UDim2.new(0, 14, 0, 180)
+ProgressFrame.BackgroundColor3 = C.Surface
+ProgressFrame.BorderSizePixel = 0
+ProgressFrame.ZIndex = 5
+ProgressFrame.Visible = false
+Instance.new("UICorner", ProgressFrame).CornerRadius = UDim.new(0, 3)
+
+local ProgressFill = Instance.new("Frame", ProgressFrame)
+ProgressFill.Size = UDim2.new(0, 0, 1, 0)
+ProgressFill.BackgroundColor3 = C.Red
+ProgressFill.BorderSizePixel = 0
+ProgressFill.ZIndex = 6
+Instance.new("UICorner", ProgressFill).CornerRadius = UDim.new(0, 3)
+
+-- Shimmer on progress bar
+local ProgressShimmer = Instance.new("UIGradient", ProgressFill)
+ProgressShimmer.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.new(1,1,1)),
+    ColorSequenceKeypoint.new(0.4, Color3.new(1,1,1)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 200, 200)),
+    ColorSequenceKeypoint.new(0.6, Color3.new(1,1,1)),
+    ColorSequenceKeypoint.new(1, Color3.new(1,1,1)),
+}
+ProgressShimmer.Transparency = NumberSequence.new{
+    NumberSequenceKeypoint.new(0, 1),
+    NumberSequenceKeypoint.new(0.4, 1),
+    NumberSequenceKeypoint.new(0.5, 0.5),
+    NumberSequenceKeypoint.new(0.6, 1),
+    NumberSequenceKeypoint.new(1, 1),
+}
+
+task.spawn(function()
+    while ProgressShimmer and ProgressShimmer.Parent do
+        ProgressShimmer.Offset = Vector2.new(-1, 0)
+        TweenService:Create(ProgressShimmer, TweenInfo.new(1.5, Enum.EasingStyle.Linear), {
+            Offset = Vector2.new(1, 0)
+        }):Play()
+        task.wait(2)
+    end
+end)
+
+-- ─── CONTENT SCROLL ───
+local Scroll = Instance.new("ScrollingFrame", Main)
+Scroll.Name = "Content"
+Scroll.Size = UDim2.new(1, -28, 1, -224)
+Scroll.Position = UDim2.new(0, 14, 0, 190)
+Scroll.BackgroundTransparency = 1
+Scroll.BorderSizePixel = 0
+Scroll.ScrollBarThickness = 4
+Scroll.ScrollBarImageColor3 = C.Red
+Scroll.ScrollBarImageTransparency = 0.3
+Scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+Scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+Scroll.ZIndex = 3
+Scroll.TopImage = "rbxassetid://5234388158"
+Scroll.MidImage = "rbxassetid://5234388158"
+Scroll.BottomImage = "rbxassetid://5234388158"
+
+local SLayout = Instance.new("UIListLayout", Scroll)
+SLayout.SortOrder = Enum.SortOrder.LayoutOrder
+SLayout.Padding = UDim.new(0, 8)
+
+-- ─── FOOTER ───
+local Footer = Instance.new("Frame", Main)
+Footer.Size = UDim2.new(1, 0, 0, 28)
+Footer.Position = UDim2.new(0, 0, 1, -28)
+Footer.BackgroundColor3 = C.BgSecondary
+Footer.BorderSizePixel = 0
+Footer.ZIndex = 10
+
+local FooterGrad = Instance.new("UIGradient", Footer)
+FooterGrad.Transparency = NumberSequence.new{
+    NumberSequenceKeypoint.new(0, 0.3),
+    NumberSequenceKeypoint.new(1, 0),
+}
+FooterGrad.Rotation = 90
+
+local FooterText = Instance.new("TextLabel", Footer)
+FooterText.Text = "🐻 v4.0 ULTRA | " .. totalBadges .. " badges | 7 categories | RightCtrl toggle"
+FooterText.Font = Enum.Font.Code
+FooterText.TextSize = 9
+FooterText.TextColor3 = C.TextDim
+FooterText.BackgroundTransparency = 1
+FooterText.Size = UDim2.new(1, -16, 1, 0)
+FooterText.Position = UDim2.new(0, 8, 0, 0)
+FooterText.TextXAlignment = Enum.TextXAlignment.Left
+FooterText.ZIndex = 11
+
+-- Animated footer time
+local FooterTime = Instance.new("TextLabel", Footer)
+FooterTime.Font = Enum.Font.Code
+FooterTime.TextSize = 9
+FooterTime.TextColor3 = C.TextDim
+FooterTime.BackgroundTransparency = 1
+FooterTime.Size = UDim2.new(0, 60, 1, 0)
+FooterTime.Position = UDim2.new(1, -68, 0, 0)
+FooterTime.TextXAlignment = Enum.TextXAlignment.Right
+FooterTime.ZIndex = 11
+
+task.spawn(function()
+    local elapsed = 0
+    while FooterTime and FooterTime.Parent do
+        elapsed = elapsed + 1
+        local m = math.floor(elapsed / 60)
+        local s = elapsed % 60
+        FooterTime.Text = string.format("⏱ %02d:%02d", m, s)
+        task.wait(1)
+    end
+end)
+
+-- ═══════════════════════════════════════
+-- ТЕЛЕПОРТ ФУНКЦИЯ (ULTRA EFFECTS)
+-- ═══════════════════════════════════════
+local teleporting = false
+
+local function teleportTo(pos, name)
+    local root = getRoot()
+    if not root then
+        play("Error")
+        setStatus("❌ Персонаж не найден!", C.RedGlow)
+        notify("❌ Ошибка", "Персонаж не найден", C.RedGlow, 3)
+        return false
+    end
+    
+    if teleporting then return false end
+    teleporting = true
+    
+    play("Teleport")
+    setStatus("⚡ " .. (name or "Телепортация..."), C.Yellow)
+    
+    -- === VISUAL EFFECTS ===
+    local char = getChar()
+    
+    -- 1. Screen flash
+    local flash = Instance.new("ColorCorrectionEffect")
+    flash.Name = "BearTPColor"
+    flash.Brightness = 0
+    flash.Contrast = 0
+    flash.Saturation = 0
+    flash.TintColor = Color3.fromRGB(255, 120, 120)
+    flash.Parent = Lighting
+    
+    TweenService:Create(flash, TweenInfo.new(0.15), {
+        Brightness = 0.6, Contrast = 0.4, Saturation = -0.5
+    }):Play()
+    
+    -- 2. Blur effect
+    local blur = Instance.new("BlurEffect")
+    blur.Name = "BearTPBlur"
+    blur.Size = 0
+    blur.Parent = Lighting
+    
+    TweenService:Create(blur, TweenInfo.new(0.15), {Size = 20}):Play()
+    
+    -- 3. Bloom
+    local bloom = Instance.new("BloomEffect")
+    bloom.Name = "BearTPBloom"
+    bloom.Intensity = 0
+    bloom.Size = 24
+    bloom.Threshold = 1
+    bloom.Parent = Lighting
+    
+    TweenService:Create(bloom, TweenInfo.new(0.15), {Intensity = 1.5, Threshold = 0.5}):Play()
+    
+    task.wait(0.15)
+    
+    -- 4. TELEPORT
+    root.CFrame = CFrame.new(pos + Vector3.new(0, 5, 0))
+    task.wait(0.05)
+    root.CFrame = CFrame.new(pos + Vector3.new(0, 5, 0))
+    
+    task.wait(0.1)
+    
+    -- 5. Reverse effects
+    play("TeleportEnd")
+    
+    TweenService:Create(flash, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        Brightness = 0, Contrast = 0, Saturation = 0
+    }):Play()
+    
+    TweenService:Create(blur, TweenInfo.new(0.4), {Size = 0}):Play()
+    TweenService:Create(bloom, TweenInfo.new(0.4), {Intensity = 0, Threshold = 1}):Play()
+    
+    -- 6. Particle burst at destination
+    pcall(function()
+        if root then
+            for i = 1, 12 do
+                local part = Instance.new("Part")
+                part.Size = Vector3.new(0.3, 0.3, 0.3)
+                part.Shape = Enum.PartType.Ball
+                part.Material = Enum.Material.Neon
+                part.BrickColor = BrickColor.new("Really red")
+                part.Anchored = false
+                part.CanCollide = false
+                part.CFrame = root.CFrame
+                part.Transparency = 0.3
+                part.Parent = workspace
+                
+                local angle = (i / 12) * math.pi * 2
+                local vel = Instance.new("BodyVelocity", part)
+                vel.Velocity = Vector3.new(math.cos(angle) * 20, math.random(10, 25), math.sin(angle) * 20)
+                vel.MaxForce = Vector3.new(999999, 999999, 999999)
+                
+                game:GetService("Debris"):AddItem(part, 1.5)
+                
+                task.spawn(function()
+                    for t = 0, 1, 0.05 do
+                        if part and part.Parent then
+                            part.Transparency = 0.3 + t * 0.7
+                            part.Size = Vector3.new(0.3 - t * 0.25, 0.3 - t * 0.25, 0.3 - t * 0.25)
+                        end
+                        task.wait(0.05)
+                    end
+                end)
+            end
+        end
+    end)
+    
+    -- 7. Ring effect
+    pcall(function()
+        if root then
+            local ring = Instance.new("Part")
+            ring.Size = Vector3.new(1, 0.1, 1)
+            ring.Shape = Enum.PartType.Cylinder
+            ring.Material = Enum.Material.Neon
+            ring.BrickColor = BrickColor.new("Really red")
+            ring.Anchored = true
+            ring.CanCollide = false
+            ring.CFrame = root.CFrame * CFrame.Angles(0, 0, math.rad(90))
+            ring.Transparency = 0.5
+            ring.Parent = workspace
+            
+            game:GetService("Debris"):AddItem(ring, 1)
+            
+            task.spawn(function()
+                for t = 0, 1, 0.03 do
+                    if ring and ring.Parent then
+                        local s = 1 + t * 15
+                        ring.Size = Vector3.new(0.1, s, s)
+                        ring.Transparency = 0.5 + t * 0.5
+                    end
+                    task.wait(0.02)
+                end
+            end)
+        end
+    end)
+    
+    -- Cleanup effects
+    task.delay(0.7, function()
+        pcall(function() flash:Destroy() end)
+        pcall(function() blur:Destroy() end)
+        pcall(function() bloom:Destroy() end)
+    end)
+    
+    task.wait(0.2)
+    play("SuccessHigh")
+    setStatus("✅ " .. (name or "Готово!"), C.Green)
+    
+    task.delay(2.5, function()
+        if StatusText then setStatus("✅ Готов к телепортации", C.Green) end
+    end)
+    
+    teleporting = false
+    return true
+end
+
+-- ═══════════════════════════════════════
+-- СОЗДАНИЕ КАТЕГОРИЙ
+-- ═══════════════════════════════════════
+local catFrames = {}
+local allCards = {}
+
+for ci, cat in ipairs(Categories) do
+    
+    -- === CATEGORY CONTAINER ===
+    local Container = Instance.new("Frame", Scroll)
+    Container.Name = "Cat" .. ci
+    Container.BackgroundTransparency = 1
+    Container.Size = UDim2.new(1, 0, 0, 0)
+    Container.AutomaticSize = Enum.AutomaticSize.Y
+    Container.LayoutOrder = ci
+    Container.ZIndex = 3
+    
+    local CL = Instance.new("UIListLayout", Container)
+    CL.SortOrder = Enum.SortOrder.LayoutOrder
+    CL.Padding = UDim.new(0, 5)
+    
+    -- === CATEGORY HEADER ===
+    local Header = Instance.new("TextButton", Container)
+    Header.Name = "Header"
+    Header.Size = UDim2.new(1, 0, 0, 54)
+    Header.BackgroundColor3 = C.Surface
+    Header.BorderSizePixel = 0
+    Header.Text = ""
+    Header.AutoButtonColor = false
+    Header.LayoutOrder = 0
+    Header.ZIndex = 4
+    Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 12)
+    
+    local HeaderStroke = Instance.new("UIStroke", Header)
+    HeaderStroke.Color = C.Divider
+    HeaderStroke.Thickness = 1
+    HeaderStroke.Transparency = 0.5
+    
+    -- Color stripe (left)
+    local Stripe = Instance.new("Frame", Header)
+    Stripe.Size = UDim2.new(0, 4, 0.65, 0)
+    Stripe.Position = UDim2.new(0, 8, 0.175, 0)
+    Stripe.BackgroundColor3 = cat.Color
+    Stripe.BorderSizePixel = 0
+    Stripe.ZIndex = 5
+    Instance.new("UICorner", Stripe).CornerRadius = UDim.new(0, 2)
+    
+    -- Glow on stripe
+    local StripeGlow = Instance.new("Frame", Stripe)
+    StripeGlow.Size = UDim2.new(1, 6, 1, 6)
+    StripeGlow.Position = UDim2.new(0.5, 0, 0.5, 0)
+    StripeGlow.AnchorPoint = Vector2.new(0.5, 0.5)
+    StripeGlow.BackgroundColor3 = cat.Color
+    StripeGlow.BackgroundTransparency = 0.7
+    StripeGlow.BorderSizePixel = 0
+    StripeGlow.ZIndex = 4
+    Instance.new("UICorner", StripeGlow).CornerRadius = UDim.new(0, 4)
+    
+    -- Icon
+    local HIcon = Instance.new("TextLabel", Header)
+    HIcon.Text = cat.Icon
+    HIcon.TextSize = 22
+    HIcon.Font = Enum.Font.GothamBold
+    HIcon.BackgroundTransparency = 1
+    HIcon.Size = UDim2.new(0, 32, 1, 0)
+    HIcon.Position = UDim2.new(0, 18, 0, 0)
+    HIcon.ZIndex = 5
+    
+    -- Name
+    local HName = Instance.new("TextLabel", Header)
+    HName.Text = cat.Name
+    HName.Font = Enum.Font.GothamBold
+    HName.TextSize = 14
+    HName.TextColor3 = C.Text
+    HName.BackgroundTransparency = 1
+    HName.Size = UDim2.new(1, -150, 0, 20)
+    HName.Position = UDim2.new(0, 54, 0, 6)
+    HName.TextXAlignment = Enum.TextXAlignment.Left
+    HName.ZIndex = 5
+    
+    -- Desc
+    local HDesc = Instance.new("TextLabel", Header)
+    HDesc.Text = cat.Desc
+    HDesc.Font = Enum.Font.Gotham
+    HDesc.TextSize = 10
+    HDesc.TextColor3 = C.TextMuted
+    HDesc.BackgroundTransparency = 1
+    HDesc.Size = UDim2.new(1, -150, 0, 14)
+    HDesc.Position = UDim2.new(0, 54, 0, 28)
+    HDesc.TextXAlignment = Enum.TextXAlignment.Left
+    HDesc.TextTruncate = Enum.TextTruncate.AtEnd
+    HDesc.ZIndex = 5
+    
+    -- Counter badge
+    local HCount = Instance.new("Frame", Header)
+    HCount.Size = UDim2.new(0, 38, 0, 22)
+    HCount.Position = UDim2.new(1, -82, 0.5, -11)
+    HCount.BackgroundColor3 = cat.Color
+    HCount.BackgroundTransparency = 0.8
+    HCount.ZIndex = 5
+    Instance.new("UICorner", HCount).CornerRadius = UDim.new(0, 6)
+    
+    local HCountText = Instance.new("TextLabel", HCount)
+    HCountText.Text = tostring(#cat.Badges)
+    HCountText.Font = Enum.Font.GothamBold
+    HCountText.TextSize = 12
+    HCountText.TextColor3 = cat.Color
+    HCountText.BackgroundTransparency = 1
+    HCountText.Size = UDim2.new(1, 0, 1, 0)
+    HCountText.ZIndex = 6
+    
+    -- Arrow
+    local Arrow = Instance.new("TextLabel", Header)
+    Arrow.Text = "▶"
+    Arrow.Font = Enum.Font.GothamBold
+    Arrow.TextSize = 14
+    Arrow.TextColor3 = C.TextMuted
+    Arrow.BackgroundTransparency = 1
+    Arrow.Size = UDim2.new(0, 28, 1, 0)
+    Arrow.Position = UDim2.new(1, -34, 0, 0)
+    Arrow.ZIndex = 5
+    
+    -- === BADGES HOLDER ===
+    local Holder = Instance.new("Frame", Container)
+    Holder.Name = "Badges"
+    Holder.BackgroundTransparency = 1
+    Holder.Size = UDim2.new(1, 0, 0, 0)
+    Holder.AutomaticSize = Enum.AutomaticSize.Y
+    Holder.ClipsDescendants = true
+    Holder.Visible = false
+    Holder.LayoutOrder = 1
+    Holder.ZIndex = 3
+    
+    local HL = Instance.new("UIListLayout", Holder)
+    HL.SortOrder = Enum.SortOrder.LayoutOrder
+    HL.Padding = UDim.new(0, 5)
+    
+    Instance.new("UIPadding", Holder).PaddingLeft = UDim.new(0, 14)
+    
+    catFrames[ci] = { Header = Header, Holder = Holder, Arrow = Arrow, Open = false }
+    
+    -- Toggle category
+    Header.MouseButton1Click:Connect(function()
+        local cf = catFrames[ci]
+        cf.Open = not cf.Open
+        
+        play(cf.Open and "Expand" or "Collapse")
+        
+        cf.Holder.Visible = cf.Open
+        
+        TweenService:Create(Arrow, TweenInfo.new(0.25, Enum.EasingStyle.Back), {
+            Rotation = cf.Open and 90 or 0,
+            TextColor3 = cf.Open and cat.Color or C.TextMuted
+        }):Play()
+        
+        TweenService:Create(HeaderStroke, TweenInfo.new(0.2), {
+            Color = cf.Open and cat.Color or C.Divider,
+            Transparency = cf.Open and 0.3 or 0.5
+        }):Play()
+        
+        TweenService:Create(Header, TweenInfo.new(0.2), {
+            BackgroundColor3 = cf.Open and lerpColor(C.Surface, cat.Color, 0.08) or C.Surface
+        }):Play()
+        
+        -- Animate stripe
+        TweenService:Create(Stripe, TweenInfo.new(0.3, Enum.EasingStyle.Back), {
+            Size = cf.Open and UDim2.new(0, 5, 0.8, 0) or UDim2.new(0, 4, 0.65, 0)
+        }):Play()
+    end)
+    
+    -- Hover
+    Header.MouseEnter:Connect(function()
+        play("Hover")
+        TweenService:Create(Header, TweenInfo.new(0.15), {BackgroundColor3 = C.SurfaceHigh}):Play()
+        TweenService:Create(HIcon, TweenInfo.new(0.15), {TextSize = 26}):Play()
+    end)
+    Header.MouseLeave:Connect(function()
+        local cf = catFrames[ci]
+        TweenService:Create(Header, TweenInfo.new(0.15), {
+            BackgroundColor3 = cf.Open and lerpColor(C.Surface, cat.Color, 0.08) or C.Surface
+        }):Play()
+        TweenService:Create(HIcon, TweenInfo.new(0.15), {TextSize = 22}):Play()
+    end)
+    
+    -- === CREATE BADGE CARDS ===
+    for bi, badge in ipairs(cat.Badges) do
+        
+        local Card = Instance.new("Frame", Holder)
+        Card.Name = badge.N
+        Card.Size = UDim2.new(1, -18, 0, 88)
+        Card.BackgroundColor3 = C.Card
+        Card.BorderSizePixel = 0
+        Card.LayoutOrder = bi
+        Card.ZIndex = 3
+        Instance.new("UICorner", Card).CornerRadius = UDim.new(0, 12)
+        
+        local CardStroke = Instance.new("UIStroke", Card)
+        CardStroke.Color = C.Divider
+        CardStroke.Thickness = 1
+        CardStroke.Transparency = 0.6
+        
+        -- Difficulty stripe
+        local DS = Instance.new("Frame", Card)
+        DS.Size = UDim2.new(0, 3, 0.7, 0)
+        DS.Position = UDim2.new(0, 6, 0.15, 0)
+        DS.BackgroundColor3 = getDiffColor(badge.Df)
+        DS.BorderSizePixel = 0
+        DS.ZIndex = 4
+        Instance.new("UICorner", DS).CornerRadius = UDim.new(0, 2)
+        
+        -- DS Glow
+        local DSG = Instance.new("Frame", DS)
+        DSG.Size = UDim2.new(1, 4, 1, 4)
+        DSG.Position = UDim2.new(0.5, 0, 0.5, 0)
+        DSG.AnchorPoint = Vector2.new(0.5, 0.5)
+        DSG.BackgroundColor3 = getDiffColor(badge.Df)
+        DSG.BackgroundTransparency = 0.7
+        DSG.BorderSizePixel = 0
+        DSG.ZIndex = 3
+        Instance.new("UICorner", DSG).CornerRadius = UDim.new(0, 3)
+        
+        -- Emoji
+        local BE = Instance.new("TextLabel", Card)
+        BE.Text = badge.E or "📌"
+        BE.TextSize = 26
+        BE.Font = Enum.Font.GothamBold
+        BE.BackgroundTransparency = 1
+        BE.Size = UDim2.new(0, 34, 0, 34)
+        BE.Position = UDim2.new(0, 16, 0, 8)
+        BE.ZIndex = 4
+        
+        -- Name
+        local BN = Instance.new("TextLabel", Card)
+        BN.Text = badge.N
+        BN.Font = Enum.Font.GothamBold
+        BN.TextSize = 13
+        BN.TextColor3 = C.Text
+        BN.BackgroundTransparency = 1
+        BN.Size = UDim2.new(1, -130, 0, 18)
+        BN.Position = UDim2.new(0, 54, 0, 6)
+        BN.TextXAlignment = Enum.TextXAlignment.Left
+        BN.TextTruncate = Enum.TextTruncate.AtEnd
+        BN.ZIndex = 4
+        
+        -- Desc
+        local BD = Instance.new("TextLabel", Card)
+        BD.Text = badge.D
+        BD.Font = Enum.Font.Gotham
+        BD.TextSize = 10
+        BD.TextColor3 = C.TextSub
+        BD.BackgroundTransparency = 1
+        BD.Size = UDim2.new(1, -130, 0, 14)
+        BD.Position = UDim2.new(0, 54, 0, 24)
+        BD.TextXAlignment = Enum.TextXAlignment.Left
+        BD.TextTruncate = Enum.TextTruncate.AtEnd
+        BD.ZIndex = 4
+        
+        -- Hint
+        local BH = Instance.new("TextLabel", Card)
+        BH.Text = "💡 " .. (badge.H or "")
+        BH.Font = Enum.Font.Gotham
+        BH.TextSize = 9
+        BH.TextColor3 = C.TextDim
+        BH.BackgroundTransparency = 1
+        BH.Size = UDim2.new(1, -130, 0, 13)
+        BH.Position = UDim2.new(0, 54, 0, 40)
+        BH.TextXAlignment = Enum.TextXAlignment.Left
+        BH.TextTruncate = Enum.TextTruncate.AtEnd
+        BH.ZIndex = 4
+        
+        -- Difficulty tag
+        local DTag = Instance.new("Frame", Card)
+        DTag.Size = UDim2.new(0, 0, 0, 18)
+        DTag.AutomaticSize = Enum.AutomaticSize.X
+        DTag.Position = UDim2.new(0, 54, 0, 56)
+        DTag.BackgroundColor3 = lerpColor(getDiffColor(badge.Df), C.Card, 0.75)
+        DTag.BorderSizePixel = 0
+        DTag.ZIndex = 4
+        Instance.new("UICorner", DTag).CornerRadius = UDim.new(0, 5)
+        
+        local DTP = Instance.new("UIPadding", DTag)
+        DTP.PaddingLeft = UDim.new(0, 6)
+        DTP.PaddingRight = UDim.new(0, 6)
+        
+        local DTL = Instance.new("TextLabel", DTag)
+        DTL.Text = getDiffIcon(badge.Df) .. " " .. badge.Df
+        DTL.Font = Enum.Font.GothamBold
+        DTL.TextSize = 9
+        DTL.TextColor3 = getDiffColor(badge.Df)
+        DTL.BackgroundTransparency = 1
+        DTL.Size = UDim2.new(0, 0, 1, 0)
+        DTL.AutomaticSize = Enum.AutomaticSize.X
+        DTL.ZIndex = 5
+        
+        -- Coords
+        local BC = Instance.new("TextLabel", Card)
+        BC.Text = string.format("📍 %.0f, %.0f, %.0f", badge.P.X, badge.P.Y, badge.P.Z)
+        BC.Font = Enum.Font.Code
+        BC.TextSize = 8
+        BC.TextColor3 = C.TextDim
+        BC.BackgroundTransparency = 1
+        BC.Size = UDim2.new(0, 120, 0, 12)
+        BC.Position = UDim2.new(0, 54, 0, 74)
+        BC.TextXAlignment = Enum.TextXAlignment.Left
+        BC.ZIndex = 4
+        
+        -- TP BUTTON (fancy)
+        local TPBtn = Instance.new("TextButton", Card)
+        TPBtn.Text = ""
+        TPBtn.Size = UDim2.new(0, 68, 0, 60)
+        TPBtn.Position = UDim2.new(1, -76, 0.5, -30)
+        TPBtn.BackgroundColor3 = cat.Color
+        TPBtn.AutoButtonColor = false
+        TPBtn.ZIndex = 5
+        Instance.new("UICorner", TPBtn).CornerRadius = UDim.new(0, 12)
+        
+        local TPStroke = Instance.new("UIStroke", TPBtn)
+        TPStroke.Color = lerpColor(cat.Color, Color3.new(1,1,1), 0.3)
+        TPStroke.Thickness = 1.5
+        TPStroke.Transparency = 0.5
+        
+        -- TP button gradient
+        local TPGrad = Instance.new("UIGradient", TPBtn)
+        TPGrad.Color = ColorSequence.new{
+            ColorSequenceKeypoint.new(0, Color3.new(1,1,1)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 200, 200)),
+        }
+        TPGrad.Transparency = NumberSequence.new{
+            NumberSequenceKeypoint.new(0, 0.85),
+            NumberSequenceKeypoint.new(0.5, 0.95),
+            NumberSequenceKeypoint.new(1, 0.85),
+        }
+        TPGrad.Rotation = 45
+        
+        local TPIcon = Instance.new("TextLabel", TPBtn)
+        TPIcon.Text = "▸"
+        TPIcon.Font = Enum.Font.GothamBold
+        TPIcon.TextSize = 22
+        TPIcon.TextColor3 = C.Text
+        TPIcon.BackgroundTransparency = 1
+        TPIcon.Size = UDim2.new(1, 0, 0.6, 0)
+        TPIcon.ZIndex = 6
+        
+        local TPText = Instance.new("TextLabel", TPBtn)
+        TPText.Text = "TP"
+        TPText.Font = Enum.Font.GothamBold
+        TPText.TextSize = 10
+        TPText.TextColor3 = Color3.fromRGB(255, 220, 220)
+        TPText.BackgroundTransparency = 1
+        TPText.Size = UDim2.new(1, 0, 0.4, 0)
+        TPText.Position = UDim2.new(0, 0, 0.55, 0)
+        TPText.ZIndex = 6
+        
+        -- TP Hover
+        TPBtn.MouseEnter:Connect(function()
+            play("Hover")
+            TweenService:Create(TPBtn, TweenInfo.new(0.2, Enum.EasingStyle.Back), {
+                Size = UDim2.new(0, 74, 0, 66),
+                BackgroundColor3 = lerpColor(cat.Color, Color3.new(1,1,1), 0.15)
+            }):Play()
+            TweenService:Create(TPStroke, TweenInfo.new(0.15), {Transparency = 0.1}):Play()
+            TweenService:Create(TPIcon, TweenInfo.new(0.15), {TextSize = 26}):Play()
+        end)
+        
+        TPBtn.MouseLeave:Connect(function()
+            TweenService:Create(TPBtn, TweenInfo.new(0.2, Enum.EasingStyle.Back), {
+                Size = UDim2.new(0, 68, 0, 60),
+                BackgroundColor3 = cat.Color
+            }):Play()
+            TweenService:Create(TPStroke, TweenInfo.new(0.15), {Transparency = 0.5}):Play()
+            TweenService:Create(TPIcon, TweenInfo.new(0.15), {TextSize = 22}):Play()
+        end)
+        
+        -- TP Click with ripple
+        TPBtn.MouseButton1Click:Connect(function()
+            play("Click")
+            
+            -- Ripple
+            local ripple = Instance.new("Frame", TPBtn)
+            ripple.Size = UDim2.new(0, 0, 0, 0)
+            ripple.Position = UDim2.new(0.5, 0, 0.5, 0)
+            ripple.AnchorPoint = Vector2.new(0.5, 0.5)
+            ripple.BackgroundColor3 = Color3.new(1, 1, 1)
+            ripple.BackgroundTransparency = 0.6
+            ripple.BorderSizePixel = 0
+            ripple.ZIndex = 10
+            Instance.new("UICorner", ripple).CornerRadius = UDim.new(1, 0)
+            
+            TweenService:Create(ripple, TweenInfo.new(0.5), {
+                Size = UDim2.new(3, 0, 3, 0), BackgroundTransparency = 1
+            }):Play()
+            game:GetService("Debris"):AddItem(ripple, 0.6)
+            
+            -- Press animation
+            TweenService:Create(TPBtn, TweenInfo.new(0.06), {Size = UDim2.new(0, 62, 0, 54)}):Play()
+            task.wait(0.06)
+            TweenService:Create(TPBtn, TweenInfo.new(0.1, Enum.EasingStyle.Back), {Size = UDim2.new(0, 68, 0, 60)}):Play()
+            
+            -- Flash card
+            TweenService:Create(Card, TweenInfo.new(0.1), {BackgroundColor3 = lerpColor(C.Card, cat.Color, 0.2)}):Play()
+            task.delay(0.3, function()
+                TweenService:Create(Card, TweenInfo.new(0.3), {BackgroundColor3 = C.Card}):Play()
+            end)
+            
+            teleportTo(badge.P, badge.N)
+        end)
+        
+        -- Card hover
+        Card.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseMovement then
+                TweenService:Create(Card, TweenInfo.new(0.2), {BackgroundColor3 = C.CardHover}):Play()
+                TweenService:Create(CardStroke, TweenInfo.new(0.2), {
+                    Color = lerpColor(C.Divider, cat.Color, 0.4),
+                    Transparency = 0.3
+                }):Play()
+                TweenService:Create(DS, TweenInfo.new(0.15), {Size = UDim2.new(0, 4, 0.8, 0)}):Play()
+            end
+        end)
+        Card.InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseMovement then
+                TweenService:Create(Card, TweenInfo.new(0.2), {BackgroundColor3 = C.Card}):Play()
+                TweenService:Create(CardStroke, TweenInfo.new(0.2), {Color = C.Divider, Transparency = 0.6}):Play()
+                TweenService:Create(DS, TweenInfo.new(0.15), {Size = UDim2.new(0, 3, 0.7, 0)}):Play()
+            end
+        end)
+        
+        table.insert(allCards, {
+            Card = Card,
+            Name = badge.N:lower(),
+            Desc = badge.D:lower(),
+            CatIdx = ci,
+        })
+    end
+end
+
+-- ═══════════════════════════════════════
+-- ПОИСК С ПОДСВЕТКОЙ
+-- ═══════════════════════════════════════
+SBox:GetPropertyChangedSignal("Text"):Connect(function()
+    local q = SBox.Text:lower()
+    local count = 0
+    
+    if q == "" then
+        for _, d in ipairs(allCards) do d.Card.Visible = true end
+        BadgeCounter.Text = totalBadges .. " 📌"
+        return
+    end
+    
+    play("Tick")
+    
+    for _, d in ipairs(allCards) do
+        local match = d.Name:find(q, 1, true) or d.Desc:find(q, 1, true)
+        d.Card.Visible = (match ~= nil)
+        if match then
+            count = count + 1
+            local cf = catFrames[d.CatIdx]
+            if not cf.Open then
+                cf.Open = true
+                cf.Holder.Visible = true
+                cf.Arrow.Rotation = 90
+                cf.Arrow.TextColor3 = Categories[d.CatIdx].Color
+            end
+        end
+    end
+    
+    BadgeCounter.Text = count .. " 📌"
+    BadgeCounter.TextColor3 = count > 0 and C.Green or C.RedGlow
+end)
+
+-- ═══════════════════════════════════════
+-- QUICK ACTIONS
+-- ═══════════════════════════════════════
+ExpandBtn.MouseButton1Click:Connect(function()
+    play("Click")
+    for ci, cf in pairs(catFrames) do
+        cf.Open = true
+        cf.Holder.Visible = true
+        TweenService:Create(cf.Arrow, TweenInfo.new(0.2), {Rotation = 90, TextColor3 = Categories[ci].Color}):Play()
+    end
+    notify("📂 Развёрнуто", "Все категории раскрыты", C.Blue, 2)
+end)
+
+CollapseBtn.MouseButton1Click:Connect(function()
+    play("Click")
+    for _, cf in pairs(catFrames) do
+        cf.Open = false
+        cf.Holder.Visible = false
+        TweenService:Create(cf.Arrow, TweenInfo.new(0.2), {Rotation = 0, TextColor3 = C.TextMuted}):Play()
+    end
+    notify("📁 Свёрнуто", "Все категории свёрнуты", C.Blue, 2)
+end)
+
+-- TP ALL (1 секунда между телепортами)
+local tpAllActive = false
+
+TPAllBtn.MouseButton1Click:Connect(function()
+    if tpAllActive then
+        tpAllActive = false
+        TPAllBtn.Text = "⚡ TP ВСЕ"
+        TweenService:Create(TPAllBtn, TweenInfo.new(0.2), {BackgroundColor3 = C.Red}):Play()
+        ProgressFrame.Visible = false
+        play("Error")
+        notify("⛔ Остановлено", "Авто-телепортация прервана", C.RedGlow, 3)
+        setStatus("⛔ Авто-TP остановлен", C.RedGlow)
+        return
+    end
+    
+    tpAllActive = true
+    TPAllBtn.Text = "⛔ СТОП"
+    TweenService:Create(TPAllBtn, TweenInfo.new(0.2), {BackgroundColor3 = C.RedGlow}):Play()
+    ProgressFrame.Visible = true
+    play("Whoosh")
+    
+    notify("⚡ Авто-TP", "Телепортация ко всем бейджам (1сек)", C.Yellow, 3)
+    
+    -- Expand all categories for visibility
+    for ci, cf in pairs(catFrames) do
+        cf.Open = true
+        cf.Holder.Visible = true
+        cf.Arrow.Rotation = 90
+        cf.Arrow.TextColor3 = Categories[ci].Color
+    end
+    
+    local total = totalBadges
+    local current = 0
+    
+    for _, cat in ipairs(Categories) do
+        for _, badge in ipairs(cat.Badges) do
+            if not tpAllActive then break end
+            current = current + 1
+            
+            -- Update progress bar
+            local pct = current / total
+            TweenService:Create(ProgressFill, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
+                Size = UDim2.new(pct, 0, 1, 0)
+            }):Play()
+            
+            -- Update color based on progress
+            local progColor = lerpColor(C.Red, C.Green, pct)
+            TweenService:Create(ProgressFill, TweenInfo.new(0.3), {BackgroundColor3 = progColor}):Play()
+            
+            TPAllBtn.Text = string.format("⛔ %d/%d", current, total)
+            setStatus(string.format("⚡ [%d/%d] %s %s", current, total, badge.E, badge.N), C.Yellow)
+            
+            play("Tick")
+            teleportTo(badge.P, badge.N)
+            
+            -- ═══ 1 СЕКУНДА COOLDOWN ═══
+            task.wait(1)
+        end
+        if not tpAllActive then break end
+    end
+    
+    tpAllActive = false
+    TPAllBtn.Text = "⚡ TP ВСЕ"
+    TweenService:Create(TPAllBtn, TweenInfo.new(0.2), {BackgroundColor3 = C.Red}):Play()
+    
+    if current >= total then
+        play("Complete")
+        
+        -- Victory progress bar flash
+        for i = 1, 3 do
+            TweenService:Create(ProgressFill, TweenInfo.new(0.15), {BackgroundColor3 = C.Gold}):Play()
+            task.wait(0.2)
+            TweenService:Create(ProgressFill, TweenInfo.new(0.15), {BackgroundColor3 = C.Green}):Play()
+            task.wait(0.2)
+        end
+        
+        setStatus("🎉 ВСЕ " .. total .. " БЕЙДЖЕЙ ПРОЙДЕНЫ!", C.Green)
+        notify("🎉 ЗАВЕРШЕНО!", "Все " .. total .. " точек пройдены за " .. total .. " сек!", C.Gold, 5)
+        
+        -- Confetti-like screen flash
+        local victory = Instance.new("ColorCorrectionEffect")
+        victory.Brightness = 0.3
+        victory.Contrast = 0.2
+        victory.TintColor = Color3.fromRGB(255, 215, 60)
+        victory.Parent = Lighting
+        
+        TweenService:Create(victory, TweenInfo.new(1.5), {
+            Brightness = 0, Contrast = 0, TintColor = Color3.new(1,1,1)
+        }):Play()
+        task.delay(1.6, function() pcall(function() victory:Destroy() end) end)
+    end
+    
+    task.delay(3, function()
+        ProgressFrame.Visible = false
+    end)
+end)
+
+-- SCAN
+local scanHolder = nil
+
+ScanBtn.MouseButton1Click:Connect(function()
+    play("Scan")
+    setStatus("🔍 Сканирование Workspace...", C.CScan)
+    
+    if scanHolder then scanHolder:Destroy() scanHolder = nil end
+    
+    local keywords = {
+        "badge","secret","hidden","easter","unlock","collect","find",
+        "note","key","teddy","bear","token","code","prize","reward",
+        "mystery","puzzle","chest","special","rare","chicken","hedgehog",
+        "pizza","taco","pumpkin","crab","kitten","cat","door","tomb",
+        "grave","mansion","sewer","basement","attic","tower","cave",
+        "trigger","touch","proximity","interact"
+    }
+    
+    local found = {}
+    local count = 0
+    
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if (obj:IsA("BasePart") or obj:IsA("Model")) and not found[obj:GetFullName()] then
+            local name = obj.Name:lower()
+            for _, kw in ipairs(keywords) do
+                if name:find(kw, 1, true) then
+                    found[obj:GetFullName()] = true
+                    
+                    local pos
+                    if obj:IsA("Model") then
+                        local p = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
+                        if p then pos = p.Position end
+                    else
+                        pos = obj.Position
+                    end
+                    
+                    if pos then
+                        count = count + 1
+                        
+                        if not scanHolder then
+                            scanHolder = Instance.new("Frame", Scroll)
+                            scanHolder.Name = "ScanResults"
+                            scanHolder.BackgroundTransparency = 1
+                            scanHolder.Size = UDim2.new(1, 0, 0, 0)
+                            scanHolder.AutomaticSize = Enum.AutomaticSize.Y
+                            scanHolder.LayoutOrder = 999
+                            
+                            local sl = Instance.new("UIListLayout", scanHolder)
+                            sl.SortOrder = Enum.SortOrder.LayoutOrder
+                            sl.Padding = UDim.new(0, 5)
+                            
+                            local sh = Instance.new("Frame", scanHolder)
+                            sh.Size = UDim2.new(1, 0, 0, 40)
+                            sh.BackgroundColor3 = C.CScan
+                            sh.LayoutOrder = 0
+                            Instance.new("UICorner", sh).CornerRadius = UDim.new(0, 12)
+                            
+                            local shGrad = Instance.new("UIGradient", sh)
+                            shGrad.Color = ColorSequence.new{
+                                ColorSequenceKeypoint.new(0, C.CScan),
+                                ColorSequenceKeypoint.new(1, lerpColor(C.CScan, C.Bg, 0.3)),
+                            }
+                            
+                            local shT = Instance.new("TextLabel", sh)
+                            shT.Text = "  🔍 Авто-скан — Объекты из Workspace"
+                            shT.Font = Enum.Font.GothamBold
+                            shT.TextSize = 13
+                            shT.TextColor3 = C.Bg
+                            shT.BackgroundTransparency = 1
+                            shT.Size = UDim2.new(1, 0, 1, 0)
+                            shT.TextXAlignment = Enum.TextXAlignment.Left
+                        end
+                        
+                        local sc = Instance.new("Frame", scanHolder)
+                        sc.Size = UDim2.new(1, -12, 0, 44)
+                        sc.BackgroundColor3 = lerpColor(C.Card, C.CScan, 0.05)
+                        sc.BorderSizePixel = 0
+                        sc.LayoutOrder = count
+                        Instance.new("UICorner", sc).CornerRadius = UDim.new(0, 8)
+                        
+                        local sn = Instance.new("TextLabel", sc)
+                        sn.Text = "  🔍 " .. obj.Name
+                        sn.Font = Enum.Font.GothamSemibold
+                        sn.TextSize = 11
+                        sn.TextColor3 = C.CScan
+                        sn.BackgroundTransparency = 1
+                        sn.Size = UDim2.new(1, -70, 0, 18)
+                        sn.Position = UDim2.new(0, 4, 0, 4)
+                        sn.TextXAlignment = Enum.TextXAlignment.Left
+                        sn.TextTruncate = Enum.TextTruncate.AtEnd
+                        
+                        local sp = Instance.new("TextLabel", sc)
+                        sp.Text = string.format("  📍 %.0f, %.0f, %.0f | %s", pos.X, pos.Y, pos.Z, obj.ClassName)
+                        sp.Font = Enum.Font.Code
+                        sp.TextSize = 8
+                        sp.TextColor3 = C.TextDim
+                        sp.BackgroundTransparency = 1
+                        sp.Size = UDim2.new(1, -70, 0, 12)
+                        sp.Position = UDim2.new(0, 4, 0, 24)
+                        sp.TextXAlignment = Enum.TextXAlignment.Left
+                        
+                        local stb = Instance.new("TextButton", sc)
+                        stb.Text = "TP"
+                        stb.Font = Enum.Font.GothamBold
+                        stb.TextSize = 11
+                        stb.TextColor3 = C.Text
+                        stb.BackgroundColor3 = C.CScan
+                        stb.Size = UDim2.new(0, 46, 0, 28)
+                        stb.Position = UDim2.new(1, -52, 0.5, -14)
+                        stb.AutoButtonColor = false
+                        Instance.new("UICorner", stb).CornerRadius = UDim.new(0, 8)
+                        
+                        stb.MouseButton1Click:Connect(function()
+                            play("Click")
+                            teleportTo(pos, obj.Name)
+                        end)
+                        stb.MouseEnter:Connect(function() play("Hover") end)
+                    end
+                    break
+                end
+            end
+        end
+    end
+    
+    if count > 0 then
+        play("Success")
+        setStatus("🔍 Найдено " .. count .. " объектов!", C.CScan)
+        notify("🔍 Скан завершён", "Найдено " .. count .. " объектов в Workspace", C.CScan, 4)
+    else
+        play("Warning")
+        setStatus("🔍 Ничего не найдено", C.TextMuted)
+        notify("🔍 Скан", "Объектов не найдено", C.TextMuted, 3)
+    end
+end)
+
+-- ═══════════════════════════════════════
+-- DRAG СИСТЕМА
+-- ═══════════════════════════════════════
+do
+    local dragging, dragInput, dragStart, startPos
+    
+    Title.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or
+           input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = Main.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then dragging = false end
+            end)
+        end
+    end)
+    
+    Title.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or
+           input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            Main.Position = UDim2.new(
+                startPos.X.Scale, startPos.X.Offset + delta.X,
+                startPos.Y.Scale, startPos.Y.Offset + delta.Y
+            )
+        end
+    end)
+end
+
+-- ═══════════════════════════════════════
+-- TOGGLE / CLOSE / MINIMIZE
+-- ═══════════════════════════════════════
+local guiOpen = true
+local isMinimized = false
+
+local function toggleGui()
+    guiOpen = not guiOpen
+    if guiOpen then
+        play("Open")
+        Main.Visible = true
+        Main.Size = UDim2.new(0, 10, 0, 10)
+        Main.Position = UDim2.new(0.5, -5, 0.5, -5)
+        Main.BackgroundTransparency = 1
+        
+        TweenService:Create(Main, TweenInfo.new(0.45, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+            Size = UDim2.new(0, 460, 0, 640),
+            Position = UDim2.new(0.5, -230, 0.5, -320),
+            BackgroundTransparency = 0
+        }):Play()
+    else
+        play("Close")
+        TweenService:Create(Main, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+            Size = UDim2.new(0, 10, 0, 10),
+            Position = UDim2.new(0.5, -5, 0.5, -5),
+            BackgroundTransparency = 1
+        }):Play()
+        task.delay(0.3, function() if not guiOpen then Main.Visible = false end end)
+    end
+end
+
+Toggle.MouseButton1Click:Connect(function()
+    play("Click")
+    toggleGui()
+end)
+
+Toggle.MouseEnter:Connect(function()
+    play("HoverDeep")
+    TweenService:Create(Toggle, TweenInfo.new(0.2, Enum.EasingStyle.Back), {
+        Size = UDim2.new(0, 58, 0, 58),
+        BackgroundColor3 = C.RedLight
+    }):Play()
+end)
+Toggle.MouseLeave:Connect(function()
+    TweenService:Create(Toggle, TweenInfo.new(0.2), {
+        Size = UDim2.new(0, 52, 0, 52),
+        BackgroundColor3 = C.Red
+    }):Play()
+end)
+
+CloseBtn.MouseButton1Click:Connect(function()
+    play("Click")
+    toggleGui()
+end)
+
+MinBtn.MouseButton1Click:Connect(function()
+    play("Click")
+    isMinimized = not isMinimized
+    if isMinimized then
+        TweenService:Create(Main, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
+            Size = UDim2.new(0, 460, 0, 58)
+        }):Play()
+        task.delay(0.15, function()
+            Scroll.Visible = false
+            Status.Visible = false
+            Search.Visible = false
+            QuickBar.Visible = false
+            Footer.Visible = false
+            ProgressFrame.Visible = false
+        end)
+        MinBtn.Text = "□"
+    else
+        TweenService:Create(Main, TweenInfo.new(0.3, Enum.EasingStyle.Back), {
+            Size = UDim2.new(0, 460, 0, 640)
+        }):Play()
+        task.delay(0.1, function()
+            Scroll.Visible = true
+            Status.Visible = true
+            Search.Visible = true
+            QuickBar.Visible = true
+            Footer.Visible = true
+        end)
+        MinBtn.Text = "─"
+    end
+end)
+
+-- Hotkey
+UserInputService.InputBegan:Connect(function(input, gpe)
+    if gpe then return end
+    if input.KeyCode == Enum.KeyCode.RightControl then toggleGui() end
+end)
+
+-- ═══════════════════════════════════════
+-- STARTUP ANIMATION SEQUENCE
+-- ═══════════════════════════════════════
+Main.BackgroundTransparency = 1
+Main.Size = UDim2.new(0, 10, 0, 10)
+Main.Position = UDim2.new(0.5, -5, 0.5, -5)
+Title.BackgroundTransparency = 1
+
+task.wait(0.5)
+play("Open")
+
+-- Phase 1: Expand frame
+TweenService:Create(Main, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+    Size = UDim2.new(0, 460, 0, 640),
+    Position = UDim2.new(0.5, -230, 0.5, -320),
+    BackgroundTransparency = 0
+}):Play()
+
+task.wait(0.3)
+
+-- Phase 2: Title bar
+TweenService:Create(Title, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
+    BackgroundTransparency = 0
+}):Play()
+
+task.wait(0.3)
+play("SuccessHigh")
+
+-- Phase 3: Notification
+task.wait(0.2)
+notify("🐻 BEAR Badge TP v4.0", totalBadges .. " бейджей | Ultra FX | 1сек авто-TP", C.Red, 5)
+
+pcall(function()
+    StarterGui:SetCore("SendNotification", {
+        Title = "🐻 BEAR ULTRA Badge TP",
+        Text = totalBadges .. " бейджей | RightCtrl toggle",
+        Duration = 5
+    })
+end)
+
+print("╔══════════════════════════════════════════╗")
+print("║  🐻 BEAR ULTRA Badge TP v4.0 LOADED!     ║")
+print("║  📌 " .. totalBadges .. " badges | 7 categories            ║")
+print("║  ⌨️  RightCtrl — toggle GUI               ║")
+print("║  ⚡ Auto-TP: 1 second cooldown            ║")
+print("╚══════════════════════════════════════════╝")
