@@ -1,0 +1,2105 @@
+--[[
+    ╔══════════════════════════════════════════╗
+    ║    COMBAT INITIATION HUB v3              ║
+    ║    Full Rework — Styled & Polished       ║
+    ╚══════════════════════════════════════════╝
+]]
+
+-- ============================================
+-- СЕРВИСЫ
+-- ============================================
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
+local TweenService = game:GetService("TweenService")
+local StarterGui = game:GetService("StarterGui")
+local SoundService = game:GetService("SoundService")
+local Lighting = game:GetService("Lighting")
+
+local LocalPlayer = Players.LocalPlayer
+local Camera = Workspace.CurrentCamera
+local Mouse = LocalPlayer:GetMouse()
+
+-- Очистка старого
+if game.CoreGui:FindFirstChild("CIHubV3") then
+    game.CoreGui:FindFirstChild("CIHubV3"):Destroy()
+end
+if game.CoreGui:FindFirstChild("CIHubIcon") then
+    game.CoreGui:FindFirstChild("CIHubIcon"):Destroy()
+end
+
+-- ============================================
+-- ЗВУКОВАЯ СИСТЕМА
+-- ============================================
+local SFX = {}
+
+function SFX.Create(id, volume, pitch)
+    local sound = Instance.new("Sound")
+    sound.SoundId = "rbxassetid://" .. tostring(id)
+    sound.Volume = volume or 0.5
+    sound.PlaybackSpeed = pitch or 1
+    sound.Parent = SoundService
+    return sound
+end
+
+-- Предзагрузка звуков
+local Sounds = {
+    ToggleOn     = SFX.Create(6895079853, 0.4, 1.2),    -- Click on
+    ToggleOff    = SFX.Create(6895079853, 0.3, 0.8),    -- Click off
+    ButtonClick  = SFX.Create(6895079853, 0.5, 1.0),    -- Button
+    SliderTick   = SFX.Create(6895079853, 0.2, 1.5),    -- Slider
+    TabSwitch    = SFX.Create(6895079853, 0.3, 1.3),    -- Tab
+    OpenGUI      = SFX.Create(6895079853, 0.6, 0.7),    -- Open
+    CloseGUI     = SFX.Create(6895079853, 0.5, 0.5),    -- Close
+    Notification = SFX.Create(6895079853, 0.4, 1.1),    -- Notify
+    Swing        = SFX.Create(12222208, 0.6, 1.2),      -- Sword swing
+    Hit          = SFX.Create(12222216, 0.5, 1.0),       -- Hit
+    Whoosh       = SFX.Create(12222230, 0.4, 1.0),       -- Whoosh
+    PowerUp      = SFX.Create(12222242, 0.5, 1.0),       -- Power up
+}
+
+function PlaySound(soundObj)
+    pcall(function()
+        if soundObj then
+            soundObj:Play()
+        end
+    end)
+end
+
+-- ============================================
+-- НАСТРОЙКИ
+-- ============================================
+local Settings = {
+    -- ESP (без Max Distance — всегда inf)
+    ESP_Enabled = false,
+    ESP_TeamCheck = true,
+    ESP_ShowHealth = true,
+    ESP_ShowDistance = true,
+    ESP_ShowName = true,
+    ESP_ShowWeapon = true,
+    ESP_BoxColor = Color3.fromRGB(220, 40, 40),
+    ESP_TeamColor = Color3.fromRGB(40, 220, 40),
+    
+    -- Aimbot (ТОЛЬКО на NPC врагов)
+    Aimbot_Enabled = false,
+    Aimbot_FOV = 200,
+    Aimbot_ShowFOV = true,
+    Aimbot_Smoothness = 3,
+    Aimbot_TargetPart = "Head",
+    
+    -- Combat (без слайдеров range — всё inf)
+    AutoAttack = false,
+    AttackSpeed = 0.15,
+    KillAura = false,
+    AutoBlock = false,
+    AutoDodge = false,
+    
+    -- Sword Cooldown
+    SwordCooldown_Enabled = false,
+    SwordCooldown_Value = 0.1,
+    AutoSwing = false,
+    AutoSwing_Speed = 0.1,
+    
+    -- Auto Farm (range = inf)
+    AutoFarm_Enabled = false,
+    
+    -- Movement
+    Speed_Enabled = false,
+    Speed_Value = 24,
+    JumpPower_Enabled = false,
+    JumpPower_Value = 50,
+    Noclip_Enabled = false,
+    InfiniteJump = false,
+    
+    -- Misc
+    AntiAFK = true,
+    FullBright = false,
+}
+
+-- ============================================
+-- ЦВЕТОВАЯ ТЕМА Combat Initiation
+-- ============================================
+local Theme = {
+    Background      = Color3.fromRGB(12, 10, 18),
+    Surface         = Color3.fromRGB(18, 15, 28),
+    Card            = Color3.fromRGB(24, 20, 36),
+    CardHover       = Color3.fromRGB(32, 27, 48),
+    Sidebar         = Color3.fromRGB(15, 12, 24),
+    TitleBar        = Color3.fromRGB(20, 16, 32),
+    
+    Primary         = Color3.fromRGB(200, 30, 30),
+    PrimaryGlow     = Color3.fromRGB(255, 50, 50),
+    PrimaryDark     = Color3.fromRGB(140, 20, 20),
+    Secondary       = Color3.fromRGB(180, 140, 50),
+    
+    Text            = Color3.fromRGB(230, 225, 240),
+    TextDim         = Color3.fromRGB(140, 130, 160),
+    TextAccent      = Color3.fromRGB(255, 80, 80),
+    
+    ToggleOn        = Color3.fromRGB(200, 35, 35),
+    ToggleOff       = Color3.fromRGB(45, 38, 60),
+    SliderFill      = Color3.fromRGB(200, 35, 35),
+    SliderBg        = Color3.fromRGB(40, 34, 55),
+    
+    Divider         = Color3.fromRGB(50, 42, 70),
+    
+    IconGlow        = Color3.fromRGB(255, 40, 40),
+}
+
+-- ============================================
+-- ИКОНКА ОТКРЫТИЯ GUI
+-- ============================================
+local IconGui = Instance.new("ScreenGui")
+IconGui.Name = "CIHubIcon"
+IconGui.Parent = game.CoreGui
+IconGui.ResetOnSpawn = false
+IconGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+local IconButton = Instance.new("ImageButton")
+IconButton.Name = "IconBtn"
+IconButton.Parent = IconGui
+IconButton.BackgroundColor3 = Theme.Primary
+IconButton.Position = UDim2.new(0, 15, 0.5, -25)
+IconButton.Size = UDim2.new(0, 50, 0, 50)
+IconButton.Image = "rbxassetid://7733960981" -- меч иконка
+IconButton.ImageColor3 = Color3.fromRGB(255, 255, 255)
+IconButton.ScaleType = Enum.ScaleType.Fit
+IconButton.AutoButtonColor = false
+IconButton.BorderSizePixel = 0
+
+local IconCorner = Instance.new("UICorner")
+IconCorner.CornerRadius = UDim.new(0, 14)
+IconCorner.Parent = IconButton
+
+local IconStroke = Instance.new("UIStroke")
+IconStroke.Parent = IconButton
+IconStroke.Color = Theme.PrimaryGlow
+IconStroke.Thickness = 2
+IconStroke.Transparency = 0.3
+
+-- Пульсация иконки
+spawn(function()
+    while IconButton and IconButton.Parent do
+        TweenService:Create(IconStroke, TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+            Transparency = 0.8
+        }):Play()
+        task.wait(1)
+        TweenService:Create(IconStroke, TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+            Transparency = 0.2
+        }):Play()
+        task.wait(1)
+    end
+end)
+
+-- Tooltip для иконки
+local Tooltip = Instance.new("Frame")
+Tooltip.Parent = IconButton
+Tooltip.BackgroundColor3 = Theme.Surface
+Tooltip.Position = UDim2.new(1, 10, 0.5, -40)
+Tooltip.Size = UDim2.new(0, 200, 0, 80)
+Tooltip.Visible = false
+Tooltip.ZIndex = 100
+
+local TooltipCorner = Instance.new("UICorner")
+TooltipCorner.CornerRadius = UDim.new(0, 8)
+TooltipCorner.Parent = Tooltip
+
+local TooltipStroke = Instance.new("UIStroke")
+TooltipStroke.Parent = Tooltip
+TooltipStroke.Color = Theme.Primary
+TooltipStroke.Thickness = 1
+TooltipStroke.Transparency = 0.5
+
+local TooltipTitle = Instance.new("TextLabel")
+TooltipTitle.Parent = Tooltip
+TooltipTitle.BackgroundTransparency = 1
+TooltipTitle.Position = UDim2.new(0, 8, 0, 4)
+TooltipTitle.Size = UDim2.new(1, -16, 0, 20)
+TooltipTitle.Font = Enum.Font.GothamBold
+TooltipTitle.Text = "⚔️ Combat Initiation Hub"
+TooltipTitle.TextColor3 = Theme.PrimaryGlow
+TooltipTitle.TextSize = 12
+TooltipTitle.TextXAlignment = Enum.TextXAlignment.Left
+TooltipTitle.ZIndex = 101
+
+local TooltipDesc = Instance.new("TextLabel")
+TooltipDesc.Parent = Tooltip
+TooltipDesc.BackgroundTransparency = 1
+TooltipDesc.Position = UDim2.new(0, 8, 0, 24)
+TooltipDesc.Size = UDim2.new(1, -16, 0, 52)
+TooltipDesc.Font = Enum.Font.Gotham
+TooltipDesc.Text = "ESP • Aimbot NPC\nSword Hack • Kill Aura\nAuto Farm • Speed\nНажми чтобы открыть"
+TooltipDesc.TextColor3 = Theme.TextDim
+TooltipDesc.TextSize = 10
+TooltipDesc.TextXAlignment = Enum.TextXAlignment.Left
+TooltipDesc.TextYAlignment = Enum.TextYAlignment.Top
+TooltipDesc.ZIndex = 101
+
+IconButton.MouseEnter:Connect(function()
+    TweenService:Create(IconButton, TweenInfo.new(0.2), {
+        Size = UDim2.new(0, 56, 0, 56),
+        Position = UDim2.new(0, 12, 0.5, -28)
+    }):Play()
+    Tooltip.Visible = true
+    TweenService:Create(Tooltip, TweenInfo.new(0.15), {BackgroundTransparency = 0}):Play()
+end)
+
+IconButton.MouseLeave:Connect(function()
+    TweenService:Create(IconButton, TweenInfo.new(0.2), {
+        Size = UDim2.new(0, 50, 0, 50),
+        Position = UDim2.new(0, 15, 0.5, -25)
+    }):Play()
+    Tooltip.Visible = false
+end)
+
+-- ============================================
+-- ГЛАВНЫЙ GUI
+-- ============================================
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "CIHubV3"
+ScreenGui.Parent = game.CoreGui
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.ResetOnSpawn = false
+
+-- Затемнение фона
+local Backdrop = Instance.new("Frame")
+Backdrop.Name = "Backdrop"
+Backdrop.Parent = ScreenGui
+Backdrop.BackgroundColor3 = Color3.new(0, 0, 0)
+Backdrop.BackgroundTransparency = 1
+Backdrop.Size = UDim2.new(1, 0, 1, 0)
+Backdrop.ZIndex = 0
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Theme.Background
+MainFrame.BorderSizePixel = 0
+MainFrame.Position = UDim2.new(0.5, -280, 0.5, -230)
+MainFrame.Size = UDim2.new(0, 560, 0, 480)
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Visible = false
+MainFrame.BackgroundTransparency = 1
+MainFrame.ClipsDescendants = true
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 12)
+MainCorner.Parent = MainFrame
+
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Parent = MainFrame
+MainStroke.Color = Theme.Primary
+MainStroke.Thickness = 1.5
+MainStroke.Transparency = 0.6
+
+-- Декоративная линия сверху (акцент)
+local AccentLine = Instance.new("Frame")
+AccentLine.Parent = MainFrame
+AccentLine.BackgroundColor3 = Theme.Primary
+AccentLine.BorderSizePixel = 0
+AccentLine.Position = UDim2.new(0, 0, 0, 0)
+AccentLine.Size = UDim2.new(1, 0, 0, 3)
+AccentLine.ZIndex = 10
+
+local AccentGradient = Instance.new("UIGradient")
+AccentGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 30, 30)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 80, 30)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 30, 30)),
+})
+AccentGradient.Parent = AccentLine
+
+-- Анимация градиента
+spawn(function()
+    local offset = 0
+    while AccentLine and AccentLine.Parent do
+        offset = (offset + 0.005) % 1
+        AccentGradient.Offset = Vector2.new(offset, 0)
+        task.wait(0.03)
+    end
+end)
+
+-- ═══ TITLE BAR ═══
+local TitleBar = Instance.new("Frame")
+TitleBar.Name = "TitleBar"
+TitleBar.Parent = MainFrame
+TitleBar.BackgroundColor3 = Theme.TitleBar
+TitleBar.BorderSizePixel = 0
+TitleBar.Position = UDim2.new(0, 0, 0, 3)
+TitleBar.Size = UDim2.new(1, 0, 0, 42)
+
+-- Иконка в заголовке
+local TitleIcon = Instance.new("ImageLabel")
+TitleIcon.Parent = TitleBar
+TitleIcon.BackgroundTransparency = 1
+TitleIcon.Position = UDim2.new(0, 12, 0.5, -10)
+TitleIcon.Size = UDim2.new(0, 20, 0, 20)
+TitleIcon.Image = "rbxassetid://7733960981"
+TitleIcon.ImageColor3 = Theme.PrimaryGlow
+
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Parent = TitleBar
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Position = UDim2.new(0, 38, 0, 0)
+TitleLabel.Size = UDim2.new(0.5, 0, 1, 0)
+TitleLabel.Font = Enum.Font.GothamBold
+TitleLabel.Text = "COMBAT INITIATION"
+TitleLabel.TextColor3 = Theme.PrimaryGlow
+TitleLabel.TextSize = 16
+TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+local TitleSub = Instance.new("TextLabel")
+TitleSub.Parent = TitleBar
+TitleSub.BackgroundTransparency = 1
+TitleSub.Position = UDim2.new(0.5, -30, 0, 0)
+TitleSub.Size = UDim2.new(0.3, 0, 1, 0)
+TitleSub.Font = Enum.Font.Gotham
+TitleSub.Text = "HUB v3"
+TitleSub.TextColor3 = Theme.TextDim
+TitleSub.TextSize = 11
+TitleSub.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Статус индикатор
+local StatusDot = Instance.new("Frame")
+StatusDot.Parent = TitleBar
+StatusDot.BackgroundColor3 = Color3.fromRGB(50, 220, 50)
+StatusDot.Position = UDim2.new(1, -105, 0.5, -4)
+StatusDot.Size = UDim2.new(0, 8, 0, 8)
+
+local StatusDotCorner = Instance.new("UICorner")
+StatusDotCorner.CornerRadius = UDim.new(1, 0)
+StatusDotCorner.Parent = StatusDot
+
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Parent = TitleBar
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.Position = UDim2.new(1, -93, 0, 0)
+StatusLabel.Size = UDim2.new(0, 50, 1, 0)
+StatusLabel.Font = Enum.Font.Gotham
+StatusLabel.Text = "Active"
+StatusLabel.TextColor3 = Color3.fromRGB(50, 220, 50)
+StatusLabel.TextSize = 10
+StatusLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Кнопки управления
+local function CreateWindowBtn(text, color, posOffset)
+    local btn = Instance.new("TextButton")
+    btn.Parent = TitleBar
+    btn.BackgroundColor3 = Theme.Card
+    btn.Position = UDim2.new(1, posOffset, 0.5, -12)
+    btn.Size = UDim2.new(0, 24, 0, 24)
+    btn.Font = Enum.Font.GothamBold
+    btn.Text = text
+    btn.TextColor3 = color
+    btn.TextSize = 14
+    btn.AutoButtonColor = false
+    btn.BorderSizePixel = 0
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = btn
+    
+    btn.MouseEnter:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = Theme.CardHover}):Play()
+    end)
+    btn.MouseLeave:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = Theme.Card}):Play()
+    end)
+    
+    return btn
+end
+
+local CloseBtn = CreateWindowBtn("✕", Color3.fromRGB(255, 70, 70), -38)
+local MinimizeBtn = CreateWindowBtn("—", Color3.fromRGB(255, 200, 70), -66)
+
+-- ═══ SIDEBAR (Табы) ═══
+local Sidebar = Instance.new("Frame")
+Sidebar.Parent = MainFrame
+Sidebar.BackgroundColor3 = Theme.Sidebar
+Sidebar.BorderSizePixel = 0
+Sidebar.Position = UDim2.new(0, 0, 0, 45)
+Sidebar.Size = UDim2.new(0, 135, 1, -45)
+
+local SidebarDivider = Instance.new("Frame")
+SidebarDivider.Parent = Sidebar
+SidebarDivider.BackgroundColor3 = Theme.Divider
+SidebarDivider.BorderSizePixel = 0
+SidebarDivider.Position = UDim2.new(1, -1, 0, 5)
+SidebarDivider.Size = UDim2.new(0, 1, 1, -10)
+
+-- Лого внизу сайдбара
+local SidebarLogo = Instance.new("TextLabel")
+SidebarLogo.Parent = Sidebar
+SidebarLogo.BackgroundTransparency = 1
+SidebarLogo.Position = UDim2.new(0, 0, 1, -25)
+SidebarLogo.Size = UDim2.new(1, 0, 0, 20)
+SidebarLogo.Font = Enum.Font.Gotham
+SidebarLogo.Text = "v3.0 • CI Hub"
+SidebarLogo.TextColor3 = Color3.fromRGB(60, 50, 80)
+SidebarLogo.TextSize = 9
+
+-- ═══ CONTENT AREA ═══
+local ContentFrame = Instance.new("Frame")
+ContentFrame.Parent = MainFrame
+ContentFrame.BackgroundTransparency = 1
+ContentFrame.Position = UDim2.new(0, 140, 0, 50)
+ContentFrame.Size = UDim2.new(1, -145, 1, -55)
+
+-- ============================================
+-- UI КОМПОНЕНТЫ
+-- ============================================
+local Tabs = {}
+local TabButtons = {}
+local CurrentTab = nil
+local TabIndicator = nil
+
+local function CreateTab(name, icon, description)
+    local index = #TabButtons
+    
+    local TabBtn = Instance.new("TextButton")
+    TabBtn.Name = name
+    TabBtn.Parent = Sidebar
+    TabBtn.BackgroundColor3 = Theme.Card
+    TabBtn.BackgroundTransparency = 1
+    TabBtn.BorderSizePixel = 0
+    TabBtn.Position = UDim2.new(0, 8, 0, 8 + (index * 42))
+    TabBtn.Size = UDim2.new(1, -16, 0, 36)
+    TabBtn.Font = Enum.Font.GothamSemibold
+    TabBtn.Text = ""
+    TabBtn.AutoButtonColor = false
+    
+    local TabBtnCorner = Instance.new("UICorner")
+    TabBtnCorner.CornerRadius = UDim.new(0, 8)
+    TabBtnCorner.Parent = TabBtn
+    
+    -- Иконка таба
+    local TabIcon = Instance.new("TextLabel")
+    TabIcon.Parent = TabBtn
+    TabIcon.BackgroundTransparency = 1
+    TabIcon.Position = UDim2.new(0, 8, 0, 0)
+    TabIcon.Size = UDim2.new(0, 24, 1, 0)
+    TabIcon.Font = Enum.Font.GothamBold
+    TabIcon.Text = icon or "•"
+    TabIcon.TextColor3 = Theme.TextDim
+    TabIcon.TextSize = 16
+
+    -- Текст таба
+    local TabText = Instance.new("TextLabel")
+    TabText.Parent = TabBtn
+    TabText.BackgroundTransparency = 1
+    TabText.Position = UDim2.new(0, 34, 0, 0)
+    TabText.Size = UDim2.new(1, -40, 1, 0)
+    TabText.Font = Enum.Font.GothamSemibold
+    TabText.Text = name
+    TabText.TextColor3 = Theme.TextDim
+    TabText.TextSize = 12
+    TabText.TextXAlignment = Enum.TextXAlignment.Left
+    
+    -- Активный индикатор
+    local ActiveBar = Instance.new("Frame")
+    ActiveBar.Name = "ActiveBar"
+    ActiveBar.Parent = TabBtn
+    ActiveBar.BackgroundColor3 = Theme.Primary
+    ActiveBar.Position = UDim2.new(0, 0, 0.15, 0)
+    ActiveBar.Size = UDim2.new(0, 3, 0.7, 0)
+    ActiveBar.Visible = false
+    
+    local ActiveBarCorner = Instance.new("UICorner")
+    ActiveBarCorner.CornerRadius = UDim.new(0, 2)
+    ActiveBarCorner.Parent = ActiveBar
+    
+    -- Контент
+    local TabContent = Instance.new("ScrollingFrame")
+    TabContent.Name = name
+    TabContent.Parent = ContentFrame
+    TabContent.BackgroundTransparency = 1
+    TabContent.Size = UDim2.new(1, 0, 1, 0)
+    TabContent.ScrollBarThickness = 3
+    TabContent.ScrollBarImageColor3 = Theme.Primary
+    TabContent.CanvasSize = UDim2.new(0, 0, 0, 0)
+    TabContent.Visible = false
+    TabContent.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    TabContent.ScrollingDirection = Enum.ScrollingDirection.Y
+    
+    local ListLayout = Instance.new("UIListLayout")
+    ListLayout.Parent = TabContent
+    ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    ListLayout.Padding = UDim.new(0, 4)
+    
+    local Padding = Instance.new("UIPadding")
+    Padding.Parent = TabContent
+    Padding.PaddingTop = UDim.new(0, 4)
+    Padding.PaddingLeft = UDim.new(0, 4)
+    Padding.PaddingRight = UDim.new(0, 8)
+    
+    table.insert(TabButtons, {Button = TabBtn, Icon = TabIcon, Text = TabText, Bar = ActiveBar})
+    Tabs[name] = TabContent
+    
+    TabBtn.MouseEnter:Connect(function()
+        if CurrentTab ~= name then
+            TweenService:Create(TabBtn, TweenInfo.new(0.15), {BackgroundTransparency = 0.5}):Play()
+        end
+    end)
+    
+    TabBtn.MouseLeave:Connect(function()
+        if CurrentTab ~= name then
+            TweenService:Create(TabBtn, TweenInfo.new(0.15), {BackgroundTransparency = 1}):Play()
+        end
+    end)
+    
+    TabBtn.MouseButton1Click:Connect(function()
+        PlaySound(Sounds.TabSwitch)
+        
+        for _, v in pairs(Tabs) do v.Visible = false end
+        for _, v in pairs(TabButtons) do
+            TweenService:Create(v.Button, TweenInfo.new(0.2), {BackgroundTransparency = 1}):Play()
+            TweenService:Create(v.Icon, TweenInfo.new(0.2), {TextColor3 = Theme.TextDim}):Play()
+            TweenService:Create(v.Text, TweenInfo.new(0.2), {TextColor3 = Theme.TextDim}):Play()
+            v.Bar.Visible = false
+        end
+        
+        TabContent.Visible = true
+        local tabData = TabButtons[index + 1]
+        TweenService:Create(tabData.Button, TweenInfo.new(0.2), {BackgroundTransparency = 0.3}):Play()
+        TweenService:Create(tabData.Icon, TweenInfo.new(0.2), {TextColor3 = Theme.PrimaryGlow}):Play()
+        TweenService:Create(tabData.Text, TweenInfo.new(0.2), {TextColor3 = Theme.Text}):Play()
+        tabData.Bar.Visible = true
+        
+        CurrentTab = name
+    end)
+    
+    return TabContent
+end
+
+-- ═══ UI Элементы ═══
+
+local function CreateSection(parent, text)
+    local Section = Instance.new("Frame")
+    Section.Parent = parent
+    Section.BackgroundColor3 = Theme.Card
+    Section.BackgroundTransparency = 0.5
+    Section.BorderSizePixel = 0
+    Section.Size = UDim2.new(1, 0, 0, 28)
+    
+    local SectionCorner = Instance.new("UICorner")
+    SectionCorner.CornerRadius = UDim.new(0, 6)
+    SectionCorner.Parent = Section
+    
+    local Dot = Instance.new("Frame")
+    Dot.Parent = Section
+    Dot.BackgroundColor3 = Theme.Primary
+    Dot.Position = UDim2.new(0, 10, 0.5, -3)
+    Dot.Size = UDim2.new(0, 6, 0, 6)
+    
+    local DotCorner = Instance.new("UICorner")
+    DotCorner.CornerRadius = UDim.new(1, 0)
+    DotCorner.Parent = Dot
+    
+    local Label = Instance.new("TextLabel")
+    Label.Parent = Section
+    Label.BackgroundTransparency = 1
+    Label.Position = UDim2.new(0, 22, 0, 0)
+    Label.Size = UDim2.new(1, -28, 1, 0)
+    Label.Font = Enum.Font.GothamBold
+    Label.Text = text:upper()
+    Label.TextColor3 = Theme.TextAccent
+    Label.TextSize = 11
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    
+    return Section
+end
+
+local function CreateToggle(parent, text, desc, default, callback)
+    local ToggleFrame = Instance.new("Frame")
+    ToggleFrame.Parent = parent
+    ToggleFrame.BackgroundColor3 = Theme.Card
+    ToggleFrame.BorderSizePixel = 0
+    ToggleFrame.Size = UDim2.new(1, 0, 0, desc and 46 or 36)
+    
+    local ToggleCorner = Instance.new("UICorner")
+    ToggleCorner.CornerRadius = UDim.new(0, 8)
+    ToggleCorner.Parent = ToggleFrame
+    
+    local Label = Instance.new("TextLabel")
+    Label.Parent = ToggleFrame
+    Label.BackgroundTransparency = 1
+    Label.Position = UDim2.new(0, 12, 0, desc and 2 or 0)
+    Label.Size = UDim2.new(1, -70, 0, desc and 20 or 36)
+    Label.Font = Enum.Font.GothamSemibold
+    Label.Text = text
+    Label.TextColor3 = Theme.Text
+    Label.TextSize = 12
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    
+    if desc then
+        local DescLabel = Instance.new("TextLabel")
+        DescLabel.Parent = ToggleFrame
+        DescLabel.BackgroundTransparency = 1
+        DescLabel.Position = UDim2.new(0, 12, 0, 20)
+        DescLabel.Size = UDim2.new(1, -70, 0, 22)
+        DescLabel.Font = Enum.Font.Gotham
+        DescLabel.Text = desc
+        DescLabel.TextColor3 = Theme.TextDim
+        DescLabel.TextSize = 10
+        DescLabel.TextXAlignment = Enum.TextXAlignment.Left
+    end
+    
+    local ToggleBg = Instance.new("Frame")
+    ToggleBg.Parent = ToggleFrame
+    ToggleBg.BackgroundColor3 = default and Theme.ToggleOn or Theme.ToggleOff
+    ToggleBg.Position = UDim2.new(1, -52, 0.5, -10)
+    ToggleBg.Size = UDim2.new(0, 40, 0, 20)
+    
+    local ToggleBgCorner = Instance.new("UICorner")
+    ToggleBgCorner.CornerRadius = UDim.new(0, 10)
+    ToggleBgCorner.Parent = ToggleBg
+    
+    local Circle = Instance.new("Frame")
+    Circle.Parent = ToggleBg
+    Circle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    Circle.Position = default and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)
+    Circle.Size = UDim2.new(0, 16, 0, 16)
+    
+    local CircleCorner = Instance.new("UICorner")
+    CircleCorner.CornerRadius = UDim.new(1, 0)
+    CircleCorner.Parent = Circle
+    
+    -- Свечение при включении
+    local Glow = Instance.new("ImageLabel")
+    Glow.Parent = ToggleBg
+    Glow.BackgroundTransparency = 1
+    Glow.Position = UDim2.new(0.5, -15, 0.5, -15)
+    Glow.Size = UDim2.new(0, 30, 0, 30)
+    Glow.Image = "rbxassetid://5028857084"
+    Glow.ImageColor3 = Theme.PrimaryGlow
+    Glow.ImageTransparency = default and 0.6 or 1
+    
+    local toggled = default
+    
+    local ClickBtn = Instance.new("TextButton")
+    ClickBtn.Parent = ToggleFrame
+    ClickBtn.BackgroundTransparency = 1
+    ClickBtn.Size = UDim2.new(1, 0, 1, 0)
+    ClickBtn.Text = ""
+    
+    ToggleFrame.MouseEnter:Connect(function()
+        TweenService:Create(ToggleFrame, TweenInfo.new(0.15), {BackgroundColor3 = Theme.CardHover}):Play()
+    end)
+    ToggleFrame.MouseLeave:Connect(function()
+        TweenService:Create(ToggleFrame, TweenInfo.new(0.15), {BackgroundColor3 = Theme.Card}):Play()
+    end)
+    
+    ClickBtn.MouseButton1Click:Connect(function()
+        toggled = not toggled
+        PlaySound(toggled and Sounds.ToggleOn or Sounds.ToggleOff)
+        
+        local targetPos = toggled and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)
+        local targetColor = toggled and Theme.ToggleOn or Theme.ToggleOff
+        local glowAlpha = toggled and 0.6 or 1
+        
+        TweenService:Create(Circle, TweenInfo.new(0.25, Enum.EasingStyle.Back), {Position = targetPos}):Play()
+        TweenService:Create(ToggleBg, TweenInfo.new(0.2), {BackgroundColor3 = targetColor}):Play()
+        TweenService:Create(Glow, TweenInfo.new(0.3), {ImageTransparency = glowAlpha}):Play()
+        
+        if callback then callback(toggled) end
+    end)
+    
+    return ToggleFrame
+end
+
+local function CreateSlider(parent, text, min, max, default, step, callback)
+    if type(step) == "function" then
+        callback = step
+        step = 1
+    end
+    step = step or 1
+    
+    local SliderFrame = Instance.new("Frame")
+    SliderFrame.Parent = parent
+    SliderFrame.BackgroundColor3 = Theme.Card
+    SliderFrame.BorderSizePixel = 0
+    SliderFrame.Size = UDim2.new(1, 0, 0, 48)
+    
+    local SliderCorner = Instance.new("UICorner")
+    SliderCorner.CornerRadius = UDim.new(0, 8)
+    SliderCorner.Parent = SliderFrame
+    
+    local Label = Instance.new("TextLabel")
+    Label.Parent = SliderFrame
+    Label.BackgroundTransparency = 1
+    Label.Position = UDim2.new(0, 12, 0, 4)
+    Label.Size = UDim2.new(0.7, 0, 0, 18)
+    Label.Font = Enum.Font.GothamSemibold
+    Label.Text = text
+    Label.TextColor3 = Theme.Text
+    Label.TextSize = 12
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    
+    local ValueLabel = Instance.new("TextLabel")
+    ValueLabel.Parent = SliderFrame
+    ValueLabel.BackgroundTransparency = 1
+    ValueLabel.Position = UDim2.new(0.7, 0, 0, 4)
+    ValueLabel.Size = UDim2.new(0.3, -12, 0, 18)
+    ValueLabel.Font = Enum.Font.GothamBold
+    ValueLabel.Text = tostring(default)
+    ValueLabel.TextColor3 = Theme.PrimaryGlow
+    ValueLabel.TextSize = 12
+    ValueLabel.TextXAlignment = Enum.TextXAlignment.Right
+    
+    local SliderBar = Instance.new("Frame")
+    SliderBar.Parent = SliderFrame
+    SliderBar.BackgroundColor3 = Theme.SliderBg
+    SliderBar.Position = UDim2.new(0, 12, 0, 28)
+    SliderBar.Size = UDim2.new(1, -24, 0, 8)
+    
+    local SliderBarCorner = Instance.new("UICorner")
+    SliderBarCorner.CornerRadius = UDim.new(0, 4)
+    SliderBarCorner.Parent = SliderBar
+    
+    local Fill = Instance.new("Frame")
+    Fill.Parent = SliderBar
+    Fill.BackgroundColor3 = Theme.SliderFill
+    Fill.Size = UDim2.new(math.clamp((default - min) / (max - min), 0, 1), 0, 1, 0)
+    
+    local FillCorner = Instance.new("UICorner")
+    FillCorner.CornerRadius = UDim.new(0, 4)
+    FillCorner.Parent = Fill
+    
+    -- Кнопка-ползунок
+    local Knob = Instance.new("Frame")
+    Knob.Parent = SliderBar
+    Knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    Knob.Position = UDim2.new(math.clamp((default - min) / (max - min), 0, 1), -7, 0.5, -7)
+    Knob.Size = UDim2.new(0, 14, 0, 14)
+    Knob.ZIndex = 5
+    
+    local KnobCorner = Instance.new("UICorner")
+    KnobCorner.CornerRadius = UDim.new(1, 0)
+    KnobCorner.Parent = Knob
+    
+    local KnobStroke = Instance.new("UIStroke")
+    KnobStroke.Parent = Knob
+    KnobStroke.Color = Theme.Primary
+    KnobStroke.Thickness = 2
+    
+    local SliderBtn = Instance.new("TextButton")
+    SliderBtn.Parent = SliderBar
+    SliderBtn.BackgroundTransparency = 1
+    SliderBtn.Size = UDim2.new(1, 0, 3, 0)
+    SliderBtn.Position = UDim2.new(0, 0, -1, 0)
+    SliderBtn.Text = ""
+    SliderBtn.ZIndex = 6
+    
+    local dragging = false
+    local lastSoundTick = 0
+    
+    SliderBtn.MouseButton1Down:Connect(function()
+        dragging = true
+    end)
+    
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local rel = math.clamp((input.Position.X - SliderBar.AbsolutePosition.X) / SliderBar.AbsoluteSize.X, 0, 1)
+            local rawValue = min + (max - min) * rel
+            local value
+            if step < 1 then
+                value = math.floor(rawValue / step + 0.5) * step
+                value = tonumber(string.format("%.2f", value))
+            else
+                value = math.floor(rawValue + 0.5)
+            end
+            value = math.clamp(value, min, max)
+            local normalizedRel = (value - min) / (max - min)
+            
+            Fill.Size = UDim2.new(normalizedRel, 0, 1, 0)
+            Knob.Position = UDim2.new(normalizedRel, -7, 0.5, -7)
+            ValueLabel.Text = tostring(value)
+            
+            -- Тихий тик при перетаскивании
+            if tick() - lastSoundTick > 0.15 then
+                lastSoundTick = tick()
+                PlaySound(Sounds.SliderTick)
+            end
+            
+            if callback then callback(value) end
+        end
+    end)
+    
+    SliderFrame.MouseEnter:Connect(function()
+        TweenService:Create(SliderFrame, TweenInfo.new(0.15), {BackgroundColor3 = Theme.CardHover}):Play()
+    end)
+    SliderFrame.MouseLeave:Connect(function()
+        TweenService:Create(SliderFrame, TweenInfo.new(0.15), {BackgroundColor3 = Theme.Card}):Play()
+    end)
+    
+    return SliderFrame
+end
+
+local function CreateButton(parent, text, desc, callback)
+    local Btn = Instance.new("TextButton")
+    Btn.Parent = parent
+    Btn.BackgroundColor3 = Theme.Primary
+    Btn.BorderSizePixel = 0
+    Btn.Size = UDim2.new(1, 0, 0, desc and 42 or 32)
+    Btn.Font = Enum.Font.GothamBold
+    Btn.Text = ""
+    Btn.AutoButtonColor = false
+    
+    local BtnCorner = Instance.new("UICorner")
+    BtnCorner.CornerRadius = UDim.new(0, 8)
+    BtnCorner.Parent = Btn
+    
+    local BtnGradient = Instance.new("UIGradient")
+    BtnGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(200, 35, 35)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(160, 25, 25)),
+    })
+    BtnGradient.Rotation = 90
+    BtnGradient.Parent = Btn
+    
+    local BtnLabel = Instance.new("TextLabel")
+    BtnLabel.Parent = Btn
+    BtnLabel.BackgroundTransparency = 1
+    BtnLabel.Position = UDim2.new(0, 12, 0, desc and 2 or 0)
+    BtnLabel.Size = UDim2.new(1, -24, 0, desc and 20 or 32)
+    BtnLabel.Font = Enum.Font.GothamBold
+    BtnLabel.Text = text
+    BtnLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    BtnLabel.TextSize = 12
+    BtnLabel.TextXAlignment = Enum.TextXAlignment.Left
+    
+    if desc then
+        local BtnDesc = Instance.new("TextLabel")
+        BtnDesc.Parent = Btn
+        BtnDesc.BackgroundTransparency = 1
+        BtnDesc.Position = UDim2.new(0, 12, 0, 20)
+        BtnDesc.Size = UDim2.new(1, -24, 0, 18)
+        BtnDesc.Font = Enum.Font.Gotham
+        BtnDesc.Text = desc
+        BtnDesc.TextColor3 = Color3.fromRGB(255, 180, 180)
+        BtnDesc.TextSize = 10
+        BtnDesc.TextXAlignment = Enum.TextXAlignment.Left
+    end
+    
+    -- Стрелка
+    local Arrow = Instance.new("TextLabel")
+    Arrow.Parent = Btn
+    Arrow.BackgroundTransparency = 1
+    Arrow.Position = UDim2.new(1, -30, 0, 0)
+    Arrow.Size = UDim2.new(0, 20, 1, 0)
+    Arrow.Font = Enum.Font.GothamBold
+    Arrow.Text = "›"
+    Arrow.TextColor3 = Color3.fromRGB(255, 200, 200)
+    Arrow.TextSize = 18
+    
+    Btn.MouseEnter:Connect(function()
+        TweenService:Create(Btn, TweenInfo.new(0.15), {BackgroundColor3 = Theme.PrimaryGlow}):Play()
+        TweenService:Create(Arrow, TweenInfo.new(0.1), {Position = UDim2.new(1, -25, 0, 0)}):Play()
+    end)
+    Btn.MouseLeave:Connect(function()
+        TweenService:Create(Btn, TweenInfo.new(0.15), {BackgroundColor3 = Theme.Primary}):Play()
+        TweenService:Create(Arrow, TweenInfo.new(0.1), {Position = UDim2.new(1, -30, 0, 0)}):Play()
+    end)
+    
+    Btn.MouseButton1Click:Connect(function()
+        PlaySound(Sounds.ButtonClick)
+        
+        -- Анимация нажатия
+        TweenService:Create(Btn, TweenInfo.new(0.08), {Size = UDim2.new(0.98, 0, 0, desc and 40 or 30)}):Play()
+        task.wait(0.08)
+        TweenService:Create(Btn, TweenInfo.new(0.08), {Size = UDim2.new(1, 0, 0, desc and 42 or 32)}):Play()
+        
+        if callback then callback() end
+    end)
+    
+    return Btn
+end
+
+local function CreateInfoCard(parent, text, value)
+    local Card = Instance.new("Frame")
+    Card.Parent = parent
+    Card.BackgroundColor3 = Theme.Card
+    Card.BorderSizePixel = 0
+    Card.Size = UDim2.new(1, 0, 0, 30)
+    
+    local CardCorner = Instance.new("UICorner")
+    CardCorner.CornerRadius = UDim.new(0, 6)
+    CardCorner.Parent = Card
+    
+    local Key = Instance.new("TextLabel")
+    Key.Parent = Card
+    Key.BackgroundTransparency = 1
+    Key.Position = UDim2.new(0, 12, 0, 0)
+    Key.Size = UDim2.new(0.5, 0, 1, 0)
+    Key.Font = Enum.Font.Gotham
+    Key.Text = text
+    Key.TextColor3 = Theme.TextDim
+    Key.TextSize = 11
+    Key.TextXAlignment = Enum.TextXAlignment.Left
+    
+    local Val = Instance.new("TextLabel")
+    Val.Parent = Card
+    Val.BackgroundTransparency = 1
+    Val.Position = UDim2.new(0.5, 0, 0, 0)
+    Val.Size = UDim2.new(0.5, -12, 1, 0)
+    Val.Font = Enum.Font.GothamBold
+    Val.Text = value
+    Val.TextColor3 = Theme.PrimaryGlow
+    Val.TextSize = 11
+    Val.TextXAlignment = Enum.TextXAlignment.Right
+    
+    return Card
+end
+
+local function CreateSpacer(parent, height)
+    local Spacer = Instance.new("Frame")
+    Spacer.Parent = parent
+    Spacer.BackgroundTransparency = 1
+    Spacer.Size = UDim2.new(1, 0, 0, height or 4)
+    return Spacer
+end
+
+-- ============================================
+-- СОЗДАНИЕ ТАБОВ
+-- ============================================
+local CombatTab   = CreateTab("Combat",   "⚔️", "Combat features")
+local SwordTab    = CreateTab("Sword",    "🗡️", "Sword hacks")
+local ESPTab      = CreateTab("ESP",      "👁️", "Visuals")
+local AimbotTab   = CreateTab("Aimbot",   "🎯", "NPC Aimbot")
+local MoveTab     = CreateTab("Move",     "🏃", "Movement")
+local MiscTab     = CreateTab("Misc",     "⚙️", "Settings")
+
+-- Активируем Combat таб
+TabButtons[1].Button.BackgroundTransparency = 0.3
+TabButtons[1].Icon.TextColor3 = Theme.PrimaryGlow
+TabButtons[1].Text.TextColor3 = Theme.Text
+TabButtons[1].Bar.Visible = true
+Tabs["Combat"].Visible = true
+CurrentTab = "Combat"
+
+-- ============================================
+-- ★ COMBAT TAB
+-- ============================================
+CreateSection(CombatTab, "⚔️ Attack System")
+
+CreateToggle(CombatTab, "Auto Attack", "Автоматическая атака ближайших врагов", Settings.AutoAttack, function(val)
+    Settings.AutoAttack = val
+end)
+
+CreateSlider(CombatTab, "Attack Speed", 0.05, 1.0, Settings.AttackSpeed, 0.05, function(val)
+    Settings.AttackSpeed = val
+end)
+
+CreateSpacer(CombatTab, 6)
+CreateSection(CombatTab, "💀 Kill Aura")
+
+CreateToggle(CombatTab, "Kill Aura", "Атака всех врагов вокруг (∞ радиус)", Settings.KillAura, function(val)
+    Settings.KillAura = val
+end)
+
+CreateSpacer(CombatTab, 6)
+CreateSection(CombatTab, "🛡️ Defense")
+
+CreateToggle(CombatTab, "Auto Block", "Автоматический блок при входящей атаке", Settings.AutoBlock, function(val)
+    Settings.AutoBlock = val
+end)
+
+CreateToggle(CombatTab, "Auto Dodge", "Уклонение от атак", Settings.AutoDodge, function(val)
+    Settings.AutoDodge = val
+end)
+
+CreateSpacer(CombatTab, 6)
+CreateSection(CombatTab, "🌾 Auto Farm")
+
+CreateToggle(CombatTab, "Auto Farm NPCs", "Автоматический фарм всех NPC (∞ радиус)", Settings.AutoFarm_Enabled, function(val)
+    Settings.AutoFarm_Enabled = val
+end)
+
+-- ============================================
+-- ★ SWORD TAB
+-- ============================================
+CreateSection(SwordTab, "🗡️ Cooldown Hack")
+
+CreateToggle(SwordTab, "No Cooldown", "Уменьшает кулдаун меча до минимума", Settings.SwordCooldown_Enabled, function(val)
+    Settings.SwordCooldown_Enabled = val
+end)
+
+CreateSlider(SwordTab, "Cooldown (sec)", 0.01, 2.0, Settings.SwordCooldown_Value, 0.01, function(val)
+    Settings.SwordCooldown_Value = val
+end)
+
+CreateSpacer(SwordTab, 6)
+CreateSection(SwordTab, "⚡ Auto Swing")
+
+CreateToggle(SwordTab, "Auto Swing", "Автоматический свинг мечом", Settings.AutoSwing, function(val)
+    Settings.AutoSwing = val
+end)
+
+CreateSlider(SwordTab, "Swing Speed (sec)", 0.01, 1.0, Settings.AutoSwing_Speed, 0.01, function(val)
+    Settings.AutoSwing_Speed = val
+end)
+
+CreateSpacer(SwordTab, 6)
+CreateSection(SwordTab, "🔧 Tools")
+
+CreateButton(SwordTab, "⚡ Force Reset Cooldowns", "Мгновенный сброс всех кулдаунов", function()
+    local backpack = LocalPlayer:FindFirstChild("Backpack")
+    if backpack then
+        for _, tool in pairs(backpack:GetChildren()) do
+            if tool:IsA("Tool") then resetToolCooldown(tool) end
+        end
+    end
+    if LocalPlayer.Character then
+        for _, tool in pairs(LocalPlayer.Character:GetChildren()) do
+            if tool:IsA("Tool") then resetToolCooldown(tool) end
+        end
+    end
+end)
+
+CreateButton(SwordTab, "🔍 Scan All Weapons", "Показать все оружия в консоли F9", function()
+    print("══════ WEAPONS SCAN ══════")
+    local function scan(container, src)
+        if not container then return end
+        for _, item in pairs(container:GetChildren()) do
+            if item:IsA("Tool") then
+                print(("[%s] %s"):format(src, item.Name))
+                for _, d in pairs(item:GetDescendants()) do
+                    if d:IsA("NumberValue") or d:IsA("IntValue") or d:IsA("BoolValue") then
+                        print(("   %s = %s"):format(d.Name, tostring(d.Value)))
+                    end
+                end
+            end
+        end
+    end
+    scan(LocalPlayer:FindFirstChild("Backpack"), "Backpack")
+    if LocalPlayer.Character then scan(LocalPlayer.Character, "Equipped") end
+    print("═══════════════════════════")
+end)
+
+CreateButton(SwordTab, "💉 Deep Inject Bypass", "Глубокий обход через ModuleScripts", function()
+    deepInjectCooldownBypass()
+end)
+
+-- ============================================
+-- ★ ESP TAB
+-- ============================================
+CreateSection(ESPTab, "👁️ Player ESP")
+
+CreateToggle(ESPTab, "Enable ESP", "Видеть всех игроков сквозь стены (∞)", Settings.ESP_Enabled, function(val)
+    Settings.ESP_Enabled = val
+    if not val then
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Character then
+                local h = player.Character:FindFirstChild("ESPHighlight")
+                if h then h:Destroy() end
+                local b = player.Character:FindFirstChild("ESPBillboard")
+                if b then b:Destroy() end
+            end
+        end
+    end
+end)
+
+CreateSpacer(ESPTab, 4)
+CreateSection(ESPTab, "📋 Info Display")
+
+CreateToggle(ESPTab, "Show Names", "Отображать имена игроков", Settings.ESP_ShowName, function(val)
+    Settings.ESP_ShowName = val
+end)
+
+CreateToggle(ESPTab, "Show Health", "Показывать HP полоску", Settings.ESP_ShowHealth, function(val)
+    Settings.ESP_ShowHealth = val
+end)
+
+CreateToggle(ESPTab, "Show Distance", "Расстояние до игрока", Settings.ESP_ShowDistance, function(val)
+    Settings.ESP_ShowDistance = val
+end)
+
+CreateToggle(ESPTab, "Show Weapon", "Оружие в руках", Settings.ESP_ShowWeapon, function(val)
+    Settings.ESP_ShowWeapon = val
+end)
+
+CreateSpacer(ESPTab, 4)
+CreateSection(ESPTab, "⚙️ Options")
+
+CreateToggle(ESPTab, "Team Check", "Не подсвечивать тиммейтов", Settings.ESP_TeamCheck, function(val)
+    Settings.ESP_TeamCheck = val
+end)
+
+-- ============================================
+-- ★ AIMBOT TAB (только NPC)
+-- ============================================
+CreateSection(AimbotTab, "🎯 NPC Aimbot")
+
+CreateToggle(AimbotTab, "Enable Aimbot", "Автонаведение ТОЛЬКО на вражеских NPC", Settings.Aimbot_Enabled, function(val)
+    Settings.Aimbot_Enabled = val
+end)
+
+CreateSlider(AimbotTab, "FOV Radius", 50, 500, Settings.Aimbot_FOV, function(val)
+    Settings.Aimbot_FOV = val
+end)
+
+CreateToggle(AimbotTab, "Show FOV Circle", "Отображать круг прицеливания", Settings.Aimbot_ShowFOV, function(val)
+    Settings.Aimbot_ShowFOV = val
+end)
+
+CreateSlider(AimbotTab, "Smoothness", 1, 20, Settings.Aimbot_Smoothness, function(val)
+    Settings.Aimbot_Smoothness = val
+end)
+
+CreateSpacer(AimbotTab, 4)
+CreateSection(AimbotTab, "🎯 Target Part")
+
+CreateButton(AimbotTab, "Target: Head", "Наведение на голову NPC", function()
+    Settings.Aimbot_TargetPart = "Head"
+end)
+
+CreateButton(AimbotTab, "Target: Body", "Наведение на центр тела NPC", function()
+    Settings.Aimbot_TargetPart = "HumanoidRootPart"
+end)
+
+CreateSpacer(AimbotTab, 4)
+CreateInfoCard(AimbotTab, "Тип наведения", "Только NPC")
+CreateInfoCard(AimbotTab, "Активация", "Зажать ПКМ")
+
+-- ============================================
+-- ★ MOVEMENT TAB
+-- ============================================
+CreateSection(MoveTab, "🏃 Speed & Jump")
+
+CreateToggle(MoveTab, "Speed Hack", "Изменить скорость передвижения", Settings.Speed_Enabled, function(val)
+    Settings.Speed_Enabled = val
+end)
+
+CreateSlider(MoveTab, "Walk Speed", 16, 200, Settings.Speed_Value, function(val)
+    Settings.Speed_Value = val
+end)
+
+CreateToggle(MoveTab, "Jump Power", "Изменить силу прыжка", Settings.JumpPower_Enabled, function(val)
+    Settings.JumpPower_Enabled = val
+end)
+
+CreateSlider(MoveTab, "Jump Value", 50, 300, Settings.JumpPower_Value, function(val)
+    Settings.JumpPower_Value = val
+end)
+
+CreateSpacer(MoveTab, 6)
+CreateSection(MoveTab, "🚀 Advanced")
+
+CreateToggle(MoveTab, "Noclip", "Проход сквозь стены и объекты", Settings.Noclip_Enabled, function(val)
+    Settings.Noclip_Enabled = val
+end)
+
+CreateToggle(MoveTab, "Infinite Jump", "Прыжки в воздухе (Space)", Settings.InfiniteJump, function(val)
+    Settings.InfiniteJump = val
+end)
+
+CreateSpacer(MoveTab, 6)
+CreateSection(MoveTab, "📍 Teleport")
+
+CreateButton(MoveTab, "TP to Closest Player", "Телепортация к ближайшему игроку", function()
+    local closest, dist = nil, math.huge
+    local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not myRoot then return end
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+            local d = (p.Character.HumanoidRootPart.Position - myRoot.Position).Magnitude
+            if d < dist then dist = d; closest = p end
+        end
+    end
+    if closest and closest.Character then
+        myRoot.CFrame = closest.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
+        PlaySound(Sounds.Whoosh)
+    end
+end)
+
+CreateButton(MoveTab, "TP to Spawn", "Вернуться на спавн", function()
+    local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if myRoot then
+        myRoot.CFrame = CFrame.new(0, 50, 0)
+        PlaySound(Sounds.Whoosh)
+    end
+end)
+
+-- ============================================
+-- ★ MISC TAB
+-- ============================================
+CreateSection(MiscTab, "⚙️ General")
+
+CreateToggle(MiscTab, "Anti-AFK", "Предотвращает кик за AFK", Settings.AntiAFK, function(val)
+    Settings.AntiAFK = val
+end)
+
+CreateToggle(MiscTab, "Fullbright", "Убирает тени и темноту", Settings.FullBright, function(val)
+    Settings.FullBright = val
+    if val then
+        Lighting.Brightness = 2
+        Lighting.ClockTime = 14
+        Lighting.FogEnd = 100000
+        Lighting.GlobalShadows = false
+        for _, v in pairs(Lighting:GetDescendants()) do
+            if v:IsA("Atmosphere") then v.Density = 0 end
+        end
+    else
+        Lighting.Brightness = 1
+        Lighting.GlobalShadows = true
+    end
+end)
+
+CreateSpacer(MiscTab, 6)
+CreateSection(MiscTab, "🔗 Server")
+
+CreateButton(MiscTab, "Rejoin Server", "Переподключиться к серверу", function()
+    game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer)
+end)
+
+CreateButton(MiscTab, "Copy Server Link", "Скопировать ссылку на сервер", function()
+    if setclipboard then
+        setclipboard("roblox://placeId=" .. game.PlaceId .. "&gameInstanceId=" .. game.JobId)
+    end
+end)
+
+CreateButton(MiscTab, "Reset Character", "Убить своего персонажа", function()
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+        LocalPlayer.Character:FindFirstChildOfClass("Humanoid").Health = 0
+    end
+end)
+
+CreateSpacer(MiscTab, 6)
+CreateSection(MiscTab, "📋 Hotkeys")
+
+CreateInfoCard(MiscTab, "Toggle GUI", "Right Ctrl")
+CreateInfoCard(MiscTab, "NPC Aimbot", "Hold RMB")
+CreateInfoCard(MiscTab, "Version", "v3.0")
+CreateInfoCard(MiscTab, "Game", "Combat Initiation")
+
+-- ============================================
+-- ★★★ ПЛАВНОЕ ПОЯВЛЕНИЕ GUI ★★★
+-- ============================================
+local guiOpen = false
+
+local function OpenGUI()
+    if guiOpen then return end
+    guiOpen = true
+    PlaySound(Sounds.OpenGUI)
+    
+    MainFrame.Visible = true
+    MainFrame.BackgroundTransparency = 1
+    MainFrame.Size = UDim2.new(0, 520, 0, 440)
+    MainFrame.Position = UDim2.new(0.5, -260, 0.5, -220)
+    MainStroke.Transparency = 1
+    
+    -- Затемнение фона
+    TweenService:Create(Backdrop, TweenInfo.new(0.4), {BackgroundTransparency = 0.7}):Play()
+    
+    -- Появление главного фрейма
+    TweenService:Create(MainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        BackgroundTransparency = 0,
+        Size = UDim2.new(0, 560, 0, 480),
+        Position = UDim2.new(0.5, -280, 0.5, -240)
+    }):Play()
+    
+    TweenService:Create(MainStroke, TweenInfo.new(0.6), {Transparency = 0.6}):Play()
+    
+    -- Скрыть иконку
+    TweenService:Create(IconButton, TweenInfo.new(0.3), {
+        Position = UDim2.new(0, -60, 0.5, -25),
+        ImageTransparency = 1
+    }):Play()
+    
+    -- Последовательное появление элементов внутри
+    task.wait(0.15)
+    for _, child in pairs(TitleBar:GetChildren()) do
+        if child:IsA("TextLabel") or child:IsA("ImageLabel") then
+            child.TextTransparency = child:IsA("TextLabel") and 1 or 0
+            if child:IsA("TextLabel") then
+                TweenService:Create(child, TweenInfo.new(0.3), {TextTransparency = 0}):Play()
+            end
+        end
+    end
+end
+
+local function CloseGUI()
+    if not guiOpen then return end
+    guiOpen = false
+    PlaySound(Sounds.CloseGUI)
+    
+    TweenService:Create(Backdrop, TweenInfo.new(0.3), {BackgroundTransparency = 1}):Play()
+    
+    TweenService:Create(MainFrame, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(0, 500, 0, 420),
+    }):Play()
+    
+    TweenService:Create(MainStroke, TweenInfo.new(0.3), {Transparency = 1}):Play()
+    
+    -- Показать иконку
+    TweenService:Create(IconButton, TweenInfo.new(0.4, Enum.EasingStyle.Back), {
+        Position = UDim2.new(0, 15, 0.5, -25),
+        ImageTransparency = 0
+    }):Play()
+    
+    task.wait(0.35)
+    MainFrame.Visible = false
+end
+
+local function ToggleGUI()
+    if guiOpen then
+        CloseGUI()
+    else
+        OpenGUI()
+    end
+end
+
+-- Иконка открывает GUI
+IconButton.MouseButton1Click:Connect(function()
+    PlaySound(Sounds.ButtonClick)
+    ToggleGUI()
+end)
+
+-- ============================================
+-- ★★★ SWORD COOLDOWN СИСТЕМА ★★★
+-- ============================================
+function resetToolCooldown(tool)
+    if not tool or not tool:IsA("Tool") then return end
+    local cd = Settings.SwordCooldown_Value
+    
+    pcall(function()
+        local names = {
+            "Cooldown","cooldown","CD","cd","AttackCooldown","attackCooldown",
+            "SwingCooldown","swingCooldown","HitCooldown","hitCooldown",
+            "Debounce","debounce","CooldownTime","cooldownTime",
+            "AttackSpeed","attackSpeed","SwingRate","swingRate",
+            "Delay","delay","AttackDelay","attackDelay","SlashCooldown",
+        }
+        for _, n in pairs(names) do
+            local val = tool:GetAttribute(n)
+            if val ~= nil then
+                if type(val) == "number" then tool:SetAttribute(n, cd) end
+                if type(val) == "boolean" then tool:SetAttribute(n, true) end
+            end
+        end
+    end)
+    
+    pcall(function()
+        for _, desc in pairs(tool:GetDescendants()) do
+            if desc:IsA("NumberValue") or desc:IsA("IntValue") then
+                local n = desc.Name:lower()
+                if n:find("cool") or n:find("delay") or n:find("debounce") or n:find("rate") or n:find("cd") or n:find("wait") or n:find("timer") then
+                    desc.Value = cd
+                end
+            elseif desc:IsA("BoolValue") then
+                local n = desc.Name:lower()
+                if n:find("can") or n:find("ready") or n:find("enabled") or n:find("debounce") then
+                    desc.Value = true
+                end
+            end
+        end
+    end)
+    
+    pcall(function()
+        for _, desc in pairs(tool:GetDescendants()) do
+            if desc:IsA("ModuleScript") then
+                local ok, mod = pcall(require, desc)
+                if ok and type(mod) == "table" then
+                    local function patch(tbl, depth)
+                        if depth > 3 then return end
+                        for k, v in pairs(tbl) do
+                            local ks = tostring(k):lower()
+                            if type(v) == "number" and (ks:find("cool") or ks:find("delay") or ks:find("cd") or ks:find("debounce") or ks:find("rate") or ks:find("swing")) then
+                                tbl[k] = cd
+                            elseif type(v) == "table" then
+                                patch(v, depth + 1)
+                            end
+                        end
+                    end
+                    patch(mod, 0)
+                end
+            end
+        end
+    end)
+end
+
+function deepInjectCooldownBypass()
+    local cd = Settings.SwordCooldown_Value
+    PlaySound(Sounds.PowerUp)
+    
+    pcall(function()
+        for _, desc in pairs(ReplicatedStorage:GetDescendants()) do
+            if desc:IsA("ModuleScript") then
+                local n = desc.Name:lower()
+                if n:find("combat") or n:find("weapon") or n:find("sword") or n:find("tool") or n:find("attack") or n:find("config") or n:find("data") then
+                    pcall(function()
+                        local mod = require(desc)
+                        if type(mod) == "table" then
+                            local function dp(tbl, depth)
+                                if depth > 5 then return end
+                                for k, v in pairs(tbl) do
+                                    local ks = tostring(k):lower()
+                                    if type(v) == "number" and (ks:find("cool") or ks:find("delay") or ks:find("cd") or ks:find("debounce") or ks:find("swing") or ks:find("rate")) then
+                                        tbl[k] = cd
+                                    elseif type(v) == "table" then
+                                        dp(v, depth + 1)
+                                    end
+                                end
+                            end
+                            dp(mod, 0)
+                        end
+                    end)
+                end
+            end
+        end
+    end)
+    
+    pcall(function()
+        if getconnections and getupvalue and setupvalue then
+            local char = LocalPlayer.Character
+            if char then
+                for _, tool in pairs(char:GetChildren()) do
+                    if tool:IsA("Tool") then
+                        pcall(function()
+                            for _, conn in pairs(getconnections(tool.Activated)) do
+                                for i = 1, 20 do
+                                    pcall(function()
+                                        local uv = getupvalue(conn.Function, i)
+                                        if type(uv) == "number" and uv > 0.1 and uv <= 5 then
+                                            setupvalue(conn.Function, i, cd)
+                                        elseif type(uv) == "table" then
+                                            for k2, v2 in pairs(uv) do
+                                                if type(v2) == "number" and tostring(k2):lower():find("cool") then
+                                                    uv[k2] = cd
+                                                end
+                                            end
+                                        end
+                                    end)
+                                end
+                            end
+                        end)
+                    end
+                end
+            end
+        end
+    end)
+end
+
+-- Cooldown loop
+spawn(function()
+    while task.wait(0.3) do
+        if Settings.SwordCooldown_Enabled then
+            pcall(function()
+                local bp = LocalPlayer:FindFirstChild("Backpack")
+                if bp then
+                    for _, t in pairs(bp:GetChildren()) do
+                        if t:IsA("Tool") then resetToolCooldown(t) end
+                    end
+                end
+                if LocalPlayer.Character then
+                    for _, t in pairs(LocalPlayer.Character:GetChildren()) do
+                        if t:IsA("Tool") then resetToolCooldown(t) end
+                    end
+                end
+            end)
+        end
+    end
+end)
+
+-- Auto Swing loop
+spawn(function()
+    while true do
+        if Settings.AutoSwing then
+            pcall(function()
+                local char = LocalPlayer.Character
+                if char then
+                    local tool = char:FindFirstChildOfClass("Tool")
+                    if tool then
+                        tool:Activate()
+                        pcall(function()
+                            local VIM = game:GetService("VirtualInputManager")
+                            -- Кликаем в центр экрана, чтобы не попадать по GUI
+                            local vp = Camera.ViewportSize
+                            VIM:SendMouseButtonEvent(vp.X/2, vp.Y/2, 0, true, game, 0)
+                            task.wait(0.02)
+                            VIM:SendMouseButtonEvent(vp.X/2, vp.Y/2, 0, false, game, 0)
+                        end)
+                    end
+                end
+            end)
+        end
+        task.wait(math.max(Settings.AutoSwing_Speed, 0.02))
+    end
+end)
+
+-- Новые инструменты
+pcall(function()
+    LocalPlayer.Backpack.ChildAdded:Connect(function(child)
+        if child:IsA("Tool") and Settings.SwordCooldown_Enabled then
+            task.wait(0.1)
+            resetToolCooldown(child)
+            PlaySound(Sounds.Notification)
+        end
+    end)
+end)
+
+LocalPlayer.CharacterAdded:Connect(function(char)
+    task.wait(1)
+    char.ChildAdded:Connect(function(child)
+        if child:IsA("Tool") and Settings.SwordCooldown_Enabled then
+            task.wait(0.1)
+            resetToolCooldown(child)
+        end
+    end)
+end)
+
+if LocalPlayer.Character then
+    LocalPlayer.Character.ChildAdded:Connect(function(child)
+        if child:IsA("Tool") and Settings.SwordCooldown_Enabled then
+            task.wait(0.1)
+            resetToolCooldown(child)
+        end
+    end)
+end
+
+-- ============================================
+-- ★★★ AIMBOT (ТОЛЬКО NPC!) ★★★
+-- ============================================
+local isAiming = false
+
+local function IsNPC(character)
+    -- NPC = у него Humanoid, но нет соответствующего Player
+    if not character then return false end
+    if Players:GetPlayerFromCharacter(character) then return false end -- это игрок
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    local root = character:FindFirstChild("HumanoidRootPart") or character:FindFirstChild("Head")
+    return humanoid ~= nil and root ~= nil and humanoid.Health > 0
+end
+
+local function GetAllNPCs()
+    local npcs = {}
+    
+    -- Ищем во всём Workspace
+    local function searchIn(parent)
+        for _, obj in pairs(parent:GetChildren()) do
+            if obj:IsA("Model") and IsNPC(obj) then
+                table.insert(npcs, obj)
+            end
+            -- Рекурсивно в папках
+            if obj:IsA("Folder") or obj:IsA("Model") then
+                if not Players:GetPlayerFromCharacter(obj) then
+                    searchIn(obj)
+                end
+            end
+        end
+    end
+    
+    searchIn(Workspace)
+    return npcs
+end
+
+local function GetClosestNPCToMouse()
+    local closestNPC = nil
+    local closestDistance = Settings.Aimbot_FOV
+    
+    local npcs = GetAllNPCs()
+    
+    for _, npc in pairs(npcs) do
+        local targetPart = npc:FindFirstChild(Settings.Aimbot_TargetPart) or npc:FindFirstChild("Head") or npc:FindFirstChild("HumanoidRootPart")
+        if targetPart then
+            local screenPos, onScreen = Camera:WorldToScreenPoint(targetPart.Position)
+            if onScreen then
+                local mousePos = Vector2.new(Mouse.X, Mouse.Y)
+                local screenPoint = Vector2.new(screenPos.X, screenPos.Y)
+                local distance = (mousePos - screenPoint).Magnitude
+                
+                if distance < closestDistance then
+                    closestDistance = distance
+                    closestNPC = npc
+                end
+            end
+        end
+    end
+    
+    return closestNPC
+end
+
+-- FOV Circle
+local FOVCircle = Drawing.new("Circle")
+FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+FOVCircle.Radius = Settings.Aimbot_FOV
+FOVCircle.Color = Theme.Primary
+FOVCircle.Thickness = 1.5
+FOVCircle.Filled = false
+FOVCircle.Transparency = 0.6
+FOVCircle.Visible = false
+
+-- ============================================
+-- ★★★ ESP СИСТЕМА ★★★
+-- ============================================
+local function IsTeammate(player)
+    if not Settings.ESP_TeamCheck then return false end
+    if LocalPlayer.Team and player.Team then
+        return LocalPlayer.Team == player.Team
+    end
+    return false
+end
+
+local function UpdateESP()
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            local character = player.Character
+            if character and character:FindFirstChild("HumanoidRootPart") and character:FindFirstChildOfClass("Humanoid") then
+                local humanoid = character:FindFirstChildOfClass("Humanoid")
+                local rootPart = character.HumanoidRootPart
+                local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                
+                if Settings.ESP_Enabled and myRoot then
+                    local distance = (rootPart.Position - myRoot.Position).Magnitude
+                    
+                    -- Highlight
+                    local highlight = character:FindFirstChild("ESPHighlight")
+                    if not highlight then
+                        highlight = Instance.new("Highlight")
+                        highlight.Name = "ESPHighlight"
+                        highlight.Parent = character
+                        highlight.FillTransparency = 0.65
+                        highlight.OutlineTransparency = 0
+                        highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                    end
+                    
+                    local isTeam = IsTeammate(player)
+                    highlight.FillColor = isTeam and Settings.ESP_TeamColor or Settings.ESP_BoxColor
+                    highlight.OutlineColor = isTeam and Settings.ESP_TeamColor or Settings.ESP_BoxColor
+                    
+                    -- Billboard
+                    local billboard = character:FindFirstChild("ESPBillboard")
+                    if not billboard then
+                        billboard = Instance.new("BillboardGui")
+                        billboard.Name = "ESPBillboard"
+                        billboard.Parent = character
+                        billboard.Adornee = character:FindFirstChild("Head") or rootPart
+                        billboard.Size = UDim2.new(0, 220, 0, 80)
+                        billboard.StudsOffset = Vector3.new(0, 3, 0)
+                        billboard.AlwaysOnTop = true
+                        
+                        local bg = Instance.new("Frame")
+                        bg.Name = "BG"
+                        bg.Parent = billboard
+                        bg.BackgroundColor3 = Color3.fromRGB(10, 8, 18)
+                        bg.BackgroundTransparency = 0.3
+                        bg.Size = UDim2.new(1, 0, 1, 0)
+                        
+                        local bgCorner = Instance.new("UICorner")
+                        bgCorner.CornerRadius = UDim.new(0, 6)
+                        bgCorner.Parent = bg
+                        
+                        local bgStroke = Instance.new("UIStroke")
+                        bgStroke.Parent = bg
+                        bgStroke.Color = Theme.Primary
+                        bgStroke.Thickness = 1
+                        bgStroke.Transparency = 0.5
+                        
+                        local nameLabel = Instance.new("TextLabel")
+                        nameLabel.Name = "NameLabel"
+                        nameLabel.Parent = billboard
+                        nameLabel.BackgroundTransparency = 1
+                        nameLabel.Position = UDim2.new(0, 8, 0, 4)
+                        nameLabel.Size = UDim2.new(1, -16, 0, 16)
+                        nameLabel.Font = Enum.Font.GothamBold
+                        nameLabel.TextColor3 = Color3.new(1, 1, 1)
+                        nameLabel.TextStrokeTransparency = 0
+                        nameLabel.TextSize = 13
+                        nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+                        nameLabel.ZIndex = 2
+                        
+                        -- HP бар
+                        local hpBarBg = Instance.new("Frame")
+                        hpBarBg.Name = "HPBarBg"
+                        hpBarBg.Parent = billboard
+                        hpBarBg.BackgroundColor3 = Color3.fromRGB(40, 35, 55)
+                        hpBarBg.Position = UDim2.new(0, 8, 0, 24)
+                        hpBarBg.Size = UDim2.new(1, -16, 0, 8)
+                        hpBarBg.ZIndex = 2
+                        
+                        local hpBarBgCorner = Instance.new("UICorner")
+                        hpBarBgCorner.CornerRadius = UDim.new(0, 4)
+                        hpBarBgCorner.Parent = hpBarBg
+                        
+                        local hpFill = Instance.new("Frame")
+                        hpFill.Name = "HPFill"
+                        hpFill.Parent = hpBarBg
+                        hpFill.BackgroundColor3 = Color3.fromRGB(220, 40, 40)
+                        hpFill.Size = UDim2.new(1, 0, 1, 0)
+                        hpFill.ZIndex = 3
+                        
+                        local hpFillCorner = Instance.new("UICorner")
+                        hpFillCorner.CornerRadius = UDim.new(0, 4)
+                        hpFillCorner.Parent = hpFill
+                        
+                        local infoLabel = Instance.new("TextLabel")
+                        infoLabel.Name = "InfoLabel"
+                        infoLabel.Parent = billboard
+                        infoLabel.BackgroundTransparency = 1
+                        infoLabel.Position = UDim2.new(0, 8, 0, 36)
+                        infoLabel.Size = UDim2.new(1, -16, 0, 14)
+                        infoLabel.Font = Enum.Font.Gotham
+                        infoLabel.TextColor3 = Color3.fromRGB(200, 190, 220)
+                        infoLabel.TextStrokeTransparency = 0
+                        infoLabel.TextSize = 10
+                        infoLabel.TextXAlignment = Enum.TextXAlignment.Left
+                        infoLabel.ZIndex = 2
+                        
+                        local weaponLabel = Instance.new("TextLabel")
+                        weaponLabel.Name = "WeaponLabel"
+                        weaponLabel.Parent = billboard
+                        weaponLabel.BackgroundTransparency = 1
+                        weaponLabel.Position = UDim2.new(0, 8, 0, 52)
+                        weaponLabel.Size = UDim2.new(1, -16, 0, 14)
+                        weaponLabel.Font = Enum.Font.GothamSemibold
+                        weaponLabel.TextColor3 = Theme.Secondary
+                        weaponLabel.TextStrokeTransparency = 0
+                        weaponLabel.TextSize = 10
+                        weaponLabel.TextXAlignment = Enum.TextXAlignment.Left
+                        weaponLabel.ZIndex = 2
+                    end
+                    
+                    -- Обновление данных
+                    local nameLabel = billboard:FindFirstChild("NameLabel")
+                    local infoLabel = billboard:FindFirstChild("InfoLabel")
+                    local weaponLabel = billboard:FindFirstChild("WeaponLabel")
+                    local hpBarBg = billboard:FindFirstChild("HPBarBg")
+                    
+                    if nameLabel then
+                        nameLabel.Text = Settings.ESP_ShowName and ("⚔ " .. player.DisplayName) or ""
+                    end
+                    
+                    if hpBarBg then
+                        local fill = hpBarBg:FindFirstChild("HPFill")
+                        if fill and Settings.ESP_ShowHealth then
+                            local ratio = math.clamp(humanoid.Health / humanoid.MaxHealth, 0, 1)
+                            fill.Size = UDim2.new(ratio, 0, 1, 0)
+                            
+                            -- Цвет по HP
+                            if ratio > 0.6 then
+                                fill.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+                            elseif ratio > 0.3 then
+                                fill.BackgroundColor3 = Color3.fromRGB(255, 200, 50)
+                            else
+                                fill.BackgroundColor3 = Color3.fromRGB(220, 40, 40)
+                            end
+                        end
+                        hpBarBg.Visible = Settings.ESP_ShowHealth
+                    end
+                    
+                    if infoLabel then
+                        local parts = {}
+                        if Settings.ESP_ShowHealth then
+                            table.insert(parts, "HP: " .. math.floor(humanoid.Health) .. "/" .. math.floor(humanoid.MaxHealth))
+                        end
+                        if Settings.ESP_ShowDistance then
+                            table.insert(parts, "[" .. math.floor(distance) .. "m]")
+                        end
+                        infoLabel.Text = table.concat(parts, "  ")
+                    end
+                    
+                    if weaponLabel then
+                        if Settings.ESP_ShowWeapon then
+                            local tool = character:FindFirstChildOfClass("Tool")
+                            weaponLabel.Text = tool and ("🗡️ " .. tool.Name) or "No weapon"
+                            weaponLabel.Visible = true
+                        else
+                            weaponLabel.Visible = false
+                        end
+                    end
+                else
+                    local h = character:FindFirstChild("ESPHighlight")
+                    if h then h:Destroy() end
+                    local b = character:FindFirstChild("ESPBillboard")
+                    if b then b:Destroy() end
+                end
+            end
+        end
+    end
+end
+
+-- ============================================
+-- ★★★ AUTO ATTACK (НЕ взаимодействует с GUI) ★★★
+-- ============================================
+local lastAttack = 0
+
+local function IsMouseOverGUI()
+    -- Проверяем, не наведён ли курсор на наш GUI
+    local mousePos = UserInputService:GetMouseLocation()
+    
+    if MainFrame.Visible then
+        local absPos = MainFrame.AbsolutePosition
+        local absSize = MainFrame.AbsoluteSize
+        if mousePos.X >= absPos.X and mousePos.X <= absPos.X + absSize.X
+           and mousePos.Y >= absPos.Y and mousePos.Y <= absPos.Y + absSize.Y then
+            return true
+        end
+    end
+    
+    return false
+end
+
+local function SafeClick()
+    -- Кликает только если курсор НЕ на GUI
+    if IsMouseOverGUI() then return end
+    
+    pcall(function()
+        local VIM = game:GetService("VirtualInputManager")
+        local vp = Camera.ViewportSize
+        -- Кликаем по центру экрана (игровой процесс)
+        VIM:SendMouseButtonEvent(vp.X / 2, vp.Y / 2, 0, true, game, 0)
+        task.wait(0.02)
+        VIM:SendMouseButtonEvent(vp.X / 2, vp.Y / 2, 0, false, game, 0)
+    end)
+end
+
+local function CombatLoop()
+    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
+    local myRoot = LocalPlayer.Character.HumanoidRootPart
+    
+    -- Kill Aura (inf range)
+    if Settings.KillAura then
+        local npcs = GetAllNPCs()
+        local closestNPC = nil
+        local closestDist = math.huge
+        
+        for _, npc in pairs(npcs) do
+            local root = npc:FindFirstChild("HumanoidRootPart") or npc:FindFirstChild("Head")
+            if root then
+                local d = (root.Position - myRoot.Position).Magnitude
+                if d < closestDist then
+                    closestDist = d
+                    closestNPC = npc
+                end
+            end
+        end
+        
+        -- Также атакуем игроков
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Character then
+                local theirRoot = player.Character:FindFirstChild("HumanoidRootPart")
+                local theirHum = player.Character:FindFirstChildOfClass("Humanoid")
+                if theirRoot and theirHum and theirHum.Health > 0 then
+                    local d = (theirRoot.Position - myRoot.Position).Magnitude
+                    if d < closestDist then
+                        closestDist = d
+                    end
+                end
+            end
+        end
+        
+        if tick() - lastAttack > Settings.AttackSpeed then
+            lastAttack = tick()
+            SafeClick()
+        end
+    end
+    
+    -- Auto Attack (inf range, безопасный клик)
+    if Settings.AutoAttack and not Settings.KillAura then
+        if tick() - lastAttack > Settings.AttackSpeed then
+            lastAttack = tick()
+            SafeClick()
+        end
+    end
+end
+
+-- Auto Farm (inf range)
+local function AutoFarm()
+    if not Settings.AutoFarm_Enabled then return end
+    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
+    
+    local myRoot = LocalPlayer.Character.HumanoidRootPart
+    local npcs = GetAllNPCs()
+    
+    local closestNPC = nil
+    local closestDist = math.huge -- inf range
+    
+    for _, npc in pairs(npcs) do
+        local root = npc:FindFirstChild("HumanoidRootPart") or npc:FindFirstChild("Head")
+        if root then
+            local d = (root.Position - myRoot.Position).Magnitude
+            if d < closestDist then
+                closestDist = d
+                closestNPC = npc
+            end
+        end
+    end
+    
+    if closestNPC then
+        local root = closestNPC:FindFirstChild("HumanoidRootPart") or closestNPC:FindFirstChild("Head")
+        if root then
+            myRoot.CFrame = root.CFrame * CFrame.new(0, 0, 3)
+            SafeClick()
+        end
+    end
+end
+
+-- ============================================
+-- MAIN LOOPS
+-- ============================================
+RunService.RenderStepped:Connect(function()
+    UpdateESP()
+    
+    -- FOV Circle
+    if Settings.Aimbot_Enabled and Settings.Aimbot_ShowFOV then
+        FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+        FOVCircle.Radius = Settings.Aimbot_FOV
+        FOVCircle.Visible = true
+    else
+        FOVCircle.Visible = false
+    end
+    
+    -- NPC Aimbot
+    if Settings.Aimbot_Enabled and isAiming then
+        local target = GetClosestNPCToMouse()
+        if target then
+            local targetPart = target:FindFirstChild(Settings.Aimbot_TargetPart) or target:FindFirstChild("Head") or target:FindFirstChild("HumanoidRootPart")
+            if targetPart then
+                local targetCFrame = CFrame.new(Camera.CFrame.Position, targetPart.Position)
+                Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, 1 / Settings.Aimbot_Smoothness)
+            end
+        end
+    end
+    
+    -- Noclip
+    if Settings.Noclip_Enabled and LocalPlayer.Character then
+        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+            end
+        end
+    end
+    
+    -- Speed & Jump
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+        local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if Settings.Speed_Enabled then hum.WalkSpeed = Settings.Speed_Value end
+        if Settings.JumpPower_Enabled then
+            hum.JumpPower = Settings.JumpPower_Value
+            hum.UseJumpPower = true
+        end
+    end
+end)
+
+RunService.Heartbeat:Connect(function()
+    CombatLoop()
+    AutoFarm()
+end)
+
+-- Input
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    
+    if input.UserInputType == Enum.UserInputType.MouseButton2 then
+        isAiming = true
+    end
+    
+    if input.KeyCode == Enum.KeyCode.RightControl then
+        ToggleGUI()
+    end
+    
+    if Settings.InfiniteJump and input.KeyCode == Enum.KeyCode.Space then
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+            LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):ChangeState(Enum.HumanoidStateType.Jumping)
+            PlaySound(Sounds.Whoosh)
+        end
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton2 then
+        isAiming = false
+    end
+end)
+
+-- Anti-AFK
+if Settings.AntiAFK then
+    pcall(function()
+        local VirtualUser = game:GetService("VirtualUser")
+        LocalPlayer.Idled:Connect(function()
+            if Settings.AntiAFK then
+                VirtualUser:CaptureController()
+                VirtualUser:ClickButton2(Vector2.new())
+            end
+        end)
+    end)
+end
+
+-- Кнопки окна
+CloseBtn.MouseButton1Click:Connect(function()
+    PlaySound(Sounds.CloseGUI)
+    pcall(function() FOVCircle:Remove() end)
+    for _, player in pairs(Players:GetPlayers()) do
+        if player.Character then
+            local h = player.Character:FindFirstChild("ESPHighlight")
+            if h then h:Destroy() end
+            local b = player.Character:FindFirstChild("ESPBillboard")
+            if b then b:Destroy() end
+        end
+    end
+    ScreenGui:Destroy()
+    IconGui:Destroy()
+end)
+
+local minimized = false
+MinimizeBtn.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    PlaySound(Sounds.ButtonClick)
+    
+    if minimized then
+        TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+            Size = UDim2.new(0, 560, 0, 48)
+        }):Play()
+    else
+        TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+            Size = UDim2.new(0, 560, 0, 480)
+        }):Play()
+    end
+end)
+
+-- ============================================
+-- ★★★ СТАРТОВАЯ АНИМАЦИЯ ★★★
+-- ============================================
+
+-- Иконка появляется с анимацией при загрузке
+IconButton.Position = UDim2.new(0, -60, 0.5, -25)
+IconButton.ImageTransparency = 1
+TweenService:Create(IconButton, TweenInfo.new(0.8, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+    Position = UDim2.new(0, 15, 0.5, -25),
+    ImageTransparency = 0
+}):Play()
+
+-- Уведомление
+task.wait(0.5)
+pcall(function()
+    StarterGui:SetCore("SendNotification", {
+        Title = "⚔️ Combat Initiation Hub v3",
+        Text = "Loaded! Click sword icon or press RCtrl",
+        Duration = 5
+    })
+end)
+PlaySound(Sounds.Notification)
+
+print("╔══════════════════════════════════════╗")
+print("║  ⚔️  COMBAT INITIATION HUB v3       ║")
+print("║  Loaded Successfully!                ║")
+print("║                                      ║")
+print("║  🗡️ Sword Cooldown Hack              ║")
+print("║  🎯 NPC-Only Aimbot                  ║")
+print("║  👁️ ESP (Infinite Range)              ║")
+print("║  ⚔️ Kill Aura (Infinite Range)        ║")
+print("║  🌾 Auto Farm (Infinite Range)        ║")
+print("║  🔊 Sound Effects                    ║")
+print("║                                      ║")
+print("║  Toggle: RightCtrl or Sword Icon     ║")
+print("╚══════════════════════════════════════╝")
