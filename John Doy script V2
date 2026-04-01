@@ -1,0 +1,3628 @@
+--[[
+ _____                     _   _             ____                                                              
+ |  ___|__  _   _ _ __   __| | | |__  _   _  |  _ \ ___  _ __ ___   __ _ _ __   ___ ______ ___      ____ _ _ __ 
+ | |_ / _ \| | | | '_ \ / _` | | '_ \| | | | | |_) / _ \| '_ ` _ \ / _` | '_ \ / _ \_  / _` \ \ /\ / / _` | '__|
+ |  _| (_) | |_| | | | | (_| | | |_) | |_| | |  _ < (_) | | | | | | (_| | | | | (_) / / (_| |\ V  V / (_| | |   
+ |_|  \___/ \__,_|_| |_|\__,_| |_.__/ \__, | |_| \_\___/|_| |_| |_|\__,_|_| |_|\___/___\__,_| \_/\_/ \__,_|_|   
+                                      |___/                                                                     
+
+----------------------------------------------------------------------------------
+
+Hi im find that script for you! also im recomend to join to my Telegram!
+👇----------------------------👇
+https://t.me/+wG_T346rs4JjYWE0
+
+Script:
+🔽------------------------------------------------------🔽
+--]]
+
+--=============================================================--
+--                    CONFIGURATION TABLE                       --
+--=============================================================--
+local CONFIG = {
+	-- General Settings
+	ScriptVersion = "2.0.0",
+	DebugMode = false,
+	
+	-- Combat Settings
+	BaseDamage = 25,
+	CriticalMultiplier = 2.5,
+	CriticalChance = 15,
+	AttackCooldown = 0.7,
+	ComboWindow = 1.5,
+	MaxCombo = 5,
+	
+	-- Phase Settings
+	Phase1Threshold = 100,
+	Phase2Threshold = 50,
+	Phase3Threshold = 25,
+	
+	-- Visual Settings
+	PrimaryColor = Color3.new(1, 0, 0),
+	SecondaryColor = Color3.new(0, 0, 0),
+	TertiaryColor = Color3.new(0.5, 0, 0),
+	GlowIntensity = 1,
+	ParticleRate = 100,
+	
+	-- Movement Settings
+	TeleportCooldown = 2,
+	DashSpeed = 100,
+	DashDuration = 0.3,
+	DashCooldown = 1.5,
+	
+	-- Ability Settings
+	GrabRange = 50,
+	GrabDamagePerTick = 10,
+	GrabTicks = 10,
+	
+	-- AOE Settings
+	AOERadius = 30,
+	AOEDamage = 50,
+	AOECooldown = 5,
+	
+	-- Beam Settings
+	BeamDamage = 40,
+	BeamLength = 200,
+	BeamWidth = 3,
+	BeamDuration = 2,
+	BeamCooldown = 4,
+	
+	-- Shield Settings
+	ShieldDuration = 5,
+	ShieldCooldown = 15,
+	
+	-- Meteor Settings
+	MeteorCount = 8,
+	MeteorDamage = 60,
+	MeteorRadius = 15,
+	MeteorCooldown = 10,
+	
+	-- Pillar Settings
+	PillarCount = 6,
+	PillarDamage = 35,
+	PillarHeight = 50,
+	PillarCooldown = 7,
+	
+	-- Sound IDs
+	Sounds = {
+		Slash = "rbxassetid://28144425",
+		Hit = "rbxassetid://429400881",
+		Teleport = "rbxassetid://2767090",
+		Burn = "rbxassetid://32791565",
+		Music1 = "rbxassetid://151038517",
+		Music2 = "rbxassetid://11984351",
+		DeathMusic = "rbxassetid://19094700",
+		DeathExplosion = "rbxassetid://11984351",
+		Charge = "rbxassetid://2101137",
+		Beam = "rbxassetid://15090946",
+		Thunder = "rbxassetid://12222084",
+		Meteor = "rbxassetid://16433289",
+		Shield = "rbxassetid://2785493",
+		PowerUp = "rbxassetid://2101137",
+		Dash = "rbxassetid://18435238",
+		AOE = "rbxassetid://11984351",
+		ComboFinish = "rbxassetid://11984351",
+		PhaseTransition = "rbxassetid://19094700",
+	},
+	
+	-- Name Tag Messages
+	IdleMessages = {"John Doe"},
+	GlitchMessages = {"NOHOPE", "GIVEUP", "BURNINHELL", "YOURENEXT", "NOESCAPING", "DARKNESS", "CONSUMED", "OBLIVION", "FORSAKEN", "INEVITABLE"},
+	PhaseMessages = {
+		[1] = "John Doe",
+		[2] = "AWAKENED",
+		[3] = "CORRUPTED JOHN DOE",
+	},
+}
+
+--=============================================================--
+--                    SERVICE REFERENCES                         --
+--=============================================================--
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local Debris = game:GetService("Debris")
+local Lighting = game:GetService("Lighting")
+local UserInputService = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local SoundService = game:GetService("SoundService")
+local Workspace = game:GetService("Workspace")
+
+--=============================================================--
+--                    UTILITY FUNCTIONS                          --
+--=============================================================--
+local Utility = {}
+
+function Utility.CreateInstance(className, parent, name, properties)
+	local instance = Instance.new(className)
+	if properties then
+		for key, value in pairs(properties) do
+			instance[key] = value
+		end
+	end
+	if name then
+		instance.Name = name
+	end
+	instance.Parent = parent
+	return instance
+end
+
+function Utility.Lerp(a, b, t)
+	return a + (b - a) * t
+end
+
+function Utility.LerpColor(c1, c2, t)
+	return Color3.new(
+		Utility.Lerp(c1.R, c2.R, t),
+		Utility.Lerp(c1.G, c2.G, t),
+		Utility.Lerp(c1.B, c2.B, t)
+	)
+end
+
+function Utility.RandomVector3(min, max)
+	return Vector3.new(
+		math.random(min, max),
+		math.random(min, max),
+		math.random(min, max)
+	)
+end
+
+function Utility.GetDistance(pos1, pos2)
+	return (pos1 - pos2).Magnitude
+end
+
+function Utility.GetNearestPlayer(position, range, ignoreChar)
+	local nearest = nil
+	local nearestDist = range or math.huge
+	for _, plr in pairs(Players:GetPlayers()) do
+		if plr.Character and plr.Character ~= ignoreChar and plr.Character:FindFirstChild("Humanoid") and plr.Character.Humanoid.Health > 0 then
+			local torso = plr.Character:FindFirstChild("Torso") or plr.Character:FindFirstChild("UpperTorso")
+			if torso then
+				local dist = Utility.GetDistance(position, torso.Position)
+				if dist < nearestDist then
+					nearest = plr.Character
+					nearestDist = dist
+				end
+			end
+		end
+	end
+	return nearest, nearestDist
+end
+
+function Utility.GetAllPlayersInRange(position, range, ignoreChar)
+	local players = {}
+	for _, plr in pairs(Players:GetPlayers()) do
+		if plr.Character and plr.Character ~= ignoreChar and plr.Character:FindFirstChild("Humanoid") and plr.Character.Humanoid.Health > 0 then
+			local torso = plr.Character:FindFirstChild("Torso") or plr.Character:FindFirstChild("UpperTorso")
+			if torso then
+				local dist = Utility.GetDistance(position, torso.Position)
+				if dist <= range then
+					table.insert(players, {Character = plr.Character, Distance = dist})
+				end
+			end
+		end
+	end
+	return players
+end
+
+function Utility.Shake(intensity, duration)
+	local shakeCoroutine = coroutine.wrap(function()
+		local cam = game.Workspace.CurrentCamera
+		local elapsed = 0
+		while elapsed < duration do
+			local dt = RunService.RenderStepped:Wait()
+			elapsed = elapsed + dt
+			local shakeOffset = CFrame.new(
+				math.random(-intensity * 100, intensity * 100) / 100,
+				math.random(-intensity * 100, intensity * 100) / 100,
+				math.random(-intensity * 100, intensity * 100) / 100
+			)
+			cam.CFrame = cam.CFrame * shakeOffset
+		end
+	end)
+	shakeCoroutine()
+end
+
+function Utility.CreateTween(instance, properties, duration, easingStyle, easingDirection)
+	local tweenInfo = TweenInfo.new(
+		duration or 1,
+		easingStyle or Enum.EasingStyle.Quad,
+		easingDirection or Enum.EasingDirection.Out
+	)
+	local tween = TweenService:Create(instance, tweenInfo, properties)
+	return tween
+end
+
+function Utility.SafeDestroy(instance, delay)
+	if instance then
+		if delay and delay > 0 then
+			Debris:AddItem(instance, delay)
+		else
+			instance:Destroy()
+		end
+	end
+end
+
+function Utility.CloneSound(soundTemplate, parent)
+	local clone = soundTemplate:Clone()
+	clone.Parent = parent or soundTemplate.Parent
+	return clone
+end
+
+function Utility.FormatNumber(num)
+	if num >= 1000000 then
+		return string.format("%.1fM", num / 1000000)
+	elseif num >= 1000 then
+		return string.format("%.1fK", num / 1000)
+	else
+		return tostring(math.floor(num))
+	end
+end
+
+function Utility.AngleBetween(cf1, cf2)
+	local dot = cf1.LookVector:Dot((cf2.Position - cf1.Position).Unit)
+	return math.acos(math.clamp(dot, -1, 1))
+end
+
+function Utility.BezierPoint(t, p0, p1, p2)
+	local u = 1 - t
+	return u * u * p0 + 2 * u * t * p1 + t * t * p2
+end
+
+function Utility.CreateBezierCurve(startPos, endPos, height, segments)
+	local midPoint = (startPos + endPos) / 2 + Vector3.new(0, height, 0)
+	local points = {}
+	for i = 0, segments do
+		local t = i / segments
+		local point = Utility.BezierPoint(t, startPos, midPoint, endPos)
+		table.insert(points, point)
+	end
+	return points
+end
+
+--=============================================================--
+--                    STATE MANAGER                              --
+--=============================================================--
+local StateManager = {
+	CurrentPhase = 1,
+	IsAttacking = false,
+	IsDashing = false,
+	IsShielded = false,
+	IsGrabbing = false,
+	IsCharging = false,
+	ComboCount = 0,
+	LastAttackTime = 0,
+	LastDashTime = 0,
+	LastTeleportTime = 0,
+	LastAOETime = 0,
+	LastBeamTime = 0,
+	LastShieldTime = 0,
+	LastMeteorTime = 0,
+	LastPillarTime = 0,
+	KillCount = 0,
+	TotalDamageDealt = 0,
+	AbilitiesUsed = 0,
+	TimeAlive = 0,
+	Cooldowns = {},
+}
+
+function StateManager:SetCooldown(ability, duration)
+	self.Cooldowns[ability] = tick() + duration
+end
+
+function StateManager:IsOnCooldown(ability)
+	if self.Cooldowns[ability] then
+		return tick() < self.Cooldowns[ability]
+	end
+	return false
+end
+
+function StateManager:GetCooldownRemaining(ability)
+	if self.Cooldowns[ability] then
+		local remaining = self.Cooldowns[ability] - tick()
+		return remaining > 0 and remaining or 0
+	end
+	return 0
+end
+
+function StateManager:CanAttack()
+	return not self.IsAttacking and not self.IsDashing and not self.IsGrabbing and not self.IsCharging
+end
+
+function StateManager:IncrementCombo()
+	if tick() - self.LastAttackTime <= CONFIG.ComboWindow then
+		self.ComboCount = math.min(self.ComboCount + 1, CONFIG.MaxCombo)
+	else
+		self.ComboCount = 1
+	end
+	self.LastAttackTime = tick()
+end
+
+function StateManager:ResetCombo()
+	self.ComboCount = 0
+end
+
+function StateManager:GetComboDamageMultiplier()
+	return 1 + (self.ComboCount * 0.15)
+end
+
+function StateManager:GetPhaseDamageMultiplier()
+	if self.CurrentPhase == 1 then return 1
+	elseif self.CurrentPhase == 2 then return 1.5
+	elseif self.CurrentPhase == 3 then return 2.0
+	end
+	return 1
+end
+
+--=============================================================--
+--                    PLAYER SETUP                               --
+--=============================================================--
+local player = Players.LocalPlayer
+local chara = player.Character
+local humanoid = chara:WaitForChild("Humanoid")
+local rootPart = chara:WaitForChild("HumanoidRootPart")
+local torso = chara:WaitForChild("Torso")
+local head = chara:WaitForChild("Head")
+local leftArm = chara:WaitForChild("Left Arm")
+local rightArm = chara:WaitForChild("Right Arm")
+local leftLeg = chara:WaitForChild("Left Leg")
+local rightLeg = chara:WaitForChild("Right Leg")
+
+-- Clean up character
+local ch = chara:GetChildren()
+for i = 1, #ch do
+	if ch[i].Name == "Torso" then
+		ch[i].roblox.Transparency = 1
+	elseif ch[i].Name == "Head" then
+		ch[i].face.Transparency = 1
+		ch[i].Transparency = 1
+	elseif ch[i].ClassName == "Accessory" or ch[i].ClassName == "Shirt" or ch[i].ClassName == "Pants" or ch[i].ClassName == "ShirtGraphic" then
+		ch[i]:Destroy()
+	end
+end
+
+leftArm.BrickColor = BrickColor.new("Cool yellow")
+rightArm.BrickColor = BrickColor.new("Cool yellow")
+leftLeg.BrickColor = BrickColor.new("Medium blue")
+rightLeg.BrickColor = BrickColor.new("Medium blue")
+torso.BrickColor = BrickColor.new("Bright yellow")
+
+--=============================================================--
+--                    INSTANCE CREATOR                           --
+--=============================================================--
+New = function(Object, Parent, Name, Data)
+	local Object = Instance.new(Object)
+	for Index, Value in pairs(Data or {}) do
+		Object[Index] = Value
+	end
+	Object.Parent = Parent
+	Object.Name = Name
+	return Object
+end
+
+--=============================================================--
+--                    PARTICLE EFFECTS SYSTEM                    --
+--=============================================================--
+local ParticleSystem = {}
+
+function ParticleSystem.ScatterEff(part)
+	local eff1 = Instance.new("ParticleEmitter",part)
+	eff1.Size = NumberSequence.new(.1)
+	eff1.Transparency = NumberSequence.new({NumberSequenceKeypoint.new(0,0),NumberSequenceKeypoint.new(.9,0),NumberSequenceKeypoint.new(1,1)})
+	eff1.LightEmission = 1
+	eff1.Lifetime = NumberRange.new(1)
+	eff1.Speed = NumberRange.new(1)
+	eff1.Rate = CONFIG.ParticleRate
+	eff1.VelocitySpread = 10000
+	eff1.Texture = "rbxassetid://347504241"
+	eff1.Color = ColorSequence.new(CONFIG.PrimaryColor)
+	local eff2 = Instance.new("ParticleEmitter",part)
+	eff2.Size = NumberSequence.new(.1)
+	eff2.Transparency = NumberSequence.new({NumberSequenceKeypoint.new(0,0),NumberSequenceKeypoint.new(.9,0),NumberSequenceKeypoint.new(1,1)})
+	eff2.LightEmission = 1
+	eff2.Lifetime = NumberRange.new(1)
+	eff2.Speed = NumberRange.new(1)
+	eff2.Rate = CONFIG.ParticleRate
+	eff2.VelocitySpread = 10000
+	eff2.Texture = "rbxassetid://347504259"
+	eff2.Color = ColorSequence.new(CONFIG.PrimaryColor)
+end
+
+function ParticleSystem.BurningEff(part)
+	local eff1 = Instance.new("ParticleEmitter",part)
+	eff1.Size = NumberSequence.new(.1)
+	eff1.Transparency = NumberSequence.new({NumberSequenceKeypoint.new(0,0),NumberSequenceKeypoint.new(.2,0),NumberSequenceKeypoint.new(1,1)})
+	eff1.LightEmission = 1
+	eff1.Lifetime = NumberRange.new(1)
+	eff1.Speed = NumberRange.new(0)
+	eff1.Rate = CONFIG.ParticleRate
+	eff1.Texture = "rbxassetid://347504241"
+	eff1.Acceleration = Vector3.new(0,10,0)
+	eff1.Color = ColorSequence.new(CONFIG.PrimaryColor)
+	local eff2 = Instance.new("ParticleEmitter",part)
+	eff2.Size = NumberSequence.new(.1)
+	eff2.Transparency = NumberSequence.new({NumberSequenceKeypoint.new(0,0),NumberSequenceKeypoint.new(.2,0),NumberSequenceKeypoint.new(1,1)})
+	eff2.LightEmission = 1
+	eff2.Lifetime = NumberRange.new(1)
+	eff2.Speed = NumberRange.new(0)
+	eff2.Rate = CONFIG.ParticleRate
+	eff2.Texture = "rbxassetid://347504259"
+	eff2.Acceleration = Vector3.new(0,10,0)
+	eff2.Color = ColorSequence.new(CONFIG.PrimaryColor)
+	local eff3 = Instance.new("ParticleEmitter",part)
+	eff3.Size = NumberSequence.new(1)
+	eff3.Transparency = NumberSequence.new({NumberSequenceKeypoint.new(0,0),NumberSequenceKeypoint.new(1,1)})
+	eff3.LightEmission = 1
+	eff3.Lifetime = NumberRange.new(1)
+	eff3.Speed = NumberRange.new(0)
+	eff3.Rate = CONFIG.ParticleRate
+	eff3.Texture = "rbxasset://textures/particles/fire_main.dds"
+	eff3.Acceleration = Vector3.new(0,10,0)
+	eff3.Color = ColorSequence.new(CONFIG.PrimaryColor)
+end
+
+function ParticleSystem.DarkAura(part)
+	local eff1 = Instance.new("ParticleEmitter", part)
+	eff1.Size = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0),
+		NumberSequenceKeypoint.new(0.5, 2),
+		NumberSequenceKeypoint.new(1, 0)
+	})
+	eff1.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.5),
+		NumberSequenceKeypoint.new(1, 1)
+	})
+	eff1.LightEmission = 0.5
+	eff1.Lifetime = NumberRange.new(1, 2)
+	eff1.Speed = NumberRange.new(1, 3)
+	eff1.Rate = 50
+	eff1.VelocitySpread = 360
+	eff1.Texture = "rbxasset://textures/particles/smoke_main.dds"
+	eff1.Color = ColorSequence.new(CONFIG.SecondaryColor, CONFIG.PrimaryColor)
+	eff1.Rotation = NumberRange.new(0, 360)
+	eff1.RotSpeed = NumberRange.new(-100, 100)
+	return eff1
+end
+
+function ParticleSystem.LightningEffect(part)
+	local eff = Instance.new("ParticleEmitter", part)
+	eff.Size = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.5),
+		NumberSequenceKeypoint.new(0.1, 2),
+		NumberSequenceKeypoint.new(0.2, 0.3),
+		NumberSequenceKeypoint.new(0.5, 1.5),
+		NumberSequenceKeypoint.new(1, 0)
+	})
+	eff.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0),
+		NumberSequenceKeypoint.new(0.5, 0),
+		NumberSequenceKeypoint.new(1, 1)
+	})
+	eff.LightEmission = 1
+	eff.Lifetime = NumberRange.new(0.2, 0.5)
+	eff.Speed = NumberRange.new(5, 15)
+	eff.Rate = 200
+	eff.VelocitySpread = 180
+	eff.Texture = "rbxassetid://347504241"
+	eff.Color = ColorSequence.new(CONFIG.PrimaryColor)
+	return eff
+end
+
+function ParticleSystem.ChargeEffect(part)
+	local eff = Instance.new("ParticleEmitter", part)
+	eff.Size = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 3),
+		NumberSequenceKeypoint.new(1, 0)
+	})
+	eff.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 1),
+		NumberSequenceKeypoint.new(0.5, 0.3),
+		NumberSequenceKeypoint.new(1, 1)
+	})
+	eff.LightEmission = 1
+	eff.Lifetime = NumberRange.new(0.5, 1)
+	eff.Speed = NumberRange.new(10, 20)
+	eff.Rate = 150
+	eff.VelocitySpread = 360
+	eff.Texture = "rbxassetid://347504259"
+	eff.Color = ColorSequence.new(CONFIG.TertiaryColor, CONFIG.PrimaryColor)
+	eff.EmissionDirection = Enum.NormalId.Top
+	return eff
+end
+
+function ParticleSystem.ExplosionEffect(position, color, size)
+	local part = Instance.new("Part", Workspace)
+	part.Size = Vector3.new(1, 1, 1)
+	part.Position = position
+	part.Anchored = true
+	part.CanCollide = false
+	part.Transparency = 1
+	
+	local explosion = Instance.new("ParticleEmitter", part)
+	explosion.Size = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0),
+		NumberSequenceKeypoint.new(0.3, size or 10),
+		NumberSequenceKeypoint.new(1, 0)
+	})
+	explosion.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0),
+		NumberSequenceKeypoint.new(0.5, 0.3),
+		NumberSequenceKeypoint.new(1, 1)
+	})
+	explosion.LightEmission = 1
+	explosion.Lifetime = NumberRange.new(0.5, 1)
+	explosion.Speed = NumberRange.new(20, 40)
+	explosion.Rate = 500
+	explosion.VelocitySpread = 360
+	explosion.Texture = "rbxasset://textures/particles/fire_main.dds"
+	explosion.Color = ColorSequence.new(color or CONFIG.PrimaryColor)
+	
+	local ring = Instance.new("ParticleEmitter", part)
+	ring.Size = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0),
+		NumberSequenceKeypoint.new(0.5, (size or 10) * 1.5),
+		NumberSequenceKeypoint.new(1, 0)
+	})
+	ring.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.3),
+		NumberSequenceKeypoint.new(1, 1)
+	})
+	ring.LightEmission = 1
+	ring.Lifetime = NumberRange.new(0.3, 0.6)
+	ring.Speed = NumberRange.new(30, 50)
+	ring.Rate = 300
+	ring.VelocitySpread = 360
+	ring.Texture = "rbxassetid://347504241"
+	ring.Color = ColorSequence.new(color or CONFIG.PrimaryColor)
+	
+	coroutine.wrap(function()
+		wait(0.2)
+		explosion.Enabled = false
+		ring.Enabled = false
+		wait(1.5)
+		part:Destroy()
+	end)()
+end
+
+function ParticleSystem.TrailEffect(part, color, lifetime)
+	local attachment0 = Instance.new("Attachment", part)
+	attachment0.Position = Vector3.new(0, 0.5, 0)
+	local attachment1 = Instance.new("Attachment", part)
+	attachment1.Position = Vector3.new(0, -0.5, 0)
+	
+	local trail = Instance.new("Trail", part)
+	trail.Attachment0 = attachment0
+	trail.Attachment1 = attachment1
+	trail.Color = ColorSequence.new(color or CONFIG.PrimaryColor, Color3.new(0, 0, 0))
+	trail.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0),
+		NumberSequenceKeypoint.new(0.5, 0.3),
+		NumberSequenceKeypoint.new(1, 1)
+	})
+	trail.Lifetime = lifetime or 0.5
+	trail.LightEmission = 1
+	trail.MinLength = 0.1
+	trail.WidthScale = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 1),
+		NumberSequenceKeypoint.new(1, 0)
+	})
+	
+	return trail, attachment0, attachment1
+end
+
+function ParticleSystem.SpiralEffect(centerPart, duration, color)
+	coroutine.wrap(function()
+		local elapsed = 0
+		local angle = 0
+		while elapsed < duration do
+			local dt = wait(0.03)
+			elapsed = elapsed + dt
+			angle = angle + 10
+			
+			local radius = 3 + math.sin(elapsed * 2) * 2
+			local x = math.cos(math.rad(angle)) * radius
+			local z = math.sin(math.rad(angle)) * radius
+			local y = math.sin(elapsed * 5) * 2
+			
+			local particle = Instance.new("Part", Workspace)
+			particle.Size = Vector3.new(0.3, 0.3, 0.3)
+			particle.Shape = Enum.PartType.Ball
+			particle.Material = Enum.Material.Neon
+			particle.BrickColor = BrickColor.new("Really red")
+			particle.Anchored = true
+			particle.CanCollide = false
+			particle.Position = centerPart.Position + Vector3.new(x, y, z)
+			
+			coroutine.wrap(function()
+				for i = 1, 10 do
+					wait(0.05)
+					particle.Transparency = particle.Transparency + 0.1
+					particle.Size = particle.Size - Vector3.new(0.03, 0.03, 0.03)
+				end
+				particle:Destroy()
+			end)()
+		end
+	end)()
+end
+
+function ParticleSystem.GroundCrack(position, size, color)
+	for i = 1, 8 do
+		local angle = (i / 8) * math.pi * 2
+		local crack = Instance.new("Part", Workspace)
+		crack.Size = Vector3.new(size * 0.3, 0.2, size)
+		crack.Material = Enum.Material.Neon
+		crack.BrickColor = BrickColor.new("Really red")
+		crack.Anchored = true
+		crack.CanCollide = false
+		crack.CFrame = CFrame.new(position) * CFrame.Angles(0, angle, 0) * CFrame.new(0, 0, -size / 2)
+		
+		ParticleSystem.BurningEff(crack)
+		
+		coroutine.wrap(function()
+			wait(0.5)
+			for j = 1, 20 do
+				wait(0.05)
+				crack.Transparency = crack.Transparency + 0.05
+			end
+			crack:Destroy()
+		end)()
+	end
+end
+
+function ParticleSystem.ShockwaveEffect(position, maxRadius, color)
+	local ring = Instance.new("Part", Workspace)
+	ring.Shape = Enum.PartType.Cylinder
+	ring.Size = Vector3.new(0.2, 1, 1)
+	ring.Material = Enum.Material.Neon
+	ring.BrickColor = BrickColor.new("Really red")
+	ring.Anchored = true
+	ring.CanCollide = false
+	ring.CFrame = CFrame.new(position) * CFrame.Angles(0, 0, math.rad(90))
+	
+	local tween = Utility.CreateTween(ring, {
+		Size = Vector3.new(0.2, maxRadius * 2, maxRadius * 2),
+		Transparency = 1
+	}, 1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+	tween:Play()
+	
+	tween.Completed:Connect(function()
+		ring:Destroy()
+	end)
+end
+
+function ParticleSystem.VortexEffect(position, duration, radius)
+	coroutine.wrap(function()
+		local particles = {}
+		local elapsed = 0
+		
+		for i = 1, 30 do
+			local p = Instance.new("Part", Workspace)
+			p.Size = Vector3.new(0.5, 0.5, 0.5)
+			p.Shape = Enum.PartType.Ball
+			p.Material = Enum.Material.Neon
+			p.BrickColor = BrickColor.new("Really red")
+			p.Anchored = true
+			p.CanCollide = false
+			p.Transparency = 0.3
+			table.insert(particles, {part = p, angle = (i / 30) * math.pi * 2, height = math.random(-5, 5)})
+		end
+		
+		while elapsed < duration do
+			local dt = wait(0.03)
+			elapsed = elapsed + dt
+			
+			for _, data in pairs(particles) do
+				data.angle = data.angle + 5 * dt
+				local r = radius * (1 - elapsed / duration)
+				local x = math.cos(data.angle) * r
+				local z = math.sin(data.angle) * r
+				data.part.Position = position + Vector3.new(x, data.height + math.sin(elapsed * 3) * 2, z)
+				data.part.Transparency = elapsed / duration
+			end
+		end
+		
+		for _, data in pairs(particles) do
+			data.part:Destroy()
+		end
+	end)()
+end
+
+--=============================================================--
+--                    OUTFIT SYSTEM                              --
+--=============================================================--
+-- (keeping original outfit code)
+function ScatterEff(part)
+	ParticleSystem.ScatterEff(part)
+end
+
+function BurningEff(part)
+	ParticleSystem.BurningEff(part)
+end
+
+FakeHead = New("Model",chara,"FakeHead",{})
+MainPart = New("Part",FakeHead,"MainPart",{FormFactor = Enum.FormFactor.Symmetric,Size = Vector3.new(2, 1, 1),CFrame = CFrame.new(2.29537678, 7.81603718, 0.746068954, 0.00980896503, 0.00110200304, 0.999957919, -0.000536994543, 1.00000548, -0.00109680078, -0.99994874, -0.0005262224, 0.00980964955),CanCollide = false,TopSurface = Enum.SurfaceType.Smooth,})
+Mesh = New("SpecialMesh",MainPart,"Mesh",{Scale = Vector3.new(1.25, 1.25, 1.25),})
+face = New("Decal",MainPart,"face",{Texture = "rbxasset://textures/face.png",})
+Weld = New("ManualWeld",MainPart,"Weld",{Part0 = MainPart,Part1 = chara.Head,C0 = CFrame.new(0, 0, 0, 0.00980896503, -0.000536994543, -0.99994874, 0.00110200304, 1.00000548, -0.0005262224, 0.999957919, -0.00109680078, 0.00980964955),C1 = CFrame.new(5.96046448e-008, -8.58306885e-006, 0, 0.00980896503, -0.000536994543, -0.99994874, 0.00110200304, 1.00000548, -0.0005262224, 0.999957919, -0.00109680078, 0.00980964955),})
+FakeHead.MainPart.BrickColor = BrickColor.new("Cool yellow")
+EyeFire = New("Part",FakeHead,"EyeFire",{BrickColor = BrickColor.new("Really red"),Material = Enum.Material.Neon,Size = Vector3.new(0.400000006, 0.200000003, 0.200000003),CFrame = CFrame.new(1.69668579, 8.11665249, 0.640022159, -0.00107900088, 0.999958038, -0.00980941113, -1.0000056, -0.00107390946, 0.000525554642, 0.000515007298, 0.00981007144, 0.999948859),CanCollide = false,Color = Color3.new(1, 0, 0),})
+Mesh = New("CylinderMesh",EyeFire,"Mesh",{Offset = Vector3.new(0.0500000007, 0, -0.0399999991),Scale = Vector3.new(1, 0.150000006, 1),})
+Weld = New("ManualWeld",EyeFire,"Weld",{Part0 = EyeFire,Part1 = MainPart,C0 = CFrame.new(0, 0, 0, -0.0010790003, -0.999999344, 0.000515000196, 0.999951363, -0.0010738963, 0.00981000345, -0.00980944186, 0.000525560055, 0.99995178),C1 = CFrame.new(0.100008011, 0.300009251, -0.600027919, 0.00980899762, -0.000536999898, -0.99995178, 0.00110200245, 0.999999344, -0.000526215415, 0.999951363, -0.00109678751, 0.00980958249),})
+
+-- Second Eye Fire for Phase 2+
+EyeFire2 = New("Part",FakeHead,"EyeFire2",{BrickColor = BrickColor.new("Really red"),Material = Enum.Material.Neon,Size = Vector3.new(0.400000006, 0.200000003, 0.200000003),CFrame = CFrame.new(1.69668579, 8.11665249, 0.640022159, -0.00107900088, 0.999958038, -0.00980941113, -1.0000056, -0.00107390946, 0.000525554642, 0.000515007298, 0.00981007144, 0.999948859),CanCollide = false,Color = Color3.new(1, 0, 0),Transparency = 1})
+Mesh = New("CylinderMesh",EyeFire2,"Mesh",{Offset = Vector3.new(0.0500000007, 0, 0.25),Scale = Vector3.new(1, 0.150000006, 1),})
+Weld = New("ManualWeld",EyeFire2,"Weld",{Part0 = EyeFire2,Part1 = MainPart,C0 = CFrame.new(0, 0, 0, -0.0010790003, -0.999999344, 0.000515000196, 0.999951363, -0.0010738963, 0.00981000345, -0.00980944186, 0.000525560055, 0.99995178),C1 = CFrame.new(0.100008011, 0.300009251, -0.600027919, 0.00980899762, -0.000536999898, -0.99995178, 0.00110200245, 0.999999344, -0.000526215415, 0.999951363, -0.00109678751, 0.00980958249),})
+
+Chest = New("Model",chara,"Chest",{})
+MainPart = New("Part",Chest,"MainPart",{Transparency = 1,Transparency = 1,FormFactor = Enum.FormFactor.Symmetric,Size = Vector3.new(2, 2, 1),CFrame = CFrame.new(2.2937007, 6.31611967, 0.746871948, 0.00980956201, 0.00110224239, 0.999954581, -0.000537135813, 1.00000238, -0.00109703222, -0.99995023, -0.000526354474, 0.00981019717),CanCollide = false,LeftSurface = Enum.SurfaceType.Weld,RightSurface = Enum.SurfaceType.Weld,})
+Weld = New("ManualWeld",MainPart,"Weld",{Part0 = MainPart,Part1 = chara.Torso,C0 = CFrame.new(0, 0, 0, 0.009809535, -0.000537137908, -0.99994725, 0.00110225554, 1.00000858, -0.000526368851, 0.999961257, -0.00109705783, 0.00981026888),C1 = CFrame.new(5.96046448e-008, -9.05990601e-006, -2.38418579e-007, 0.00980956666, -0.000537143264, -0.99995023, 0.00110225484, 1.00000238, -0.000526361808, 0.999954581, -0.00109704456, 0.00981020182),})
+CorruptedPart = New("Part",Chest,"CorruptedPart",{BrickColor = BrickColor.new("Really black"),Material = Enum.Material.Granite,Size = Vector3.new(0.400000006, 0.800000072, 1),CFrame = CFrame.new(2.28977966, 7.11656427, 1.34486222, -0.00110228383, -0.00980954897, -0.9999578, -1.00000536, 0.000536905834, 0.00109708123, 0.000526248943, 0.99994868, -0.00981033035),CanCollide = false,BackSurface = Enum.SurfaceType.SmoothNoOutlines,BottomSurface = Enum.SurfaceType.SmoothNoOutlines,FrontSurface = Enum.SurfaceType.SmoothNoOutlines,LeftSurface = Enum.SurfaceType.SmoothNoOutlines,RightSurface = Enum.SurfaceType.SmoothNoOutlines,TopSurface = Enum.SurfaceType.SmoothNoOutlines,Color = Color3.new(0.0666667, 0.0666667, 0.0666667),})
+Mesh = New("BlockMesh",CorruptedPart,"Mesh",{Scale = Vector3.new(1.10000002, 1.10000002, 1.10000002),})
+Weld = New("ManualWeld",CorruptedPart,"Weld",{Part0 = CorruptedPart,Part1 = MainPart,C0 = CFrame.new(0, 0, 0, -0.0011022957, -0.999999225, 0.000526249292, -0.00980958622, 0.000536918582, 0.99995172, -0.999951243, 0.0010970803, -0.00981026702),C1 = CFrame.new(-0.598430753, 0.800122261, 0.00106739998, 0.00980956666, -0.000537143264, -0.99995023, 0.00110225484, 1.00000238, -0.000526361808, 0.999954581, -0.00109704456, 0.00981020182),})
+CorruptedPart = New("Part",Chest,"CorruptedPart",{BrickColor = BrickColor.new("Really black"),Material = Enum.Material.Granite,Size = Vector3.new(0.400000006, 0.400000066, 1),CFrame = CFrame.new(2.29174757, 6.71645212, 1.54485857, -0.00110228383, -0.00980954897, -0.9999578, -1.00000536, 0.000536905834, 0.00109708123, 0.000526248943, 0.99994868, -0.00981033035),CanCollide = false,BackSurface = Enum.SurfaceType.SmoothNoOutlines,BottomSurface = Enum.SurfaceType.SmoothNoOutlines,FrontSurface = Enum.SurfaceType.SmoothNoOutlines,LeftSurface = Enum.SurfaceType.SmoothNoOutlines,RightSurface = Enum.SurfaceType.SmoothNoOutlines,TopSurface = Enum.SurfaceType.SmoothNoOutlines,Color = Color3.new(0.0666667, 0.0666667, 0.0666667),})
+Mesh = New("BlockMesh",CorruptedPart,"Mesh",{Scale = Vector3.new(1.10000002, 1.10000002, 1.10000002),})
+Weld = New("ManualWeld",CorruptedPart,"Weld",{Part0 = CorruptedPart,Part1 = MainPart,C0 = CFrame.new(0, 0, 0, -0.0011022957, -0.999999225, 0.000526249292, -0.00980958622, 0.000536918582, 0.99995172, -0.999951243, 0.0010970803, -0.00981026702),C1 = CFrame.new(-0.798183441, 0.399908543, 0.00543618202, 0.00980956666, -0.000537143264, -0.99995023, 0.00110225484, 1.00000238, -0.000526361808, 0.999954581, -0.00109704456, 0.00981020182),})
+
+LeftArm = New("Model",chara,"LeftArm",{})
+MainPart = New("Part",LeftArm,"MainPart",{Transparency = 1,Transparency = 1,FormFactor = Enum.FormFactor.Symmetric,Size = Vector3.new(1, 2, 1),CFrame = CFrame.new(1.90889204, 6.31596565, 3.24640989, -0.0484240092, -0.0324009918, 0.998301268, -0.00117100019, 0.999474883, 0.0323822871, -0.998826265, 0.000399069104, -0.0484365262),CanCollide = false,})
+Weld = New("ManualWeld",MainPart,"Weld",{Part0 = MainPart,Part1 = chara["Left Arm"],C0 = CFrame.new(0, 0, 0, -0.0484240092, -0.00117100019, -0.998826265, -0.0324009918, 0.999474883, 0.000399069104, 0.998301268, 0.0323822871, -0.0484365262),C1 = CFrame.new(0, -8.10623169e-006, -2.38418579e-007, -0.0484240092, -0.00117100019, -0.998826265, -0.0324009918, 0.999474883, 0.000399069104, 0.998301268, 0.0323822871, -0.0484365262),})
+
+EffCorruptedPart = New("Part",LeftArm,"EffCorruptedPart",{BrickColor = BrickColor.new("Really black"),Material = Enum.Material.Granite,Size = Vector3.new(1, 1, 1),CFrame = CFrame.new(1.92512023, 5.81624889, 3.24619365, -0.048417028, -0.0324150361, 0.998301387, -0.00116700074, 0.999474525, 0.03239654, -0.998826742, 0.000403525919, -0.0484294258),CanCollide = false,BackSurface = Enum.SurfaceType.SmoothNoOutlines,BottomSurface = Enum.SurfaceType.SmoothNoOutlines,FrontSurface = Enum.SurfaceType.SmoothNoOutlines,LeftSurface = Enum.SurfaceType.SmoothNoOutlines,RightSurface = Enum.SurfaceType.SmoothNoOutlines,TopSurface = Enum.SurfaceType.SmoothNoOutlines,Color = Color3.new(0.0666667, 0.0666667, 0.0666667),})
+Mesh = New("BlockMesh",EffCorruptedPart,"Mesh",{Scale = Vector3.new(1.10000002, 1.10000002, 1.10000002),})
+Weld = New("ManualWeld",EffCorruptedPart,"Weld",{Part0 = EffCorruptedPart,Part1 = MainPart,C0 = CFrame.new(0, 0, 0, -0.048417028, -0.00116700074, -0.998826623, -0.0324150361, 0.999474466, 0.000403525832, 0.998301208, 0.0323965363, -0.0484294109),C1 = CFrame.new(1.52587891e-005, -0.49998045, 2.90870667e-005, -0.0484240092, -0.00117100019, -0.998826265, -0.0324009918, 0.999474883, 0.000399069104, 0.998301268, 0.0323822871, -0.0484365262),})
+
+BurningEff(EffCorruptedPart)
+
+LeftLeg = New("Model",chara,"LeftLeg",{})
+MainPart = New("Part",LeftLeg,"MainPart",{Transparency = 1,Transparency = 1,FormFactor = Enum.FormFactor.Symmetric,Size = Vector3.new(1, 2, 1),CFrame = CFrame.new(2.2865479, 1.31659603, 1.24781799, 0.00980953407, 0.00110225566, 0.999961138, -0.000537137908, 1.00000858, -0.00109705783, -0.99994719, -0.000526368851, 0.00981026888),CanCollide = false,BottomSurface = Enum.SurfaceType.Smooth,})
+Weld = New("ManualWeld",MainPart,"Weld",{Part0 = MainPart,Part1 = chara["Left Leg"],C0 = CFrame.new(0, 0, 0, 0.00980953407, -0.000537137908, -0.99994719, 0.00110225566, 1.00000858, -0.000526368851, 0.999961138, -0.00109705783, 0.00981026888),C1 = CFrame.new(0, -8.58306885e-006, -2.38418579e-007, 0.00980953407, -0.000537137908, -0.99994719, 0.00110225566, 1.00000858, -0.000526368851, 0.999961138, -0.00109705783, 0.00981026888),})
+EffCorruptedPart2 = New("Part",LeftLeg,"EffCorruptedPart",{BrickColor = BrickColor.new("Really black"),Material = Enum.Material.Granite,Size = Vector3.new(1, 0.200000048, 1),CFrame = CFrame.new(2.28007793, 0.400032878, 1.25993299, 1.00001979, -3.03611159e-007, -5.47617674e-007, 5.67175448e-007, 1.00001717, -5.60779881e-007, -1.86450779e-006, 9.50574758e-007, 0.99998951),CanCollide = false,BackSurface = Enum.SurfaceType.SmoothNoOutlines,BottomSurface = Enum.SurfaceType.SmoothNoOutlines,FrontSurface = Enum.SurfaceType.SmoothNoOutlines,LeftSurface = Enum.SurfaceType.SmoothNoOutlines,RightSurface = Enum.SurfaceType.SmoothNoOutlines,TopSurface = Enum.SurfaceType.SmoothNoOutlines,Color = Color3.new(0.0666667, 0.0666667, 0.0666667),})
+Mesh = New("BlockMesh",EffCorruptedPart2,"Mesh",{Scale = Vector3.new(1.10000002, 1.10000002, 1.10000002),})
+Weld = New("ManualWeld",EffCorruptedPart2,"Weld",{Part0 = EffCorruptedPart2,Part1 = MainPart,C0 = CFrame.new(0, 0, 0, 1, 5.86369708e-007, -2.15602267e-006, -2.8440752e-007, 0.999998569, 9.76819592e-007, -8.39119252e-007, -5.34477465e-007, 0.999998569),C1 = CFrame.new(-0.0116856098, -0.916567385, -0.00534534454, 0.00980953407, -0.000537137908, -0.99994719, 0.00110225566, 1.00000858, -0.000526368851, 0.999961138, -0.00109705783, 0.00981026888),})
+
+ScatterEff(EffCorruptedPart2)
+
+RightArm = New("Model",chara,"RightArm",{})
+MainPart = New("Part",RightArm,"MainPart",{Transparency = 1,Transparency = 1,FormFactor = Enum.FormFactor.Symmetric,Size = Vector3.new(1, 2, 1),CFrame = CFrame.new(2.011096, 6.31690788, -3.92582893, 0.00918400101, -0.262283146, 0.964947343, 0.259330034, 0.932596445, 0.251021653, -0.965745091, 0.247934431, 0.0765828639),CanCollide = false,})
+Weld = New("ManualWeld",MainPart,"Weld",{Part0 = MainPart,Part1 = chara["Right Arm"],C0 = CFrame.new(0, 0, 0, 0.00918400101, 0.259330034, -0.965745091, -0.262283146, 0.932596445, 0.247934431, 0.964947343, 0.251021653, 0.0765828639),C1 = CFrame.new(-2.86102295e-006, -9.05990601e-006, -2.38418579e-006, 0.00918400101, 0.259330034, -0.965745091, -0.262283146, 0.932596445, 0.247934431, 0.964947343, 0.251021653, 0.0765828639),})
+Hitbox = New("Part",RightArm,"Hitbox",{BrickColor = BrickColor.new("Really black"),Transparency = 1,Transparency = 1,Size = Vector3.new(1, 4, 1),CFrame = CFrame.new(22.2733669, 5.0842762, -22.1737366, -0.964945257, -0.262290984, 0.00919180829, -0.251027077, 0.93259424, 0.259333313, -0.0765930116, 0.247935042, -0.965744138),CanCollide = false,BackSurface = Enum.SurfaceType.SmoothNoOutlines,BottomSurface = Enum.SurfaceType.SmoothNoOutlines,FrontSurface = Enum.SurfaceType.SmoothNoOutlines,LeftSurface = Enum.SurfaceType.SmoothNoOutlines,RightSurface = Enum.SurfaceType.SmoothNoOutlines,TopSurface = Enum.SurfaceType.SmoothNoOutlines,Color = Color3.new(0.0666667, 0.0666667, 0.0666667),})
+Weld = New("ManualWeld",Hitbox,"Weld",{Part0 = Hitbox,Part1 = MainPart,C0 = CFrame.new(0, 0, 0, -0.964945257, -0.251027077, -0.0765930116, -0.262290984, 0.93259424, 0.247935042, 0.00919180829, 0.259333313, -0.965744138),C1 = CFrame.new(-1.52587891e-005, -1.00003147, -1.71661377e-005, 0.0091838371, 0.259330064, -0.965745151, -0.262283117, 0.932596445, 0.247934505, 0.964947283, 0.251021653, 0.0765827149),})
+CorruptedPart = New("Part",RightArm,"CorruptedPart",{BrickColor = BrickColor.new("Really black"),Material = Enum.Material.Granite,Size = Vector3.new(1, 2, 1),CFrame = CFrame.new(2.011096, 6.3169179, -3.92581391, -0.964945257, -0.262290984, 0.00919180829, -0.251027077, 0.93259424, 0.259333313, -0.0765930116, 0.247935042, -0.965744138),CanCollide = false,BackSurface = Enum.SurfaceType.SmoothNoOutlines,BottomSurface = Enum.SurfaceType.SmoothNoOutlines,FrontSurface = Enum.SurfaceType.SmoothNoOutlines,LeftSurface = Enum.SurfaceType.SmoothNoOutlines,RightSurface = Enum.SurfaceType.SmoothNoOutlines,TopSurface = Enum.SurfaceType.SmoothNoOutlines,Color = Color3.new(0.0666667, 0.0666667, 0.0666667),})
+Mesh = New("BlockMesh",CorruptedPart,"Mesh",{Scale = Vector3.new(1.10000002, 1.10000002, 1.10000002),})
+Weld = New("ManualWeld",CorruptedPart,"Weld",{Part0 = CorruptedPart,Part1 = MainPart,C0 = CFrame.new(0, 0, 0, -0.964945138, -0.251027018, -0.0765930042, -0.262290984, 0.932594121, 0.247935027, 0.00919180084, 0.259333313, -0.965744197),C1 = CFrame.new(-1.1920929e-005, 1.28746033e-005, 3.57627869e-006, 0.00918400101, 0.259330034, -0.965745091, -0.262283146, 0.932596445, 0.247934431, 0.964947343, 0.251021653, 0.0765828639),})
+
+RightLeg = New("Model",chara,"RightLeg",{})
+MainPart = New("Part",RightLeg,"MainPart",{Transparency = 1,Transparency = 1,FormFactor = Enum.FormFactor.Symmetric,Size = Vector3.new(1, 2, 1),CFrame = CFrame.new(2.29641008, 1.31540966, 0.248092994, 0.00933599845, 0.00110999751, 0.999955773, -0.0030579993, 0.999994755, -0.00108149007, -0.99995178, -0.0030477671, 0.00933934376),CanCollide = false,BottomSurface = Enum.SurfaceType.Smooth,})
+Weld = New("ManualWeld",MainPart,"Weld",{Part0 = MainPart,Part1 = chara["Right Leg"],C0 = CFrame.new(0, 0, 0, 0.00933599845, -0.0030579993, -0.99995178, 0.00110999751, 0.999994755, -0.0030477671, 0.999955773, -0.00108149007, 0.00933934376),C1 = CFrame.new(2.98023224e-008, -8.58306885e-006, 2.38418579e-007, 0.00933599845, -0.0030579993, -0.99995178, 0.00110999751, 0.999994755, -0.0030477671, 0.999955773, -0.00108149007, 0.00933934376),})
+EffCorruptedPart3 = New("Part",RightLeg,"EffCorruptedPart",{BrickColor = BrickColor.new("Really black"),Material = Enum.Material.Granite,Size = Vector3.new(1, 1.20000005, 1),CFrame = CFrame.new(2.29597116, 0.915416002, 0.249298006, 0.999955714, 0.00111051137, -0.00933665317, -0.00108199974, 0.999994755, 0.00305824191, 0.00933999754, -0.00304800365, 0.999951899),CanCollide = false,BackSurface = Enum.SurfaceType.SmoothNoOutlines,BottomSurface = Enum.SurfaceType.SmoothNoOutlines,FrontSurface = Enum.SurfaceType.SmoothNoOutlines,LeftSurface = Enum.SurfaceType.SmoothNoOutlines,RightSurface = Enum.SurfaceType.SmoothNoOutlines,TopSurface = Enum.SurfaceType.SmoothNoOutlines,Color = Color3.new(0.0666667, 0.0666667, 0.0666667),})
+Mesh = New("BlockMesh",EffCorruptedPart3,"Mesh",{Scale = Vector3.new(1.10000002, 1.10000002, 1.10000002),})
+Weld = New("ManualWeld",EffCorruptedPart3,"Weld",{Part0 = EffCorruptedPart3,Part1 = MainPart,C0 = CFrame.new(0, 0, 0, 0.999955773, -0.00108199974, 0.00933999848, 0.00111051148, 0.999994755, -0.00304800388, -0.00933665223, 0.00305824145, 0.99995178),C1 = CFrame.new(1.41263008e-005, -0.399995744, 5.00679016e-006, 0.00933599845, -0.0030579993, -0.99995178, 0.00110999751, 0.999994755, -0.0030477671, 0.999955773, -0.00108149007, 0.00933934376),})
+
+ScatterEff(EffCorruptedPart3)
+
+sa = RightArm:GetChildren()
+for i = 1, #sa do
+	ScatterEff(sa[i])
+end
+
+--=============================================================--
+--                    EYE FIRE EFFECTS                           --
+--=============================================================--
+local eff1 = Instance.new("ParticleEmitter",EyeFire)
+eff1.Size = NumberSequence.new(.1)
+eff1.Transparency = NumberSequence.new({NumberSequenceKeypoint.new(0,0),NumberSequenceKeypoint.new(.2,0),NumberSequenceKeypoint.new(1,1)})
+eff1.LightEmission = 1
+eff1.Lifetime = NumberRange.new(.5)
+eff1.Speed = NumberRange.new(1)
+eff1.EmissionDirection = "Front"
+eff1.Rate = 100
+eff1.Texture = "rbxassetid://347504241"
+eff1.Acceleration = Vector3.new(0,10,0)
+eff1.Color = ColorSequence.new(Color3.new(1,0,0))
+local eff2 = Instance.new("ParticleEmitter",EyeFire)
+eff2.Size = NumberSequence.new(.1)
+eff2.Transparency = NumberSequence.new({NumberSequenceKeypoint.new(0,0),NumberSequenceKeypoint.new(.2,0),NumberSequenceKeypoint.new(1,1)})
+eff2.LightEmission = 1
+eff2.Lifetime = NumberRange.new(.5)
+eff2.Speed = NumberRange.new(1)
+eff2.EmissionDirection = "Front"
+eff2.Rate = 100
+eff2.Texture = "rbxassetid://347504259"
+eff2.Acceleration = Vector3.new(0,10,0)
+eff2.Color = ColorSequence.new(Color3.new(1,0,0))
+local eff3 = Instance.new("ParticleEmitter",EyeFire)
+eff3.Size = NumberSequence.new(.1)
+eff3.Transparency = NumberSequence.new({NumberSequenceKeypoint.new(0,0),NumberSequenceKeypoint.new(1,1)})
+eff3.LightEmission = 1
+eff3.Lifetime = NumberRange.new(.5)
+eff3.Speed = NumberRange.new(1)
+eff3.EmissionDirection = "Front"
+eff3.Rate = 100
+eff3.Texture = "rbxasset://textures/particles/fire_main.dds"
+eff3.Acceleration = Vector3.new(0,10,0)
+eff3.Color = ColorSequence.new(Color3.new(1,0,0))
+
+--=============================================================--
+--                    SOUND SYSTEM                               --
+--=============================================================--
+local SoundSystem = {}
+SoundSystem.Sounds = {}
+
+function SoundSystem.Create(name, parent, id, properties)
+	local sound = Instance.new("Sound", parent or torso)
+	sound.Name = name
+	sound.SoundId = id
+	if properties then
+		for key, value in pairs(properties) do
+			sound[key] = value
+		end
+	end
+	SoundSystem.Sounds[name] = sound
+	return sound
+end
+
+function SoundSystem.Play(name)
+	if SoundSystem.Sounds[name] then
+		SoundSystem.Sounds[name]:Play()
+	end
+end
+
+function SoundSystem.Stop(name)
+	if SoundSystem.Sounds[name] then
+		SoundSystem.Sounds[name]:Stop()
+	end
+end
+
+function SoundSystem.PlayAtPosition(id, position, properties)
+	local part = Instance.new("Part", Workspace)
+	part.Transparency = 1
+	part.Anchored = true
+	part.CanCollide = false
+	part.Position = position
+	part.Size = Vector3.new(1, 1, 1)
+	
+	local sound = Instance.new("Sound", part)
+	sound.SoundId = id
+	if properties then
+		for key, value in pairs(properties) do
+			sound[key] = value
+		end
+	end
+	sound:Play()
+	
+	sound.Ended:Connect(function()
+		part:Destroy()
+	end)
+	
+	return sound
+end
+
+-- Create all sounds
+slashsnd = SoundSystem.Create("Slash", torso, CONFIG.Sounds.Slash, {PlaybackSpeed = .7, Volume = 5})
+hitsnd = SoundSystem.Create("Hit", torso, CONFIG.Sounds.Hit, {PlaybackSpeed = .7, Volume = 5})
+telesnd = SoundSystem.Create("Tele", torso, CONFIG.Sounds.Teleport, {PlaybackSpeed = .7, Volume = 5})
+burnsnd = SoundSystem.Create("Burn", torso, CONFIG.Sounds.Burn, {PlaybackSpeed = .7, Volume = 5})
+music1 = SoundSystem.Create("Music1", torso, CONFIG.Sounds.Music1, {PlaybackSpeed = .5, Volume = 10, Looped = true})
+music2 = SoundSystem.Create("Music2", torso, CONFIG.Sounds.Music2, {PlaybackSpeed = .2, Volume = 5, Looped = true})
+deathmus = SoundSystem.Create("DeathMus", torso, CONFIG.Sounds.DeathMusic, {PlaybackSpeed = .5, Volume = 5, Looped = true})
+deathex = SoundSystem.Create("DeathEx", torso, CONFIG.Sounds.DeathExplosion, {PlaybackSpeed = 1, Volume = 5})
+chargesnd = SoundSystem.Create("Charge", torso, CONFIG.Sounds.Charge, {PlaybackSpeed = 1, Volume = 5})
+beamsnd = SoundSystem.Create("Beam", torso, CONFIG.Sounds.Beam, {PlaybackSpeed = 0.8, Volume = 6})
+thundersnd = SoundSystem.Create("Thunder", torso, CONFIG.Sounds.Thunder, {PlaybackSpeed = 0.6, Volume = 7})
+meteorsnd = SoundSystem.Create("Meteor", torso, CONFIG.Sounds.Meteor, {PlaybackSpeed = 0.7, Volume = 6})
+shieldsnd = SoundSystem.Create("Shield", torso, CONFIG.Sounds.Shield, {PlaybackSpeed = 1, Volume = 5})
+powerupsnd = SoundSystem.Create("PowerUp", torso, CONFIG.Sounds.PowerUp, {PlaybackSpeed = 0.5, Volume = 8})
+dashsnd = SoundSystem.Create("Dash", torso, CONFIG.Sounds.Dash, {PlaybackSpeed = 1.2, Volume = 4})
+aoesnd = SoundSystem.Create("AOE", torso, CONFIG.Sounds.AOE, {PlaybackSpeed = 0.6, Volume = 7})
+combosnd = SoundSystem.Create("ComboFinish", torso, CONFIG.Sounds.ComboFinish, {PlaybackSpeed = 1.5, Volume = 6})
+
+music1:Play()
+music2:Play()
+
+--=============================================================--
+--                    ANIMATION SYSTEM                           --
+--=============================================================--
+local AnimationSystem = {}
+AnimationSystem.Animations = {}
+
+function AnimationSystem.Load(name, id)
+	local anim = Instance.new("Animation")
+	anim.AnimationId = id
+	anim.Name = name
+	local track = humanoid:LoadAnimation(anim)
+	AnimationSystem.Animations[name] = track
+	return track
+end
+
+function AnimationSystem.Play(name, speed, fadeTime)
+	if AnimationSystem.Animations[name] then
+		AnimationSystem.Animations[name]:Play(fadeTime or 0.1)
+		if speed then
+			AnimationSystem.Animations[name]:AdjustSpeed(speed)
+		end
+	end
+end
+
+function AnimationSystem.Stop(name, fadeTime)
+	if AnimationSystem.Animations[name] then
+		AnimationSystem.Animations[name]:Stop(fadeTime or 0.1)
+	end
+end
+
+function AnimationSystem.StopAll(fadeTime)
+	for _, track in pairs(AnimationSystem.Animations) do
+		track:Stop(fadeTime or 0.1)
+	end
+end
+
+swinganim = AnimationSystem.Load("Swing", "rbxassetid://186934658")
+
+--=============================================================--
+--                    GUI SYSTEM                                 --
+--=============================================================--
+local GUISystem = {}
+
+function GUISystem.CreateMainGUI()
+	local screenGui = Instance.new("ScreenGui", player.PlayerGui)
+	screenGui.Name = "JohnDoeGUI"
+	screenGui.ResetOnSpawn = false
+	
+	-- Phase Indicator
+	local phaseFrame = Instance.new("Frame", screenGui)
+	phaseFrame.Name = "PhaseFrame"
+	phaseFrame.Size = UDim2.new(0, 300, 0, 50)
+	phaseFrame.Position = UDim2.new(0.5, -150, 0, 10)
+	phaseFrame.BackgroundColor3 = Color3.new(0.1, 0, 0)
+	phaseFrame.BackgroundTransparency = 0.3
+	phaseFrame.BorderSizePixel = 2
+	phaseFrame.BorderColor3 = Color3.new(1, 0, 0)
+	
+	local phaseCorner = Instance.new("UICorner", phaseFrame)
+	phaseCorner.CornerRadius = UDim.new(0, 8)
+	
+	local phaseText = Instance.new("TextLabel", phaseFrame)
+	phaseText.Name = "PhaseText"
+	phaseText.Size = UDim2.new(1, 0, 1, 0)
+	phaseText.BackgroundTransparency = 1
+	phaseText.Text = "PHASE 1 - DORMANT"
+	phaseText.TextColor3 = Color3.new(1, 0, 0)
+	phaseText.Font = Enum.Font.Fantasy
+	phaseText.TextSize = 24
+	phaseText.TextStrokeTransparency = 0
+	phaseText.TextStrokeColor3 = Color3.new(0, 0, 0)
+	
+	-- Stats Frame
+	local statsFrame = Instance.new("Frame", screenGui)
+	statsFrame.Name = "StatsFrame"
+	statsFrame.Size = UDim2.new(0, 200, 0, 150)
+	statsFrame.Position = UDim2.new(0, 10, 0.5, -75)
+	statsFrame.BackgroundColor3 = Color3.new(0.05, 0, 0)
+	statsFrame.BackgroundTransparency = 0.4
+	statsFrame.BorderSizePixel = 2
+	statsFrame.BorderColor3 = Color3.new(0.5, 0, 0)
+	
+	local statsCorner = Instance.new("UICorner", statsFrame)
+	statsCorner.CornerRadius = UDim.new(0, 8)
+	
+	local statsTitle = Instance.new("TextLabel", statsFrame)
+	statsTitle.Name = "Title"
+	statsTitle.Size = UDim2.new(1, 0, 0, 25)
+	statsTitle.BackgroundTransparency = 1
+	statsTitle.Text = "== STATS =="
+	statsTitle.TextColor3 = Color3.new(1, 0, 0)
+	statsTitle.Font = Enum.Font.Fantasy
+	statsTitle.TextSize = 18
+	statsTitle.TextStrokeTransparency = 0
+	
+	local killsText = Instance.new("TextLabel", statsFrame)
+	killsText.Name = "Kills"
+	killsText.Size = UDim2.new(1, -10, 0, 20)
+	killsText.Position = UDim2.new(0, 5, 0, 30)
+	killsText.BackgroundTransparency = 1
+	killsText.Text = "Kills: 0"
+	killsText.TextColor3 = Color3.new(1, 0.3, 0.3)
+	killsText.Font = Enum.Font.Code
+	killsText.TextSize = 14
+	killsText.TextXAlignment = Enum.TextXAlignment.Left
+	
+	local damageText = Instance.new("TextLabel", statsFrame)
+	damageText.Name = "Damage"
+	damageText.Size = UDim2.new(1, -10, 0, 20)
+	damageText.Position = UDim2.new(0, 5, 0, 55)
+	damageText.BackgroundTransparency = 1
+	damageText.Text = "Damage: 0"
+	damageText.TextColor3 = Color3.new(1, 0.3, 0.3)
+	damageText.Font = Enum.Font.Code
+	damageText.TextSize = 14
+	damageText.TextXAlignment = Enum.TextXAlignment.Left
+	
+	local comboText = Instance.new("TextLabel", statsFrame)
+	comboText.Name = "Combo"
+	comboText.Size = UDim2.new(1, -10, 0, 20)
+	comboText.Position = UDim2.new(0, 5, 0, 80)
+	comboText.BackgroundTransparency = 1
+	comboText.Text = "Combo: 0x"
+	comboText.TextColor3 = Color3.new(1, 0.3, 0.3)
+	comboText.Font = Enum.Font.Code
+	comboText.TextSize = 14
+	comboText.TextXAlignment = Enum.TextXAlignment.Left
+	
+	local timeText = Instance.new("TextLabel", statsFrame)
+	timeText.Name = "Time"
+	timeText.Size = UDim2.new(1, -10, 0, 20)
+	timeText.Position = UDim2.new(0, 5, 0, 105)
+	timeText.BackgroundTransparency = 1
+	timeText.Text = "Time: 0s"
+	timeText.TextColor3 = Color3.new(1, 0.3, 0.3)
+	timeText.Font = Enum.Font.Code
+	timeText.TextSize = 14
+	timeText.TextXAlignment = Enum.TextXAlignment.Left
+	
+	local phaseNumText = Instance.new("TextLabel", statsFrame)
+	phaseNumText.Name = "PhaseNum"
+	phaseNumText.Size = UDim2.new(1, -10, 0, 20)
+	phaseNumText.Position = UDim2.new(0, 5, 0, 130)
+	phaseNumText.BackgroundTransparency = 1
+	phaseNumText.Text = "Phase: 1"
+	phaseNumText.TextColor3 = Color3.new(1, 0.3, 0.3)
+	phaseNumText.Font = Enum.Font.Code
+	phaseNumText.TextSize = 14
+	phaseNumText.TextXAlignment = Enum.TextXAlignment.Left
+	
+	-- Cooldown Display
+	local cooldownFrame = Instance.new("Frame", screenGui)
+	cooldownFrame.Name = "CooldownFrame"
+	cooldownFrame.Size = UDim2.new(0, 250, 0, 200)
+	cooldownFrame.Position = UDim2.new(1, -260, 0.5, -100)
+	cooldownFrame.BackgroundColor3 = Color3.new(0.05, 0, 0)
+	cooldownFrame.BackgroundTransparency = 0.4
+	cooldownFrame.BorderSizePixel = 2
+	cooldownFrame.BorderColor3 = Color3.new(0.5, 0, 0)
+	
+	local cdCorner = Instance.new("UICorner", cooldownFrame)
+	cdCorner.CornerRadius = UDim.new(0, 8)
+	
+	local cdTitle = Instance.new("TextLabel", cooldownFrame)
+	cdTitle.Name = "Title"
+	cdTitle.Size = UDim2.new(1, 0, 0, 25)
+	cdTitle.BackgroundTransparency = 1
+	cdTitle.Text = "== ABILITIES =="
+	cdTitle.TextColor3 = Color3.new(1, 0, 0)
+	cdTitle.Font = Enum.Font.Fantasy
+	cdTitle.TextSize = 18
+	cdTitle.TextStrokeTransparency = 0
+	
+	local abilities = {"[Z] Teleport", "[X] Grab", "[C] Dash", "[V] AOE Blast", "[B] Dark Beam", "[N] Shield", "[M] Meteors", "[G] Pillars"}
+	for idx, abilityName in ipairs(abilities) do
+		local abilityLabel = Instance.new("TextLabel", cooldownFrame)
+		abilityLabel.Name = "Ability" .. idx
+		abilityLabel.Size = UDim2.new(1, -10, 0, 18)
+		abilityLabel.Position = UDim2.new(0, 5, 0, 25 + (idx - 1) * 20)
+		abilityLabel.BackgroundTransparency = 1
+		abilityLabel.Text = abilityName .. " - Ready"
+		abilityLabel.TextColor3 = Color3.new(0, 1, 0)
+		abilityLabel.Font = Enum.Font.Code
+		abilityLabel.TextSize = 13
+		abilityLabel.TextXAlignment = Enum.TextXAlignment.Left
+	end
+	
+	-- Combo Counter (center screen)
+	local comboDisplay = Instance.new("TextLabel", screenGui)
+	comboDisplay.Name = "ComboDisplay"
+	comboDisplay.Size = UDim2.new(0, 200, 0, 80)
+	comboDisplay.Position = UDim2.new(0.5, -100, 0.3, 0)
+	comboDisplay.BackgroundTransparency = 1
+	comboDisplay.Text = ""
+	comboDisplay.TextColor3 = Color3.new(1, 0, 0)
+	comboDisplay.Font = Enum.Font.Fantasy
+	comboDisplay.TextSize = 48
+	comboDisplay.TextStrokeTransparency = 0
+	comboDisplay.TextStrokeColor3 = Color3.new(0, 0, 0)
+	comboDisplay.Visible = false
+	
+	-- Kill Feed
+	local killFeed = Instance.new("Frame", screenGui)
+	killFeed.Name = "KillFeed"
+	killFeed.Size = UDim2.new(0, 250, 0, 150)
+	killFeed.Position = UDim2.new(1, -260, 0, 10)
+	killFeed.BackgroundTransparency = 1
+	
+	GUISystem.GUI = screenGui
+	return screenGui
+end
+
+function GUISystem.UpdateStats()
+	if not GUISystem.GUI then return end
+	local stats = GUISystem.GUI:FindFirstChild("StatsFrame")
+	if stats then
+		stats.Kills.Text = "Kills: " .. StateManager.KillCount
+		stats.Damage.Text = "Damage: " .. Utility.FormatNumber(StateManager.TotalDamageDealt)
+		stats.Combo.Text = "Combo: " .. StateManager.ComboCount .. "x"
+		stats.Time.Text = "Time: " .. math.floor(StateManager.TimeAlive) .. "s"
+		stats.PhaseNum.Text = "Phase: " .. StateManager.CurrentPhase
+	end
+end
+
+function GUISystem.UpdatePhase(phase)
+	if not GUISystem.GUI then return end
+	local phaseFrame = GUISystem.GUI:FindFirstChild("PhaseFrame")
+	if phaseFrame then
+		local phaseNames = {
+			[1] = "PHASE 1 - DORMANT",
+			[2] = "PHASE 2 - AWAKENED",
+			[3] = "PHASE 3 - CORRUPTED"
+		}
+		phaseFrame.PhaseText.Text = phaseNames[phase] or "UNKNOWN PHASE"
+		
+		-- Flash effect
+		coroutine.wrap(function()
+			for i = 1, 5 do
+				phaseFrame.PhaseText.TextTransparency = 1
+				wait(0.1)
+				phaseFrame.PhaseText.TextTransparency = 0
+				wait(0.1)
+			end
+		end)()
+	end
+end
+
+function GUISystem.ShowCombo(count)
+	if not GUISystem.GUI then return end
+	local comboDisplay = GUISystem.GUI:FindFirstChild("ComboDisplay")
+	if comboDisplay then
+		comboDisplay.Text = count .. "x COMBO!"
+		comboDisplay.Visible = true
+		comboDisplay.TextSize = 48
+		comboDisplay.TextTransparency = 0
+		
+		coroutine.wrap(function()
+			for i = 1, 10 do
+				wait(0.05)
+				comboDisplay.TextSize = 48 + i * 2
+			end
+			wait(0.5)
+			for i = 1, 10 do
+				wait(0.05)
+				comboDisplay.TextTransparency = comboDisplay.TextTransparency + 0.1
+			end
+			comboDisplay.Visible = false
+		end)()
+	end
+end
+
+function GUISystem.UpdateCooldowns()
+	if not GUISystem.GUI then return end
+	local cdFrame = GUISystem.GUI:FindFirstChild("CooldownFrame")
+	if not cdFrame then return end
+	
+	local abilityKeys = {"Teleport", "Grab", "Dash", "AOE", "Beam", "Shield", "Meteor", "Pillar"}
+	local abilityNames = {"[Z] Teleport", "[X] Grab", "[C] Dash", "[V] AOE Blast", "[B] Dark Beam", "[N] Shield", "[M] Meteors", "[G] Pillars"}
+	
+	for idx, key in ipairs(abilityKeys) do
+		local label = cdFrame:FindFirstChild("Ability" .. idx)
+		if label then
+			local remaining = StateManager:GetCooldownRemaining(key)
+			if remaining > 0 then
+				label.Text = abilityNames[idx] .. " - " .. string.format("%.1f", remaining) .. "s"
+				label.TextColor3 = Color3.new(1, 0.2, 0.2)
+			else
+				label.Text = abilityNames[idx] .. " - Ready"
+				label.TextColor3 = Color3.new(0, 1, 0)
+			end
+		end
+	end
+end
+
+function GUISystem.AddKillFeedEntry(playerName)
+	if not GUISystem.GUI then return end
+	local killFeed = GUISystem.GUI:FindFirstChild("KillFeed")
+	if not killFeed then return end
+	
+	-- Shift existing entries down
+	local children = killFeed:GetChildren()
+	for _, child in pairs(children) do
+		if child:IsA("TextLabel") then
+			child.Position = child.Position + UDim2.new(0, 0, 0, 25)
+			if child.Position.Y.Offset > 125 then
+				child:Destroy()
+			end
+		end
+	end
+	
+	local entry = Instance.new("TextLabel", killFeed)
+	entry.Size = UDim2.new(1, 0, 0, 22)
+	entry.Position = UDim2.new(0, 0, 0, 0)
+	entry.BackgroundColor3 = Color3.new(0.2, 0, 0)
+	entry.BackgroundTransparency = 0.5
+	entry.Text = "☠ " .. playerName .. " has been consumed"
+	entry.TextColor3 = Color3.new(1, 0.3, 0.3)
+	entry.Font = Enum.Font.Code
+	entry.TextSize = 12
+	entry.TextXAlignment = Enum.TextXAlignment.Left
+	
+	local corner = Instance.new("UICorner", entry)
+	corner.CornerRadius = UDim.new(0, 4)
+	
+	coroutine.wrap(function()
+		wait(5)
+		if entry and entry.Parent then
+			for i = 1, 10 do
+				wait(0.05)
+				entry.TextTransparency = entry.TextTransparency + 0.1
+				entry.BackgroundTransparency = entry.BackgroundTransparency + 0.05
+			end
+			entry:Destroy()
+		end
+	end)()
+end
+
+function GUISystem.ShowDamageNumber(position, damage, isCritical)
+	local billboard = Instance.new("BillboardGui")
+	billboard.Size = UDim2.new(0, 100, 0, 40)
+	billboard.StudsOffset = Vector3.new(math.random(-2, 2), math.random(1, 3), math.random(-2, 2))
+	billboard.AlwaysOnTop = true
+	
+	local part = Instance.new("Part", Workspace)
+	part.Size = Vector3.new(1, 1, 1)
+	part.Transparency = 1
+	part.Anchored = true
+	part.CanCollide = false
+	part.Position = position
+	
+	billboard.Parent = part
+	billboard.Adornee = part
+	
+	local text = Instance.new("TextLabel", billboard)
+	text.Size = UDim2.new(1, 0, 1, 0)
+	text.BackgroundTransparency = 1
+	text.Text = isCritical and "CRIT! " .. math.floor(damage) or tostring(math.floor(damage))
+	text.TextColor3 = isCritical and Color3.new(1, 1, 0) or Color3.new(1, 0, 0)
+	text.Font = Enum.Font.Fantasy
+	text.TextSize = isCritical and 28 or 20
+	text.TextStrokeTransparency = 0
+	text.TextStrokeColor3 = Color3.new(0, 0, 0)
+	
+	coroutine.wrap(function()
+		for i = 1, 20 do
+			wait(0.05)
+			part.Position = part.Position + Vector3.new(0, 0.2, 0)
+			text.TextTransparency = text.TextTransparency + 0.05
+			text.TextStrokeTransparency = text.TextStrokeTransparency + 0.05
+		end
+		part:Destroy()
+	end)()
+end
+
+-- Initialize GUI
+GUISystem.CreateMainGUI()
+
+--=============================================================--
+--                    NAME TAG                                   --
+--=============================================================--
+local naeeym = Instance.new("BillboardGui",chara)
+naeeym.Size = UDim2.new(0,100,0,40)
+naeeym.StudsOffset = Vector3.new(0,2,0)
+naeeym.Adornee = chara.Head
+local tecks = Instance.new("TextLabel",naeeym)
+tecks.BackgroundTransparency = 1
+tecks.BorderSizePixel = 0
+tecks.Text = "John Doe"
+tecks.Font = "Fantasy"
+tecks.FontSize = "Size24"
+tecks.TextStrokeTransparency = 0
+tecks.TextStrokeColor3 = Color3.new(0,0,0)
+tecks.TextColor3 = Color3.new(0,0,0)
+tecks.Size = UDim2.new(1,0,0.5,0)
+
+-- Subtitle text under the name
+local subtitleLabel = Instance.new("TextLabel", naeeym)
+subtitleLabel.BackgroundTransparency = 1
+subtitleLabel.BorderSizePixel = 0
+subtitleLabel.Text = ""
+subtitleLabel.Font = Enum.Font.Code
+subtitleLabel.TextSize = 14
+subtitleLabel.TextStrokeTransparency = 0
+subtitleLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+subtitleLabel.TextColor3 = Color3.new(1, 0, 0)
+subtitleLabel.Size = UDim2.new(1, 0, 0.3, 0)
+subtitleLabel.Position = UDim2.new(0, 0, 0.5, 0)
+
+--=============================================================--
+--                    SKYBOX                                     --
+--=============================================================--
+skybox = Instance.new("Part",chara)
+skybox.Size = Vector3.new(0,0,0)
+skybox.Anchored = true
+skybox.CanCollide = true
+skyboxmesh = Instance.new("SpecialMesh",skybox)
+skyboxmesh.MeshId = "http://www.roblox.com/asset/?id=1527559"
+skyboxmesh.TextureId = "http://www.roblox.com/asset/?id=1529455"
+skyboxmesh.VertexColor = Vector3.new(1,0,0)
+skyboxmesh.Scale = Vector3.new(-3000,-1000,-3000)
+
+--=============================================================--
+--                    DAMAGE SYSTEM                              --
+--=============================================================--
+local DamageSystem = {}
+
+function DamageSystem.CalculateDamage(baseDamage, isCritical)
+	local damage = baseDamage or CONFIG.BaseDamage
+	
+	-- Apply combo multiplier
+	damage = damage * StateManager:GetComboDamageMultiplier()
+	
+	-- Apply phase multiplier
+	damage = damage * StateManager:GetPhaseDamageMultiplier()
+	
+	-- Apply critical
+	if isCritical then
+		damage = damage * CONFIG.CriticalMultiplier
+	end
+	
+	return damage
+end
+
+function DamageSystem.RollCritical()
+	return math.random(1, 100) <= CONFIG.CriticalChance
+end
+
+function DamageSystem.ApplyDamage(humanoid, damage, position)
+	if humanoid and humanoid.Health > 0 then
+		local isCritical = DamageSystem.RollCritical()
+		local finalDamage = DamageSystem.CalculateDamage(damage, isCritical)
+		
+		humanoid:TakeDamage(finalDamage)
+		StateManager.TotalDamageDealt = StateManager.TotalDamageDealt + finalDamage
+		
+		if position then
+			GUISystem.ShowDamageNumber(position, finalDamage, isCritical)
+		end
+		
+		return finalDamage, isCritical
+	end
+	return 0, false
+end
+
+function DamageSystem.ApplyDOT(humanoid, damagePerTick, ticks, interval, effectFunc)
+	coroutine.wrap(function()
+		for i = 1, ticks do
+			if humanoid and humanoid.Health > 0 then
+				local torso = humanoid.Parent:FindFirstChild("Torso") or humanoid.Parent:FindFirstChild("UpperTorso")
+				DamageSystem.ApplyDamage(humanoid, damagePerTick, torso and torso.Position)
+				if effectFunc and torso then
+					effectFunc(torso)
+				end
+				wait(interval or 0.5)
+			else
+				break
+			end
+		end
+	end)()
+end
+
+--=============================================================--
+--                    SOUL STEAL                                 --
+--=============================================================--
+function SoulSteal(pos)
+	local soulst = coroutine.wrap(function()
+		local soul = Instance.new("Part",chara)
+		soul.Size = Vector3.new(0,0,0)
+		soul.CanCollide = false
+		soul.Anchored = false
+		soul.Position = pos
+		soul.CFrame = CFrame.new(pos.X,pos.Y,pos.Z)
+		soul.Transparency = 1
+		local ptc = Instance.new("ParticleEmitter",soul)
+		ptc.Texture = "http://www.roblox.com/asset/?id=413366101"
+		ptc.Size = NumberSequence.new(.5)
+		ptc.LockedToPart = true
+		ptc.Speed = NumberRange.new(0)
+		ptc.Lifetime = NumberRange.new(9999)
+		
+		-- Additional soul visual
+		local soulGlow = Instance.new("PointLight", soul)
+		soulGlow.Color = Color3.new(1, 0, 0)
+		soulGlow.Range = 5
+		soulGlow.Brightness = 2
+		
+		local bodpos = Instance.new("BodyPosition",soul)
+		bodpos.Position = pos
+		wait(2)
+		soul.Touched:connect(function(hit)
+			if hit.Parent == chara then
+				-- Soul absorbed effect
+				ParticleSystem.ExplosionEffect(soul.Position, Color3.new(1, 0, 0), 3)
+				soul:Destroy()
+			end
+		end)
+		while soul and soul.Parent do
+			wait(.1)
+			bodpos.Position = torso.Position
+		end
+	end)
+	soulst()
+end
+
+--=============================================================--
+--                    KILL MORTAL                                 --
+--=============================================================--
+function KillMortal(hitdude)
+	local torsy = nil
+	if hitdude:FindFirstChild("Torso")~=nil then
+		torsy = hitdude.Torso	
+	elseif hitdude:FindFirstChild("UpperTorso")~=nil then
+		torsy = hitdude.UpperTorso
+	end
+	local val = Instance.new("ObjectValue",hitdude)
+	val.Name = "HasBeenHit"
+	hitdude:BreakJoints()
+	hitdude.Humanoid:Destroy()
+	
+	-- Update stats
+	StateManager.KillCount = StateManager.KillCount + 1
+	
+	-- Get player name for kill feed
+	local playerName = "Unknown"
+	for _, plr in pairs(Players:GetPlayers()) do
+		if plr.Character == hitdude then
+			playerName = plr.Name
+			break
+		end
+	end
+	GUISystem.AddKillFeedEntry(playerName)
+	
+	SoulSteal(torsy.Position)
+	local chi = hitdude:GetChildren()
+	for i = 1, #chi do
+		if chi[i].ClassName == "Part" or chi[i].ClassName == "MeshPart" then
+			local bodpos = Instance.new("BodyPosition",chi[i])
+			bodpos.Position = chi[i].Position + Vector3.new(math.random(-5,5),math.random(-5,5),math.random(-5,5))
+			ScatterEff(chi[i])
+			chi[i].BrickColor = BrickColor.new("Really black")
+		end
+	end
+	for i = 1, 4 do
+		for i = 1, #chi do
+			if chi[i].ClassName == "Part" or chi[i].ClassName == "MeshPart" then
+				chi[i].Transparency = chi[i].Transparency + .25
+				wait(.01)
+			end
+		end
+	end
+	for i = 1, #chi do
+		if chi[i].ClassName == "Part" or chi[i].ClassName == "MeshPart" then
+			chi[i]:Destroy()
+		end
+	end
+end
+
+--=============================================================--
+--                    HITBOX SYSTEM                               --
+--=============================================================--
+bladeactive = false
+Hitbox.Touched:connect(function(hit)
+	if bladeactive == true then
+		if hit.Parent:FindFirstChild("Humanoid")~= nil and hit.Parent:FindFirstChild("HasBeenHit")== nil and hit.Parent ~= chara then
+			hitsnd:Play()
+			KillMortal(hit.Parent)
+		end
+	end
+end)
+
+--=============================================================--
+--                    TELEPORT ABILITY                            --
+--=============================================================--
+function Teleport(pos)
+	if StateManager:IsOnCooldown("Teleport") then return end
+	StateManager:SetCooldown("Teleport", CONFIG.TeleportCooldown)
+	
+	telesnd:Play()
+	local ch = chara:GetChildren()
+	for i = 1, #ch do
+		if ch[i].ClassName == "Part" and ch[i].Name ~= "HumanoidRootPart" then
+			local trace = Instance.new("Part",game.Workspace)
+			trace.Size = ch[i].Size
+			trace.Material = "Neon"
+			trace.BrickColor = BrickColor.new("Really black")
+			trace.Transparency = .3
+			trace.CanCollide = false
+			trace.Anchored = true
+			trace.CFrame = ch[i].CFrame
+			if ch[i].Name == "Head" then
+				mehs = Instance.new("CylinderMesh",trace)
+				mehs.Scale = Vector3.new(1.25,1.25,1.25)
+			end
+			tracedisappear = coroutine.wrap(function()
+				wait(1)
+				for i = 1, 7 do
+					wait(.1)
+					trace.Transparency = trace.Transparency + .1
+				end
+				trace:Destroy()
+			end)
+			tracedisappear()
+		end
+	end
+	
+	-- Particle effects at old and new position
+	ParticleSystem.ExplosionEffect(torso.Position, CONFIG.SecondaryColor, 5)
+	
+	torso.CFrame = CFrame.new(pos.X,pos.Y,pos.Z)
+	
+	ParticleSystem.ExplosionEffect(pos, CONFIG.PrimaryColor, 5)
+	
+	StateManager.AbilitiesUsed = StateManager.AbilitiesUsed + 1
+end
+
+--=============================================================--
+--                    GRAB ABILITY                               --
+--=============================================================--
+function Grab(mouse)
+	if StateManager:IsOnCooldown("Grab") or StateManager.IsGrabbing then return end
+	StateManager.IsGrabbing = true
+	
+	local hit = mouse.Target
+	if hit ~= nil then
+		if hit.Parent:FindFirstChild("Humanoid")~=nil then
+			local torsy = nil
+			if hit.Parent:FindFirstChild("Torso")~=nil then
+				torsy = hit.Parent.Torso
+			elseif hit.Parent:FindFirstChild("UpperTorso")~=nil then
+				torsy = hit.Parent.UpperTorso
+			end
+			local bodpos = Instance.new("BodyPosition",torsy)
+			bodpos.Position = torsy.Position
+			wait(1)
+			burnsnd:Play()
+			hit.Parent.Humanoid.MaxHealth = 100
+			bodpos.Position = bodpos.Position + Vector3.new(0,4,0)
+			for i = 1, CONFIG.GrabTicks do
+				wait(.1)
+				BurningEff(torsy)
+				hit.Parent.Humanoid.Health = hit.Parent.Humanoid.Health - CONFIG.GrabDamagePerTick
+				GUISystem.ShowDamageNumber(torsy.Position, CONFIG.GrabDamagePerTick, false)
+			end
+			KillMortal(hit.Parent)
+			StateManager:SetCooldown("Grab", 3)
+		end
+	end
+	
+	StateManager.IsGrabbing = false
+	StateManager.AbilitiesUsed = StateManager.AbilitiesUsed + 1
+end
+
+--=============================================================--
+--                    DASH ABILITY                               --
+--=============================================================--
+function DashAttack()
+	if StateManager:IsOnCooldown("Dash") or StateManager.IsDashing then return end
+	StateManager.IsDashing = true
+	StateManager:SetCooldown("Dash", CONFIG.DashCooldown)
+	
+	dashsnd:Play()
+	
+	-- Create dash trail
+	local dashTrail = Instance.new("Part", Workspace)
+	dashTrail.Size = Vector3.new(1, 1, 1)
+	dashTrail.Transparency = 1
+	dashTrail.Anchored = false
+	dashTrail.CanCollide = false
+	dashTrail.CFrame = torso.CFrame
+	
+	local trailObj, att0, att1 = ParticleSystem.TrailEffect(torso, CONFIG.PrimaryColor, 0.5)
+	
+	-- Apply velocity
+	local bodyVelocity = Instance.new("BodyVelocity", rootPart)
+	bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+	bodyVelocity.Velocity = rootPart.CFrame.LookVector * CONFIG.DashSpeed
+	
+	-- Damage anyone in the way
+	local dashConnection
+	dashConnection = RunService.Heartbeat:Connect(function()
+		local hitPlayers = Utility.GetAllPlayersInRange(torso.Position, 5, chara)
+		for _, data in pairs(hitPlayers) do
+			if data.Character:FindFirstChild("Humanoid") and not data.Character:FindFirstChild("HasBeenHit") then
+				hitsnd:Play()
+				KillMortal(data.Character)
+			end
+		end
+	end)
+	
+	-- Create afterimages
+	coroutine.wrap(function()
+		for i = 1, 5 do
+			wait(CONFIG.DashDuration / 5)
+			local afterimage = Instance.new("Part", Workspace)
+			afterimage.Size = torso.Size
+			afterimage.CFrame = torso.CFrame
+			afterimage.Anchored = true
+			afterimage.CanCollide = false
+			afterimage.Material = Enum.Material.Neon
+			afterimage.BrickColor = BrickColor.new("Really red")
+			afterimage.Transparency = 0.5
+			
+			coroutine.wrap(function()
+				for j = 1, 10 do
+					wait(0.05)
+					afterimage.Transparency = afterimage.Transparency + 0.05
+				end
+				afterimage:Destroy()
+			end)()
+		end
+	end)()
+	
+	wait(CONFIG.DashDuration)
+	
+	bodyVelocity:Destroy()
+	dashConnection:Disconnect()
+	
+	if trailObj then trailObj:Destroy() end
+	if att0 then att0:Destroy() end
+	if att1 then att1:Destroy() end
+	
+	StateManager.IsDashing = false
+	StateManager.AbilitiesUsed = StateManager.AbilitiesUsed + 1
+end
+
+--=============================================================--
+--                    AOE BLAST ABILITY                          --
+--=============================================================--
+function AOEBlast()
+	if StateManager:IsOnCooldown("AOE") then return end
+	StateManager:SetCooldown("AOE", CONFIG.AOECooldown)
+	
+	aoesnd:Play()
+	Utility.Shake(1, 0.5)
+	
+	-- Charge up animation
+	ParticleSystem.SpiralEffect(torso, 1, CONFIG.PrimaryColor)
+	
+	wait(0.5)
+	
+	-- Create shockwave
+	ParticleSystem.ShockwaveEffect(torso.Position, CONFIG.AOERadius, CONFIG.PrimaryColor)
+	ParticleSystem.ExplosionEffect(torso.Position, CONFIG.PrimaryColor, 15)
+	ParticleSystem.GroundCrack(torso.Position, CONFIG.AOERadius * 0.5, CONFIG.PrimaryColor)
+	
+	-- Damage all players in range
+	local hitPlayers = Utility.GetAllPlayersInRange(torso.Position, CONFIG.AOERadius, chara)
+	for _, data in pairs(hitPlayers) do
+		if data.Character:FindFirstChild("Humanoid") and not data.Character:FindFirstChild("HasBeenHit") then
+			local humanoid = data.Character.Humanoid
+			local targetTorso = data.Character:FindFirstChild("Torso") or data.Character:FindFirstChild("UpperTorso")
+			if targetTorso then
+				-- Knockback
+				local knockbackDir = (targetTorso.Position - torso.Position).Unit
+				local bv = Instance.new("BodyVelocity", targetTorso)
+				bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+				bv.Velocity = knockbackDir * 80 + Vector3.new(0, 40, 0)
+				Debris:AddItem(bv, 0.5)
+				
+				DamageSystem.ApplyDamage(humanoid, CONFIG.AOEDamage, targetTorso.Position)
+				
+				-- Apply burning DOT
+				DamageSystem.ApplyDOT(humanoid, 5, 5, 0.5, function(part)
+					BurningEff(part)
+				end)
+			end
+		end
+	end
+	
+	-- Create ground effect
+	for i = 1, 12 do
+		local angle = (i / 12) * math.pi * 2
+		local pillar = Instance.new("Part", Workspace)
+		pillar.Size = Vector3.new(2, 1, 2)
+		pillar.Material = Enum.Material.Neon
+		pillar.BrickColor = BrickColor.new("Really red")
+		pillar.Anchored = true
+		pillar.CanCollide = false
+		pillar.CFrame = CFrame.new(torso.Position + Vector3.new(math.cos(angle) * CONFIG.AOERadius * 0.5, -2, math.sin(angle) * CONFIG.AOERadius * 0.5))
+		
+		local tween = Utility.CreateTween(pillar, {
+			Size = Vector3.new(2, 15, 2),
+			Position = pillar.Position + Vector3.new(0, 7.5, 0),
+			Transparency = 1
+		}, 1.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+		tween:Play()
+		tween.Completed:Connect(function()
+			pillar:Destroy()
+		end)
+	end
+	
+	StateManager.AbilitiesUsed = StateManager.AbilitiesUsed + 1
+end
+
+--=============================================================--
+--                    DARK BEAM ABILITY                          --
+--=============================================================--
+function DarkBeam()
+	if StateManager:IsOnCooldown("Beam") then return end
+	StateManager:SetCooldown("Beam", CONFIG.BeamCooldown)
+	
+	beamsnd:Play()
+	chargesnd:Play()
+	
+	-- Charge effect
+	local chargeEffect = ParticleSystem.ChargeEffect(rightArm)
+	wait(0.5)
+	
+	-- Fire beam
+	local beamStart = rightArm.Position
+	local beamDirection = rootPart.CFrame.LookVector
+	local beamEnd = beamStart + beamDirection * CONFIG.BeamLength
+	
+	-- Create beam visual
+	local beamPart = Instance.new("Part", Workspace)
+	beamPart.Size = Vector3.new(CONFIG.BeamWidth, CONFIG.BeamWidth, CONFIG.BeamLength)
+	beamPart.Material = Enum.Material.Neon
+	beamPart.BrickColor = BrickColor.new("Really red")
+	beamPart.Anchored = true
+	beamPart.CanCollide = false
+	beamPart.CFrame = CFrame.new(beamStart, beamEnd) * CFrame.new(0, 0, -CONFIG.BeamLength / 2)
+	beamPart.Transparency = 0.3
+	
+	-- Beam glow
+	local beamLight = Instance.new("PointLight", beamPart)
+	beamLight.Color = Color3.new(1, 0, 0)
+	beamLight.Range = 30
+	beamLight.Brightness = 5
+	
+	-- Inner beam
+	local innerBeam = Instance.new("Part", Workspace)
+	innerBeam.Size = Vector3.new(CONFIG.BeamWidth * 0.5, CONFIG.BeamWidth * 0.5, CONFIG.BeamLength)
+	innerBeam.Material = Enum.Material.Neon
+	innerBeam.BrickColor = BrickColor.new("Institutional white")
+	innerBeam.Anchored = true
+	innerBeam.CanCollide = false
+	innerBeam.CFrame = beamPart.CFrame
+	innerBeam.Transparency = 0.1
+	
+	ParticleSystem.BurningEff(beamPart)
+	
+	Utility.Shake(0.5, CONFIG.BeamDuration)
+	
+	-- Damage along beam path
+	local raycastParams = RaycastParams.new()
+	raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+	raycastParams.FilterDescendantsInstances = {chara}
+	
+	-- Check for players along beam
+	local hitPlayers = {}
+	for _, plr in pairs(Players:GetPlayers()) do
+		if plr.Character and plr.Character ~= chara and plr.Character:FindFirstChild("Humanoid") then
+			local targetTorso = plr.Character:FindFirstChild("Torso") or plr.Character:FindFirstChild("UpperTorso")
+			if targetTorso then
+				-- Check if player is near the beam line
+				local toTarget = targetTorso.Position - beamStart
+				local projected = toTarget:Dot(beamDirection)
+				if projected > 0 and projected < CONFIG.BeamLength then
+					local closestPoint = beamStart + beamDirection * projected
+					local distance = (targetTorso.Position - closestPoint).Magnitude
+					if distance < CONFIG.BeamWidth * 3 then
+						table.insert(hitPlayers, plr.Character)
+					end
+				end
+			end
+		end
+	end
+	
+	for _, hitChar in pairs(hitPlayers) do
+		if hitChar:FindFirstChild("Humanoid") and not hitChar:FindFirstChild("HasBeenHit") then
+			local targetTorso = hitChar:FindFirstChild("Torso") or hitChar:FindFirstChild("UpperTorso")
+			DamageSystem.ApplyDamage(hitChar.Humanoid, CONFIG.BeamDamage, targetTorso and targetTorso.Position)
+			BurningEff(targetTorso)
+			
+			if hitChar.Humanoid.Health <= 0 then
+				KillMortal(hitChar)
+			end
+		end
+	end
+	
+	-- Fade beam
+	coroutine.wrap(function()
+		wait(CONFIG.BeamDuration)
+		for i = 1, 10 do
+			wait(0.05)
+			beamPart.Transparency = beamPart.Transparency + 0.07
+			innerBeam.Transparency = innerBeam.Transparency + 0.09
+		end
+		beamPart:Destroy()
+		innerBeam:Destroy()
+	end)()
+	
+	-- Clean up charge effect
+	if chargeEffect then
+		chargeEffect:Destroy()
+	end
+	
+	StateManager.AbilitiesUsed = StateManager.AbilitiesUsed + 1
+end
+
+--=============================================================--
+--                    SHIELD ABILITY                              --
+--=============================================================--
+function ActivateShield()
+	if StateManager:IsOnCooldown("Shield") or StateManager.IsShielded then return end
+	StateManager.IsShielded = true
+	StateManager:SetCooldown("Shield", CONFIG.ShieldCooldown)
+	
+	shieldsnd:Play()
+	
+	-- Create shield visual
+	local shield = Instance.new("Part", Workspace)
+	shield.Shape = Enum.PartType.Ball
+	shield.Size = Vector3.new(12, 12, 12)
+	shield.Material = Enum.Material.ForceField
+	shield.BrickColor = BrickColor.new("Really red")
+	shield.Anchored = false
+	shield.CanCollide = false
+	shield.Transparency = 0.6
+	shield.Name = "DarkShield"
+	
+	local shieldWeld = Instance.new("Weld", shield)
+	shieldWeld.Part0 = shield
+	shieldWeld.Part1 = torso
+	
+	-- Shield glow
+	local shieldLight = Instance.new("PointLight", shield)
+	shieldLight.Color = Color3.new(1, 0, 0)
+	shieldLight.Range = 20
+	shieldLight.Brightness = 3
+	
+	-- Shield particles
+	local shieldParticles = ParticleSystem.DarkAura(shield)
+	
+	-- Pulsing effect
+	coroutine.wrap(function()
+		local elapsed = 0
+		while elapsed < CONFIG.ShieldDuration and shield and shield.Parent do
+			wait(0.05)
+			elapsed = elapsed + 0.05
+			shield.Transparency = 0.5 + math.sin(elapsed * 5) * 0.2
+			
+			-- Repel nearby players
+			local nearbyPlayers = Utility.GetAllPlayersInRange(torso.Position, 8, chara)
+			for _, data in pairs(nearbyPlayers) do
+				local targetTorso = data.Character:FindFirstChild("Torso") or data.Character:FindFirstChild("UpperTorso")
+				if targetTorso then
+					local dir = (targetTorso.Position - torso.Position).Unit
+					local bv = Instance.new("BodyVelocity", targetTorso)
+					bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+					bv.Velocity = dir * 50 + Vector3.new(0, 20, 0)
+					Debris:AddItem(bv, 0.2)
+					
+					DamageSystem.ApplyDamage(data.Character.Humanoid, 5, targetTorso.Position)
+				end
+			end
+		end
+		
+		-- Shield expire effect
+		if shield and shield.Parent then
+			ParticleSystem.ExplosionEffect(torso.Position, CONFIG.PrimaryColor, 8)
+			shield:Destroy()
+		end
+		
+		StateManager.IsShielded = false
+	end)()
+	
+	StateManager.AbilitiesUsed = StateManager.AbilitiesUsed + 1
+end
+
+--=============================================================--
+--                    METEOR SHOWER ABILITY                       --
+--=============================================================--
+function MeteorShower()
+	if StateManager:IsOnCooldown("Meteor") then return end
+	StateManager:SetCooldown("Meteor", CONFIG.MeteorCooldown)
+	
+	meteorsnd:Play()
+	chargesnd:Play()
+	
+	-- Charge animation
+	ParticleSystem.VortexEffect(torso.Position, 2, 10)
+	wait(1)
+	
+	thundersnd:Play()
+	Utility.Shake(1.5, 3)
+	
+	-- Spawn meteors
+	for i = 1, CONFIG.MeteorCount do
+		coroutine.wrap(function()
+			wait(i * 0.3)
+			
+			-- Random target position around the player or at cursor
+			local targetPos = torso.Position + Vector3.new(
+				math.random(-30, 30),
+				0,
+				math.random(-30, 30)
+			)
+			
+			local spawnPos = targetPos + Vector3.new(math.random(-10, 10), 80, math.random(-10, 10))
+			
+			-- Create meteor
+			local meteor = Instance.new("Part", Workspace)
+			meteor.Shape = Enum.PartType.Ball
+			meteor.Size = Vector3.new(4, 4, 4)
+			meteor.Material = Enum.Material.Neon
+			meteor.BrickColor = BrickColor.new("Really red")
+			meteor.Anchored = true
+			meteor.CanCollide = false
+			meteor.Position = spawnPos
+			
+			-- Meteor trail
+			local meteorTrail, att0, att1 = ParticleSystem.TrailEffect(meteor, CONFIG.PrimaryColor, 1)
+			BurningEff(meteor)
+			
+			-- Meteor glow
+			local meteorLight = Instance.new("PointLight", meteor)
+			meteorLight.Color = Color3.new(1, 0, 0)
+			meteorLight.Range = 20
+			meteorLight.Brightness = 5
+			
+			-- Warning indicator on ground
+			local warning = Instance.new("Part", Workspace)
+			warning.Shape = Enum.PartType.Cylinder
+			warning.Size = Vector3.new(0.2, CONFIG.MeteorRadius * 2, CONFIG.MeteorRadius * 2)
+			warning.Material = Enum.Material.Neon
+			warning.BrickColor = BrickColor.new("Really red")
+			warning.Anchored = true
+			warning.CanCollide = false
+			warning.CFrame = CFrame.new(targetPos.X, targetPos.Y - 2, targetPos.Z) * CFrame.Angles(0, 0, math.rad(90))
+			warning.Transparency = 0.5
+			
+			-- Animate warning
+			coroutine.wrap(function()
+				for j = 1, 10 do
+					wait(0.1)
+					warning.Transparency = 0.3 + math.sin(j) * 0.2
+				end
+			end)()
+			
+			-- Animate meteor falling
+			local fallDuration = 1
+			local startTime = tick()
+			
+			while tick() - startTime < fallDuration do
+				local t = (tick() - startTime) / fallDuration
+				local currentPos = spawnPos:Lerp(targetPos, t)
+				meteor.Position = currentPos
+				wait(0.02)
+			end
+			
+			-- Impact!
+			meteor.Position = targetPos
+			ParticleSystem.ExplosionEffect(targetPos, CONFIG.PrimaryColor, 12)
+			ParticleSystem.GroundCrack(targetPos, CONFIG.MeteorRadius * 0.6, CONFIG.PrimaryColor)
+			ParticleSystem.ShockwaveEffect(targetPos, CONFIG.MeteorRadius, CONFIG.PrimaryColor)
+			
+			SoundSystem.PlayAtPosition(CONFIG.Sounds.Thunder, targetPos, {Volume = 5, PlaybackSpeed = 0.8})
+			Utility.Shake(0.8, 0.3)
+			
+			-- Damage
+			local hitPlayers = Utility.GetAllPlayersInRange(targetPos, CONFIG.MeteorRadius, chara)
+			for _, data in pairs(hitPlayers) do
+				if data.Character:FindFirstChild("Humanoid") and not data.Character:FindFirstChild("HasBeenHit") then
+					local targetTorso = data.Character:FindFirstChild("Torso") or data.Character:FindFirstChild("UpperTorso")
+					DamageSystem.ApplyDamage(data.Character.Humanoid, CONFIG.MeteorDamage, targetTorso and targetTorso.Position)
+					
+					-- Knockback
+					if targetTorso then
+						local dir = (targetTorso.Position - targetPos).Unit
+						local bv = Instance.new("BodyVelocity", targetTorso)
+						bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+						bv.Velocity = dir * 60 + Vector3.new(0, 30, 0)
+						Debris:AddItem(bv, 0.5)
+					end
+					
+					if data.Character.Humanoid.Health <= 0 then
+						KillMortal(data.Character)
+					end
+				end
+			end
+			
+			-- Cleanup
+			warning:Destroy()
+			meteor:Destroy()
+		end)()
+	end
+	
+	StateManager.AbilitiesUsed = StateManager.AbilitiesUsed + 1
+end
+
+--=============================================================--
+--                    DARK PILLARS ABILITY                        --
+--=============================================================--
+function DarkPillars()
+	if StateManager:IsOnCooldown("Pillar") then return end
+	StateManager:SetCooldown("Pillar", CONFIG.PillarCooldown)
+	
+	thundersnd:Play()
+	Utility.Shake(0.5, 1)
+	
+	-- Create pillars around the player
+	for i = 1, CONFIG.PillarCount do
+		coroutine.wrap(function()
+			wait(i * 0.2)
+			
+			local angle = (i / CONFIG.PillarCount) * math.pi * 2
+			local distance = 15
+			local pillarPos = torso.Position + Vector3.new(
+				math.cos(angle) * distance,
+				-3,
+				math.sin(angle) * distance
+			)
+			
+			-- Create pillar
+			local pillar = Instance.new("Part", Workspace)
+			pillar.Size = Vector3.new(4, 1, 4)
+			pillar.Material = Enum.Material.Granite
+			pillar.BrickColor = BrickColor.new("Really black")
+			pillar.Anchored = true
+			pillar.CanCollide = true
+			pillar.CFrame = CFrame.new(pillarPos)
+			
+			-- Neon edges
+			local neonEdge = Instance.new("Part", Workspace)
+			neonEdge.Size = Vector3.new(4.2, 0.5, 4.2)
+			neonEdge.Material = Enum.Material.Neon
+			neonEdge.BrickColor = BrickColor.new("Really red")
+			neonEdge.Anchored = true
+			neonEdge.CanCollide = false
+			neonEdge.CFrame = CFrame.new(pillarPos)
+			
+			-- Pillar light
+			local pillarLight = Instance.new("PointLight", pillar)
+			pillarLight.Color = Color3.new(1, 0, 0)
+			pillarLight.Range = 15
+			pillarLight.Brightness = 3
+			
+			BurningEff(pillar)
+			
+			-- Grow animation
+			local targetSize = Vector3.new(4, CONFIG.PillarHeight, 4)
+			local targetPos = pillarPos + Vector3.new(0, CONFIG.PillarHeight / 2, 0)
+			
+			local growTween = Utility.CreateTween(pillar, {
+				Size = targetSize,
+				Position = targetPos
+			}, 0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+			growTween:Play()
+			
+			local edgeTween = Utility.CreateTween(neonEdge, {
+				Size = Vector3.new(4.2, CONFIG.PillarHeight + 0.5, 4.2),
+				Position = targetPos
+			}, 0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+			edgeTween:Play()
+			
+			SoundSystem.PlayAtPosition(CONFIG.Sounds.Thunder, pillarPos, {Volume = 4, PlaybackSpeed = 1.2})
+			Utility.Shake(0.3, 0.2)
+			
+			-- Damage
+			growTween.Completed:Connect(function()
+				local hitPlayers = Utility.GetAllPlayersInRange(pillarPos, 6, chara)
+				for _, data in pairs(hitPlayers) do
+					if data.Character:FindFirstChild("Humanoid") and not data.Character:FindFirstChild("HasBeenHit") then
+						local targetTorso = data.Character:FindFirstChild("Torso") or data.Character:FindFirstChild("UpperTorso")
+						DamageSystem.ApplyDamage(data.Character.Humanoid, CONFIG.PillarDamage, targetTorso and targetTorso.Position)
+						
+						-- Launch upward
+						if targetTorso then
+							local bv = Instance.new("BodyVelocity", targetTorso)
+							bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+							bv.Velocity = Vector3.new(0, 80, 0)
+							Debris:AddItem(bv, 0.5)
+						end
+						
+						if data.Character.Humanoid.Health <= 0 then
+							KillMortal(data.Character)
+						end
+					end
+				end
+			end)
+			
+			-- Destroy pillar after a while
+			wait(3)
+			
+			local shrinkTween = Utility.CreateTween(pillar, {
+				Size = Vector3.new(4, 1, 4),
+				Position = pillarPos,
+				Transparency = 1
+			}, 1, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+			shrinkTween:Play()
+			
+			local edgeShrinkTween = Utility.CreateTween(neonEdge, {
+				Size = Vector3.new(4.2, 0.5, 4.2),
+				Position = pillarPos,
+				Transparency = 1
+			}, 1, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+			edgeShrinkTween:Play()
+			
+			shrinkTween.Completed:Connect(function()
+				pillar:Destroy()
+				neonEdge:Destroy()
+			end)
+		end)()
+	end
+	
+	StateManager.AbilitiesUsed = StateManager.AbilitiesUsed + 1
+end
+
+--=============================================================--
+--                    DARK CHAIN ABILITY                          --
+--=============================================================--
+function DarkChain()
+	if StateManager:IsOnCooldown("Chain") then return end
+	StateManager:SetCooldown("Chain", 6)
+	
+	-- Find nearest target
+	local target, dist = Utility.GetNearestPlayer(torso.Position, 60, chara)
+	if not target then return end
+	
+	local targetTorso = target:FindFirstChild("Torso") or target:FindFirstChild("UpperTorso")
+	if not targetTorso then return end
+	
+	beamsnd:Play()
+	
+	-- Create chain visual (series of small parts)
+	local chainParts = {}
+	local segments = 20
+	local startPos = rightArm.Position
+	local endPos = targetTorso.Position
+	
+	for i = 1, segments do
+		local t = i / segments
+		local pos = startPos:Lerp(endPos, t)
+		
+		local chainLink = Instance.new("Part", Workspace)
+		chainLink.Size = Vector3.new(0.5, 0.5, 0.5)
+		chainLink.Shape = Enum.PartType.Ball
+		chainLink.Material = Enum.Material.Neon
+		chainLink.BrickColor = BrickColor.new("Really red")
+		chainLink.Anchored = true
+		chainLink.CanCollide = false
+		chainLink.Position = pos
+		
+		table.insert(chainParts, chainLink)
+	end
+	
+	-- Pull target
+	local bodpos = Instance.new("BodyPosition", targetTorso)
+	bodpos.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+	bodpos.Position = torso.Position + torso.CFrame.LookVector * 5
+	
+	-- Animate chain
+	coroutine.wrap(function()
+		for frame = 1, 30 do
+			wait(0.05)
+			local currentEndPos = targetTorso.Position
+			for i, link in ipairs(chainParts) do
+				local t = i / #chainParts
+				link.Position = startPos:Lerp(currentEndPos, t)
+				link.Transparency = frame / 30
+			end
+		end
+		
+		-- Cleanup
+		for _, link in pairs(chainParts) do
+			link:Destroy()
+		end
+		bodpos:Destroy()
+	end)()
+	
+	-- Damage on arrival
+	wait(1)
+	if target:FindFirstChild("Humanoid") and target.Humanoid.Health > 0 then
+		DamageSystem.ApplyDamage(target.Humanoid, 30, targetTorso.Position)
+		hitsnd:Play()
+	end
+	
+	StateManager.AbilitiesUsed = StateManager.AbilitiesUsed + 1
+end
+
+--=============================================================--
+--                    DARK SPIKES ABILITY                         --
+--=============================================================--
+function DarkSpikes()
+	if StateManager:IsOnCooldown("Spikes") then return end
+	StateManager:SetCooldown("Spikes", 5)
+	
+	thundersnd:Play()
+	
+	local direction = rootPart.CFrame.LookVector
+	local startPos = torso.Position
+	
+	-- Create line of spikes
+	for i = 1, 10 do
+		coroutine.wrap(function()
+			wait(i * 0.1)
+			
+			local spikePos = startPos + direction * (i * 5) + Vector3.new(0, -2, 0)
+			
+			local spike = Instance.new("Part", Workspace)
+			spike.Size = Vector3.new(2, 1, 2)
+			spike.Material = Enum.Material.Granite
+			spike.BrickColor = BrickColor.new("Really black")
+			spike.Anchored = true
+			spike.CanCollide = true
+			spike.CFrame = CFrame.new(spikePos) * CFrame.Angles(0, math.random() * math.pi * 2, 0)
+			
+			-- Spike mesh (wedge shape)
+			local mesh = Instance.new("SpecialMesh", spike)
+			mesh.MeshType = Enum.MeshType.Wedge
+			mesh.Scale = Vector3.new(1, 5, 1)
+			
+			-- Neon accent
+			local accent = Instance.new("Part", Workspace)
+			accent.Size = Vector3.new(2.1, 0.5, 2.1)
+			accent.Material = Enum.Material.Neon
+			accent.BrickColor = BrickColor.new("Really red")
+			accent.Anchored = true
+			accent.CanCollide = false
+			accent.Position = spikePos
+			
+			-- Grow animation
+			spike.Size = Vector3.new(2, 0.1, 2)
+			local growTween = Utility.CreateTween(spike, {
+				Size = Vector3.new(2, 8, 2),
+				Position = spikePos + Vector3.new(0, 4, 0)
+			}, 0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+			growTween:Play()
+			
+			ParticleSystem.ExplosionEffect(spikePos, CONFIG.PrimaryColor, 3)
+			
+			-- Damage
+			wait(0.1)
+			local hitPlayers = Utility.GetAllPlayersInRange(spikePos, 5, chara)
+			for _, data in pairs(hitPlayers) do
+				if data.Character:FindFirstChild("Humanoid") and not data.Character:FindFirstChild("HasBeenHit") then
+					local targetTorso = data.Character:FindFirstChild("Torso") or data.Character:FindFirstChild("UpperTorso")
+					DamageSystem.ApplyDamage(data.Character.Humanoid, 25, targetTorso and targetTorso.Position)
+					
+					if targetTorso then
+						local bv = Instance.new("BodyVelocity", targetTorso)
+						bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+						bv.Velocity = Vector3.new(0, 50, 0)
+						Debris:AddItem(bv, 0.3)
+					end
+					
+					if data.Character.Humanoid.Health <= 0 then
+						KillMortal(data.Character)
+					end
+				end
+			end
+			
+			-- Despawn
+			wait(2)
+			local shrinkTween = Utility.CreateTween(spike, {
+				Size = Vector3.new(2, 0.1, 2),
+				Position = spikePos,
+				Transparency = 1
+			}, 0.5)
+			shrinkTween:Play()
+			
+			local accentTween = Utility.CreateTween(accent, {Transparency = 1}, 0.5)
+			accentTween:Play()
+			
+			shrinkTween.Completed:Connect(function()
+				spike:Destroy()
+				accent:Destroy()
+			end)
+		end)()
+	end
+	
+	StateManager.AbilitiesUsed = StateManager.AbilitiesUsed + 1
+end
+
+--=============================================================--
+--                    PHASE TRANSITION SYSTEM                    --
+--=============================================================--
+local PhaseSystem = {}
+
+function PhaseSystem.TransitionToPhase(phase)
+	if StateManager.CurrentPhase >= phase then return end
+	StateManager.CurrentPhase = phase
+	
+	powerupsnd:Play()
+	GUISystem.UpdatePhase(phase)
+	
+	-- Dramatic effect
+	Utility.Shake(2, 3)
+	ParticleSystem.VortexEffect(torso.Position, 3, 15)
+	ParticleSystem.ExplosionEffect(torso.Position, CONFIG.PrimaryColor, 20)
+	ParticleSystem.ShockwaveEffect(torso.Position, 50, CONFIG.PrimaryColor)
+	
+	-- Knockback all nearby players
+	local nearbyPlayers = Utility.GetAllPlayersInRange(torso.Position, 40, chara)
+	for _, data in pairs(nearbyPlayers) do
+		local targetTorso = data.Character:FindFirstChild("Torso") or data.Character:FindFirstChild("UpperTorso")
+		if targetTorso then
+			local dir = (targetTorso.Position - torso.Position).Unit
+			local bv = Instance.new("BodyVelocity", targetTorso)
+			bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+			bv.Velocity = dir * 100 + Vector3.new(0, 50, 0)
+			Debris:AddItem(bv, 0.5)
+		end
+	end
+	
+	if phase == 2 then
+		PhaseSystem.Phase2Effects()
+	elseif phase == 3 then
+		PhaseSystem.Phase3Effects()
+	end
+end
+
+function PhaseSystem.Phase2Effects()
+	-- Enable second eye fire
+	EyeFire2.Transparency = 0
+	
+	-- Add more particle effects
+	local eyeEff1 = Instance.new("ParticleEmitter", EyeFire2)
+	eyeEff1.Size = NumberSequence.new(.1)
+	eyeEff1.Transparency = NumberSequence.new({NumberSequenceKeypoint.new(0,0),NumberSequenceKeypoint.new(.2,0),NumberSequenceKeypoint.new(1,1)})
+	eyeEff1.LightEmission = 1
+	eyeEff1.Lifetime = NumberRange.new(.5)
+	eyeEff1.Speed = NumberRange.new(1)
+	eyeEff1.EmissionDirection = "Front"
+	eyeEff1.Rate = 100
+	eyeEff1.Texture = "rbxassetid://347504241"
+	eyeEff1.Acceleration = Vector3.new(0,10,0)
+	eyeEff1.Color = ColorSequence.new(Color3.new(1,0,0))
+	
+	-- Body aura
+	ParticleSystem.DarkAura(torso)
+	ParticleSystem.LightningEffect(torso)
+	
+	-- Change music tempo
+	music1.PlaybackSpeed = 0.7
+	music2.PlaybackSpeed = 0.3
+	
+	-- Update lighting
+	Lighting.Ambient = Color3.new(0.5, 0, 0)
+	Lighting.OutdoorAmbient = Color3.new(0.5, 0, 0)
+	Lighting.FogEnd = 500
+	Lighting.FogColor = Color3.new(0.1, 0, 0)
+	
+	-- Update name tag
+	tecks.TextColor3 = Color3.new(0.5, 0, 0)
+	subtitleLabel.Text = "- Awakened Form -"
+end
+
+function PhaseSystem.Phase3Effects()
+	-- Full corruption effects
+	ParticleSystem.DarkAura(leftArm)
+	ParticleSystem.DarkAura(rightArm)
+	ParticleSystem.DarkAura(leftLeg)
+	ParticleSystem.DarkAura(rightLeg)
+	ParticleSystem.DarkAura(head)
+	ParticleSystem.LightningEffect(leftArm)
+	ParticleSystem.LightningEffect(rightArm)
+	
+	-- Corrupted body parts glow more
+	for _, child in pairs(chara:GetDescendants()) do
+		if child:IsA("Part") and child.Material == Enum.Material.Granite then
+			local glow = Instance.new("PointLight", child)
+			glow.Color = Color3.new(1, 0, 0)
+			glow.Range = 5
+			glow.Brightness = 2
+		end
+	end
+	
+	-- Change music
+	music1.PlaybackSpeed = 1
+	music2.PlaybackSpeed = 0.5
+	music2.Volume = 8
+	
+	-- Extreme lighting
+	Lighting.Ambient = Color3.new(0.8, 0, 0)
+	Lighting.OutdoorAmbient = Color3.new(0.8, 0, 0)
+	Lighting.FogEnd = 200
+	Lighting.FogColor = Color3.new(0.05, 0, 0)
+	Lighting.Brightness = 0
+	
+	-- Update name tag
+	tecks.TextColor3 = Color3.new(1, 0, 0)
+	tecks.TextSize = 28
+	subtitleLabel.Text = "- True Corruption -"
+	subtitleLabel.TextColor3 = Color3.new(1, 0.3, 0)
+	
+	-- Skybox becomes more intense
+	skyboxmesh.VertexColor = Vector3.new(1, 0, 0)
+	skyboxmesh.Scale = Vector3.new(-4000, -1500, -4000)
+end
+
+-- Auto phase transition based on kills
+function PhaseSystem.CheckPhaseTransition()
+	if StateManager.KillCount >= 3 and StateManager.CurrentPhase < 2 then
+		PhaseSystem.TransitionToPhase(2)
+	elseif StateManager.KillCount >= 7 and StateManager.CurrentPhase < 3 then
+		PhaseSystem.TransitionToPhase(3)
+	end
+end
+
+--=============================================================--
+--                    ENVIRONMENTAL EFFECTS                      --
+--=============================================================--
+local EnvironmentSystem = {}
+
+function EnvironmentSystem.CorruptTerrain(position, radius)
+	-- Create corrupted ground patches
+	for i = 1, 8 do
+		local angle = (i / 8) * math.pi * 2
+		local dist = math.random(3, radius)
+		local patchPos = position + Vector3.new(math.cos(angle) * dist, -3, math.sin(angle) * dist)
+		
+		local patch = Instance.new("Part", Workspace)
+		patch.Size = Vector3.new(math.random(3, 8), 0.3, math.random(3, 8))
+		patch.Material = Enum.Material.Granite
+		patch.BrickColor = BrickColor.new("Really black")
+		patch.Anchored = true
+		patch.CanCollide = false
+		patch.CFrame = CFrame.new(patchPos)
+		patch.Name = "CorruptPatch"
+		
+		BurningEff(patch)
+		Debris:AddItem(patch, 5)
+	end
+end
+
+function EnvironmentSystem.LightningStrike(position)
+	-- Create lightning bolt visual
+	local boltParts = {}
+	local startPos = position + Vector3.new(0, 100, 0)
+	local endPos = position
+	local segments = 15
+	
+	local currentPos = startPos
+	for i = 1, segments do
+		local t = i / segments
+		local targetPos = startPos:Lerp(endPos, t)
+		
+		-- Add randomness to path
+		if i < segments then
+			targetPos = targetPos + Vector3.new(
+				math.random(-5, 5),
+				0,
+				math.random(-5, 5)
+			)
+		end
+		
+		local boltPart = Instance.new("Part", Workspace)
+		local direction = (targetPos - currentPos)
+		boltPart.Size = Vector3.new(0.5, 0.5, direction.Magnitude)
+		boltPart.Material = Enum.Material.Neon
+		boltPart.BrickColor = BrickColor.new("Really red")
+		boltPart.Anchored = true
+		boltPart.CanCollide = false
+		boltPart.CFrame = CFrame.new(currentPos, targetPos) * CFrame.new(0, 0, -direction.Magnitude / 2)
+		
+		table.insert(boltParts, boltPart)
+		currentPos = targetPos
+	end
+	
+	-- Flash
+	local flash = Instance.new("Part", Workspace)
+	flash.Shape = Enum.PartType.Ball
+	flash.Size = Vector3.new(10, 10, 10)
+	flash.Material = Enum.Material.Neon
+	flash.BrickColor = BrickColor.new("Institutional white")
+	flash.Anchored = true
+	flash.CanCollide = false
+	flash.Position = endPos
+	flash.Transparency = 0.5
+	
+	local light = Instance.new("PointLight", flash)
+	light.Color = Color3.new(1, 0, 0)
+	light.Range = 60
+	light.Brightness = 10
+	
+	ParticleSystem.ExplosionEffect(endPos, CONFIG.PrimaryColor, 8)
+	
+	-- Fade out
+	coroutine.wrap(function()
+		wait(0.1)
+		for i = 1, 5 do
+			wait(0.05)
+			for _, part in pairs(boltParts) do
+				part.Transparency = part.Transparency + 0.2
+			end
+			flash.Transparency = flash.Transparency + 0.1
+		end
+		for _, part in pairs(boltParts) do
+			part:Destroy()
+		end
+		flash:Destroy()
+	end)()
+end
+
+function EnvironmentSystem.DarkStorm(duration)
+	coroutine.wrap(function()
+		local elapsed = 0
+		while elapsed < duration do
+			wait(math.random(1, 3))
+			elapsed = elapsed + 2
+			
+			-- Random lightning strike near the player
+			local strikePos = torso.Position + Vector3.new(
+				math.random(-50, 50),
+				0,
+				math.random(-50, 50)
+			)
+			EnvironmentSystem.LightningStrike(strikePos)
+			thundersnd:Play()
+			
+			-- Damage nearby players at strike location
+			local hitPlayers = Utility.GetAllPlayersInRange(strikePos, 8, chara)
+			for _, data in pairs(hitPlayers) do
+				if data.Character:FindFirstChild("Humanoid") then
+					DamageSystem.ApplyDamage(data.Character.Humanoid, 20, strikePos)
+				end
+			end
+		end
+	end)()
+end
+
+--=============================================================--
+--                    COMBO FINISHER SYSTEM                      --
+--=============================================================--
+local ComboSystem = {}
+
+function ComboSystem.ExecuteFinisher(comboCount)
+	if comboCount >= CONFIG.MaxCombo then
+		combosnd:Play()
+		GUISystem.ShowCombo(comboCount)
+		
+		-- Max combo finisher - devastating attack
+		Utility.Shake(1.5, 1)
+		ParticleSystem.ExplosionEffect(torso.Position, Color3.new(1, 0.5, 0), 15)
+		
+		-- Create expanding ring of damage
+		local ringRadius = 0
+		coroutine.wrap(function()
+			for i = 1, 20 do
+				wait(0.05)
+				ringRadius = ringRadius + 2
+				
+				local ring = Instance.new("Part", Workspace)
+				ring.Shape = Enum.PartType.Cylinder
+				ring.Size = Vector3.new(0.5, ringRadius * 2, ringRadius * 2)
+				ring.Material = Enum.Material.Neon
+				ring.BrickColor = BrickColor.new("Really red")
+				ring.Anchored = true
+				ring.CanCollide = false
+				ring.CFrame = CFrame.new(torso.Position) * CFrame.Angles(0, 0, math.rad(90))
+				ring.Transparency = 0.5
+				
+				-- Damage in ring
+				local hitPlayers = Utility.GetAllPlayersInRange(torso.Position, ringRadius, chara)
+				for _, data in pairs(hitPlayers) do
+					if data.Character:FindFirstChild("Humanoid") and not data.Character:FindFirstChild("HasBeenHit") then
+						local targetTorso = data.Character:FindFirstChild("Torso") or data.Character:FindFirstChild("UpperTorso")
+						DamageSystem.ApplyDamage(data.Character.Humanoid, 15, targetTorso and targetTorso.Position)
+					end
+				end
+				
+				coroutine.wrap(function()
+					for j = 1, 5 do
+						wait(0.05)
+						ring.Transparency = ring.Transparency + 0.1
+					end
+					ring:Destroy()
+				end)()
+			end
+		end)()
+		
+		StateManager:ResetCombo()
+	elseif comboCount >= 3 then
+		GUISystem.ShowCombo(comboCount)
+	end
+end
+
+--=============================================================--
+--                    DARK WAVE ABILITY                           --
+--=============================================================--
+function DarkWave()
+	if StateManager:IsOnCooldown("Wave") then return end
+	StateManager:SetCooldown("Wave", 4)
+	
+	slashsnd:Play()
+	
+	local direction = rootPart.CFrame.LookVector
+	local wavePos = torso.Position
+	
+	-- Create wave
+	local wave = Instance.new("Part", Workspace)
+	wave.Size = Vector3.new(10, 5, 2)
+	wave.Material = Enum.Material.Neon
+	wave.BrickColor = BrickColor.new("Really red")
+	wave.Anchored = true
+	wave.CanCollide = false
+	wave.CFrame = CFrame.new(wavePos, wavePos + direction)
+	wave.Transparency = 0.3
+	
+	BurningEff(wave)
+	
+	local alreadyHit = {}
+	
+	-- Move wave forward
+	coroutine.wrap(function()
+		for i = 1, 40 do
+			wait(0.03)
+			wave.CFrame = wave.CFrame + direction * 3
+			wave.Size = wave.Size + Vector3.new(0.2, 0, 0)
+			wave.Transparency = wave.Transparency + 0.015
+			
+			-- Check for hits
+			local hitPlayers = Utility.GetAllPlayersInRange(wave.Position, 8, chara)
+			for _, data in pairs(hitPlayers) do
+				if not alreadyHit[data.Character] then
+					alreadyHit[data.Character] = true
+					if data.Character:FindFirstChild("Humanoid") and not data.Character:FindFirstChild("HasBeenHit") then
+						local targetTorso = data.Character:FindFirstChild("Torso") or data.Character:FindFirstChild("UpperTorso")
+						DamageSystem.ApplyDamage(data.Character.Humanoid, 30, targetTorso and targetTorso.Position)
+						
+						if targetTorso then
+							local bv = Instance.new("BodyVelocity", targetTorso)
+							bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+							bv.Velocity = direction * 40 + Vector3.new(0, 20, 0)
+							Debris:AddItem(bv, 0.3)
+						end
+						
+						if data.Character.Humanoid.Health <= 0 then
+							KillMortal(data.Character)
+						end
+					end
+				end
+			end
+		end
+		wave:Destroy()
+	end)()
+	
+	StateManager.AbilitiesUsed = StateManager.AbilitiesUsed + 1
+end
+
+--=============================================================--
+--                    TELEPORT STRIKE ABILITY                     --
+--=============================================================--
+function TeleportStrike()
+	if StateManager:IsOnCooldown("TeleStrike") then return end
+	
+	local target, dist = Utility.GetNearestPlayer(torso.Position, 100, chara)
+	if not target then return end
+	
+	StateManager:SetCooldown("TeleStrike", 5)
+	
+	local targetTorso = target:FindFirstChild("Torso") or target:FindFirstChild("UpperTorso")
+	if not targetTorso then return end
+	
+	-- Teleport behind target
+	local behindPos = targetTorso.CFrame * CFrame.new(0, 0, 3)
+	Teleport(behindPos.Position)
+	
+	wait(0.1)
+	
+	-- Immediate attack
+	if target:FindFirstChild("Humanoid") and target.Humanoid.Health > 0 then
+		slashsnd:Play()
+		hitsnd:Play()
+		DamageSystem.ApplyDamage(target.Humanoid, 40, targetTorso.Position)
+		
+		ParticleSystem.ExplosionEffect(targetTorso.Position, CONFIG.PrimaryColor, 5)
+		
+		-- Knockback
+		local dir = (targetTorso.Position - torso.Position).Unit
+		local bv = Instance.new("BodyVelocity", targetTorso)
+		bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+		bv.Velocity = dir * 60 + Vector3.new(0, 20, 0)
+		Debris:AddItem(bv, 0.3)
+		
+		if target.Humanoid.Health <= 0 then
+			KillMortal(target)
+		end
+	end
+	
+	StateManager.AbilitiesUsed = StateManager.AbilitiesUsed + 1
+end
+
+--=============================================================--
+--                    DARK CLONE ABILITY                          --
+--=============================================================--
+function CreateDarkClone()
+	if StateManager:IsOnCooldown("Clone") then return end
+	StateManager:SetCooldown("Clone", 12)
+	
+	-- Create a fake clone
+	local clone = Instance.new("Model", Workspace)
+	clone.Name = "DarkClone"
+	
+	-- Clone body parts
+	local cloneTorso = Instance.new("Part", clone)
+	cloneTorso.Name = "Torso"
+	cloneTorso.Size = Vector3.new(2, 2, 1)
+	cloneTorso.Material = Enum.Material.Granite
+	cloneTorso.BrickColor = BrickColor.new("Really black")
+	cloneTorso.Anchored = false
+	cloneTorso.CanCollide = true
+	cloneTorso.CFrame = torso.CFrame * CFrame.new(math.random(-5, 5), 0, math.random(-5, 5))
+	
+	local cloneHead = Instance.new("Part", clone)
+	cloneHead.Name = "Head"
+	cloneHead.Size = Vector3.new(2, 1, 1)
+	cloneHead.Material = Enum.Material.Granite
+	cloneHead.BrickColor = BrickColor.new("Really black")
+	cloneHead.Anchored = false
+	cloneHead.CanCollide = false
+	cloneHead.CFrame = cloneTorso.CFrame * CFrame.new(0, 1.5, 0)
+	
+	local headMesh = Instance.new("SpecialMesh", cloneHead)
+	headMesh.Scale = Vector3.new(1.25, 1.25, 1.25)
+	
+	local headWeld = Instance.new("Weld", cloneHead)
+	headWeld.Part0 = cloneHead
+	headWeld.Part1 = cloneTorso
+	headWeld.C0 = CFrame.new(0, -1.5, 0)
+	
+	-- Clone limbs
+	local limbNames = {"Left Arm", "Right Arm", "Left Leg", "Right Leg"}
+	local limbOffsets = {
+		CFrame.new(-1.5, 0, 0),
+		CFrame.new(1.5, 0, 0),
+		CFrame.new(-0.5, -2, 0),
+		CFrame.new(0.5, -2, 0)
+	}
+	
+	for idx, name in ipairs(limbNames) do
+		local limb = Instance.new("Part", clone)
+		limb.Name = name
+		limb.Size = Vector3.new(1, 2, 1)
+		limb.Material = Enum.Material.Granite
+		limb.BrickColor = BrickColor.new("Really black")
+		limb.Anchored = false
+		limb.CanCollide = false
+		
+		local limbWeld = Instance.new("Weld", limb)
+		limbWeld.Part0 = limb
+		limbWeld.Part1 = cloneTorso
+		limbWeld.C0 = limbOffsets[idx]:Inverse()
+	end
+	
+	-- Clone humanoid
+	local cloneHumanoid = Instance.new("Humanoid", clone)
+	cloneHumanoid.MaxHealth = 1
+	cloneHumanoid.Health = 1
+	
+	-- Effects
+	ScatterEff(cloneTorso)
+	ParticleSystem.DarkAura(cloneTorso)
+	
+	-- Eye effect
+	local cloneEye = Instance.new("Part", clone)
+	cloneEye.Size = Vector3.new(0.3, 0.3, 0.1)
+	cloneEye.Material = Enum.Material.Neon
+	cloneEye.BrickColor = BrickColor.new("Really red")
+	cloneEye.Anchored = false
+	cloneEye.CanCollide = false
+	local eyeWeld = Instance.new("Weld", cloneEye)
+	eyeWeld.Part0 = cloneEye
+	eyeWeld.Part1 = cloneHead
+	eyeWeld.C0 = CFrame.new(-0.3, 0.1, -0.5)
+	
+	-- Clone AI (simple chase and explode)
+	coroutine.wrap(function()
+		local cloneLife = 0
+		local maxLife = 8
+		
+		while cloneLife < maxLife and cloneTorso and cloneTorso.Parent do
+			wait(0.1)
+			cloneLife = cloneLife + 0.1
+			
+			-- Find nearest player to chase (not the owner)
+			local target, dist = Utility.GetNearestPlayer(cloneTorso.Position, 50, chara)
+			if target then
+				local targetTorso = target:FindFirstChild("Torso") or target:FindFirstChild("UpperTorso")
+				if targetTorso then
+					local dir = (targetTorso.Position - cloneTorso.Position).Unit
+					cloneTorso.CFrame = cloneTorso.CFrame + dir * 0.5
+					
+					-- Explode on contact
+					if (targetTorso.Position - cloneTorso.Position).Magnitude < 5 then
+						ParticleSystem.ExplosionEffect(cloneTorso.Position, CONFIG.PrimaryColor, 10)
+						
+						local hitPlayers = Utility.GetAllPlayersInRange(cloneTorso.Position, 10, chara)
+						for _, data in pairs(hitPlayers) do
+							if data.Character:FindFirstChild("Humanoid") then
+								DamageSystem.ApplyDamage(data.Character.Humanoid, 30, cloneTorso.Position)
+							end
+						end
+						
+						clone:Destroy()
+						return
+					end
+				end
+			end
+		end
+		
+		-- Time's up, explode anyway
+		if cloneTorso and cloneTorso.Parent then
+			ParticleSystem.ExplosionEffect(cloneTorso.Position, CONFIG.PrimaryColor, 8)
+			clone:Destroy()
+		end
+	end)()
+	
+	StateManager.AbilitiesUsed = StateManager.AbilitiesUsed + 1
+end
+
+--=============================================================--
+--                    BUTTON1DOWN HANDLER                         --
+--=============================================================--
+dell = false
+function onButton1Down()
+	if dell == false and StateManager:CanAttack() then
+		dell = true
+		StateManager.IsAttacking = true
+		
+		-- Increment combo
+		StateManager:IncrementCombo()
+		
+		AnimationSystem.Play("Swing")
+		bladeactive = true
+		slashsnd:Play()
+		
+		-- Combo-based effects
+		if StateManager.ComboCount >= 3 then
+			ParticleSystem.ExplosionEffect(rightArm.Position, CONFIG.PrimaryColor, 3)
+		end
+		
+		wait(.7)
+		bladeactive = false
+		dell = false
+		StateManager.IsAttacking = false
+		AnimationSystem.Stop("Swing")
+		
+		-- Check for combo finisher
+		ComboSystem.ExecuteFinisher(StateManager.ComboCount)
+	end
+end
+
+--=============================================================--
+--                    KEY DOWN HANDLER                            --
+--=============================================================--
+function onKeyDown(key)
+	key = key:lower()
+	
+	if key == "z" then
+		Teleport(Mouse.Hit.p + Vector3.new(0,2,0))
+	elseif key == "x" then
+		Grab(Mouse)
+	elseif key == "c" then
+		DashAttack()
+	elseif key == "v" then
+		AOEBlast()
+	elseif key == "b" then
+		DarkBeam()
+	elseif key == "n" then
+		ActivateShield()
+	elseif key == "m" then
+		MeteorShower()
+	elseif key == "g" then
+		DarkPillars()
+	elseif key == "f" then
+		DarkWave()
+	elseif key == "r" then
+		DarkSpikes()
+	elseif key == "t" then
+		TeleportStrike()
+	elseif key == "y" then
+		CreateDarkClone()
+	elseif key == "h" then
+		DarkChain()
+	elseif key == "j" then
+		EnvironmentSystem.DarkStorm(10)
+	elseif key == "k" then
+		EnvironmentSystem.CorruptTerrain(torso.Position, 20)
+	elseif key == "l" then
+		-- Manual phase transition for testing
+		if StateManager.CurrentPhase < 3 then
+			PhaseSystem.TransitionToPhase(StateManager.CurrentPhase + 1)
+		end
+	elseif key == "p" then
+		-- Toggle aura intensity
+		for _, child in pairs(torso:GetChildren()) do
+			if child:IsA("ParticleEmitter") then
+				child.Enabled = not child.Enabled
+			end
+		end
+	end
+end
+
+--=============================================================--
+--                    MOUSE SETUP                                --
+--=============================================================--
+Mouse = player:GetMouse()
+if Mouse then
+	Mouse.Button1Down:connect(onButton1Down)
+	Mouse.KeyDown:connect(onKeyDown)
+end
+
+--=============================================================--
+--                    DEATH HANDLER                              --
+--=============================================================--
+chara.Humanoid.Died:connect(function()
+	local pat = Instance.new("Part",game.Workspace)
+	pat.Transparency = 1
+	pat.Anchored = true
+	pat.CFrame = torso.CFrame
+	naeeym.Parent = pat
+	naeeym.Adornee = pat
+	skybox.Parent = game.Workspace
+	tecks.Text = "BAD CHOICE"
+	tecks.FontSize = "Size48"
+	tecks.TextColor3 = Color3.new(1,0,0)
+	subtitleLabel.Text = "YOU SHOULD HAVE RUN"
+	music1:Stop()
+	music2:Stop()
+	deathmus.Parent = game.Workspace
+	deathex.Parent = game.Workspace
+	deathmus:Play()
+	deathex:Play()
+	Lighting.OutdoorAmbient = Color3.new(0,0,0)
+	Lighting.TimeOfDay = "00:00:00"
+	Lighting.FogColor = Color3.new(0,0,0)
+	Lighting.FogEnd = 1000
+	local ex = Instance.new("Explosion",game.Workspace)
+	ex.Position = torso.Position
+	ex.Visible = false
+	ex.BlastRadius = 999999999999999999999999
+	ex.BlastPressure = 9999999999999999999999999
+	
+	-- Extended death effects
+	ParticleSystem.VortexEffect(pat.Position, 10, 30)
+	Utility.Shake(3, 5)
+	
+	-- Kill all players
+	for _, plr in pairs(Players:GetPlayers()) do
+		if plr.Character and plr.Character:FindFirstChild("Humanoid") then
+			plr.Character.Humanoid.Health = 0
+		end
+	end
+	
+	-- Corrupt entire map
+	for i = 1, 20 do
+		coroutine.wrap(function()
+			wait(i * 0.5)
+			EnvironmentSystem.LightningStrike(pat.Position + Vector3.new(math.random(-100, 100), 0, math.random(-100, 100)))
+		end)()
+	end
+	
+	-- Death GUI message
+	if GUISystem.GUI then
+		local deathMessage = Instance.new("TextLabel", GUISystem.GUI)
+		deathMessage.Size = UDim2.new(1, 0, 1, 0)
+		deathMessage.BackgroundColor3 = Color3.new(0, 0, 0)
+		deathMessage.BackgroundTransparency = 0.3
+		deathMessage.Text = "Y O U   C A N N O T   E S C A P E"
+		deathMessage.TextColor3 = Color3.new(1, 0, 0)
+		deathMessage.Font = Enum.Font.Fantasy
+		deathMessage.TextSize = 48
+		deathMessage.TextStrokeTransparency = 0
+		deathMessage.TextStrokeColor3 = Color3.new(0, 0, 0)
+		
+		-- Glitch effect on death message
+		coroutine.wrap(function()
+			local messages = {
+				"Y O U   C A N N O T   E S C A P E",
+				"D A R K N E S S   C O N S U M E S",
+				"N O   H O P E   R E M A I N S",
+				"T H E   V O I D   A W A I T S",
+				"A L L   I S   L O S T",
+			}
+			while true do
+				wait(0.5)
+				deathMessage.Text = messages[math.random(1, #messages)]
+				deathMessage.Position = UDim2.new(0, math.random(-5, 5), 0, math.random(-5, 5))
+			end
+		end)()
+	end
+end)
+
+--=============================================================--
+--                    AMBIENT EFFECTS SYSTEM                     --
+--=============================================================--
+local AmbientSystem = {}
+AmbientSystem.Active = true
+
+function AmbientSystem.WhisperEffect()
+	-- Create floating text bubbles around the character
+	coroutine.wrap(function()
+		while AmbientSystem.Active do
+			wait(math.random(3, 8))
+			
+			if chara and humanoid.Health > 0 then
+				local whisper = Instance.new("BillboardGui")
+				local whisperPart = Instance.new("Part", Workspace)
+				whisperPart.Size = Vector3.new(1, 1, 1)
+				whisperPart.Transparency = 1
+				whisperPart.Anchored = true
+				whisperPart.CanCollide = false
+				whisperPart.Position = torso.Position + Vector3.new(
+					math.random(-5, 5),
+					math.random(2, 5),
+					math.random(-5, 5)
+				)
+				
+				whisper.Parent = whisperPart
+				whisper.Adornee = whisperPart
+				whisper.Size = UDim2.new(0, 100, 0, 30)
+				whisper.AlwaysOnTop = false
+				
+				local whisperText = Instance.new("TextLabel", whisper)
+				whisperText.Size = UDim2.new(1, 0, 1, 0)
+				whisperText.BackgroundTransparency = 1
+				
+				local whisperMessages = {
+					"...help...", "...darkness...", "...consumed...",
+					"...run...", "...no escape...", "...void...",
+					"...pain...", "...forgotten...", "...eternal...",
+					"...obey...", "...surrender...", "...lost..."
+				}
+				whisperText.Text = whisperMessages[math.random(1, #whisperMessages)]
+				whisperText.TextColor3 = Color3.new(0.5, 0, 0)
+				whisperText.Font = Enum.Font.Antique
+				whisperText.TextSize = 14
+				whisperText.TextTransparency = 0.3
+				whisperText.TextStrokeTransparency = 0.5
+				whisperText.TextStrokeColor3 = Color3.new(0, 0, 0)
+				
+				coroutine.wrap(function()
+					for i = 1, 30 do
+						wait(0.1)
+						whisperPart.Position = whisperPart.Position + Vector3.new(0, 0.1, 0)
+						whisperText.TextTransparency = whisperText.TextTransparency + 0.02
+					end
+					whisperPart:Destroy()
+				end)()
+			end
+		end
+	end)()
+end
+
+function AmbientSystem.FloatingDebris()
+	coroutine.wrap(function()
+		while AmbientSystem.Active do
+			wait(math.random(1, 3))
+			
+			if chara and humanoid.Health > 0 then
+				local debris = Instance.new("Part", Workspace)
+				debris.Size = Vector3.new(
+					math.random(1, 3) * 0.5,
+					math.random(1, 3) * 0.5,
+					math.random(1, 3) * 0.5
+				)
+				debris.Material = Enum.Material.Granite
+				debris.BrickColor = BrickColor.new("Really black")
+				debris.Anchored = true
+				debris.CanCollide = false
+				debris.Position = torso.Position + Vector3.new(
+					math.random(-10, 10),
+					-3,
+					math.random(-10, 10)
+				)
+				
+				-- Float up and dissolve
+				coroutine.wrap(function()
+					local startPos = debris.Position
+					for i = 1, 40 do
+						wait(0.05)
+						debris.Position = startPos + Vector3.new(
+							math.sin(i * 0.2) * 0.5,
+							i * 0.2,
+							math.cos(i * 0.2) * 0.5
+						)
+						debris.Transparency = i / 40
+						debris.CFrame = debris.CFrame * CFrame.Angles(
+							math.rad(math.random(-5, 5)),
+							math.rad(math.random(-5, 5)),
+							math.rad(math.random(-5, 5))
+						)
+					end
+					debris:Destroy()
+				end)()
+			end
+		end
+	end)()
+end
+
+function AmbientSystem.HeartbeatPulse()
+	coroutine.wrap(function()
+		while AmbientSystem.Active do
+			wait(1.5)
+			
+			if chara and humanoid.Health > 0 and StateManager.CurrentPhase >= 2 then
+				-- Subtle pulse effect
+				local pulse = Instance.new("Part", Workspace)
+				pulse.Shape = Enum.PartType.Ball
+				pulse.Size = Vector3.new(1, 1, 1)
+				pulse.Material = Enum.Material.Neon
+				pulse.BrickColor = BrickColor.new("Really red")
+				pulse.Anchored = true
+				pulse.CanCollide = false
+				pulse.Position = torso.Position
+				pulse.Transparency = 0.7
+				
+				local tween = Utility.CreateTween(pulse, {
+					Size = Vector3.new(20, 20, 20),
+					Transparency = 1
+				}, 1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+				tween:Play()
+				tween.Completed:Connect(function()
+					pulse:Destroy()
+				end)
+			end
+		end
+	end)()
+end
+
+-- Start ambient effects
+AmbientSystem.WhisperEffect()
+AmbientSystem.FloatingDebris()
+AmbientSystem.HeartbeatPulse()
+
+--=============================================================--
+--                    PASSIVE ABILITIES                           --
+--=============================================================--
+local PassiveSystem = {}
+
+function PassiveSystem.AutoHeal()
+	-- Regenerate health slowly (not that it matters with infinite HP)
+	-- This is more for visual effect
+	coroutine.wrap(function()
+		while true do
+			wait(5)
+			if chara and humanoid.Health > 0 then
+				local healEffect = Instance.new("Part", Workspace)
+				healEffect.Shape = Enum.PartType.Ball
+				healEffect.Size = Vector3.new(3, 3, 3)
+				healEffect.Material = Enum.Material.Neon
+				healEffect.BrickColor = BrickColor.new("Really red")
+				healEffect.Anchored = true
+				healEffect.CanCollide = false
+				healEffect.Position = torso.Position
+				healEffect.Transparency = 0.5
+				
+				local tween = Utility.CreateTween(healEffect, {
+					Size = Vector3.new(0.1, 0.1, 0.1),
+					Transparency = 1
+				}, 1)
+				tween:Play()
+				tween.Completed:Connect(function()
+					healEffect:Destroy()
+				end)
+			end
+		end
+	end)()
+end
+
+function PassiveSystem.ProximityDamage()
+	-- Damage players who get too close
+	coroutine.wrap(function()
+		while true do
+			wait(1)
+			if chara and humanoid.Health > 0 and StateManager.CurrentPhase >= 2 then
+				local nearbyPlayers = Utility.GetAllPlayersInRange(torso.Position, 5, chara)
+				for _, data in pairs(nearbyPlayers) do
+					if data.Character:FindFirstChild("Humanoid") then
+						DamageSystem.ApplyDamage(data.Character.Humanoid, 3, data.Character:FindFirstChild("Torso") and data.Character.Torso.Position)
+					end
+				end
+			end
+		end
+	end)()
+end
+
+function PassiveSystem.DarkPresence()
+	-- Slow down nearby players
+	coroutine.wrap(function()
+		while true do
+			wait(0.5)
+			if chara and humanoid.Health > 0 and StateManager.CurrentPhase >= 3 then
+				local nearbyPlayers = Utility.GetAllPlayersInRange(torso.Position, 20, chara)
+				for _, data in pairs(nearbyPlayers) do
+					if data.Character:FindFirstChild("Humanoid") then
+						data.Character.Humanoid.WalkSpeed = 8 -- Slow them down
+						
+						-- Visual effect on affected players
+						local targetTorso = data.Character:FindFirstChild("Torso") or data.Character:FindFirstChild("UpperTorso")
+						if targetTorso then
+							local chains = Instance.new("ParticleEmitter", targetTorso)
+							chains.Size = NumberSequence.new(0.5)
+							chains.Transparency = NumberSequence.new({NumberSequenceKeypoint.new(0, 0.5), NumberSequenceKeypoint.new(1, 1)})
+							chains.Lifetime = NumberRange.new(0.5)
+							chains.Speed = NumberRange.new(0.5)
+							chains.Rate = 20
+							chains.VelocitySpread = 360
+							chains.Texture = "rbxassetid://347504241"
+							chains.Color = ColorSequence.new(Color3.new(0.3, 0, 0))
+							Debris:AddItem(chains, 1)
+						end
+					end
+				end
+				
+				-- Reset speed of players far away
+				for _, plr in pairs(Players:GetPlayers()) do
+					if plr.Character and plr.Character ~= chara and plr.Character:FindFirstChild("Humanoid") then
+						local targetTorso = plr.Character:FindFirstChild("Torso") or plr.Character:FindFirstChild("UpperTorso")
+						if targetTorso then
+							local dist = (targetTorso.Position - torso.Position).Magnitude
+							if dist > 20 then
+								plr.Character.Humanoid.WalkSpeed = 16
+							end
+						end
+					end
+				end
+			end
+		end
+	end)()
+end
+
+-- Start passive abilities
+PassiveSystem.AutoHeal()
+PassiveSystem.ProximityDamage()
+PassiveSystem.DarkPresence()
+
+--=============================================================--
+--                    FOOTSTEP CORRUPTION                        --
+--=============================================================--
+local lastFootstepPos = torso.Position
+coroutine.wrap(function()
+	while true do
+		wait(0.3)
+		if chara and humanoid.Health > 0 then
+			if (torso.Position - lastFootstepPos).Magnitude > 3 then
+				lastFootstepPos = torso.Position
+				
+				local footprint = Instance.new("Part", Workspace)
+				footprint.Size = Vector3.new(1.5, 0.1, 1.5)
+				footprint.Material = Enum.Material.Neon
+				footprint.BrickColor = BrickColor.new("Really red")
+				footprint.Anchored = true
+				footprint.CanCollide = false
+				footprint.Position = torso.Position - Vector3.new(0, 3, 0)
+				footprint.Transparency = 0.5
+				
+				if StateManager.CurrentPhase >= 2 then
+					BurningEff(footprint)
+				end
+				
+				coroutine.wrap(function()
+					wait(2)
+					for i = 1, 10 do
+						wait(0.1)
+						footprint.Transparency = footprint.Transparency + 0.05
+					end
+					footprint:Destroy()
+				end)()
+			end
+		end
+	end
+end)()
+
+--=============================================================--
+--                    MUSIC SYSTEM ENHANCEMENTS                  --
+--=============================================================--
+local MusicSystem = {}
+
+function MusicSystem.UpdateMusicByPhase(phase)
+	if phase == 1 then
+		music1.PlaybackSpeed = 0.5
+		music1.Volume = 10
+		music2.PlaybackSpeed = 0.2
+		music2.Volume = 5
+	elseif phase == 2 then
+		music1.PlaybackSpeed = 0.7
+		music1.Volume = 12
+		music2.PlaybackSpeed = 0.3
+		music2.Volume = 7
+	elseif phase == 3 then
+		music1.PlaybackSpeed = 1
+		music1.Volume = 15
+		music2.PlaybackSpeed = 0.5
+		music2.Volume = 10
+	end
+end
+
+function MusicSystem.CombatIntensity(intensity)
+	-- Adjust music based on combat intensity
+	music1.Volume = 10 + intensity * 2
+	music2.Volume = 5 + intensity
+end
+
+--=============================================================--
+--                    NOTIFICATION SYSTEM                        --
+--=============================================================--
+local NotificationSystem = {}
+
+function NotificationSystem.Show(message, duration, color)
+	if not GUISystem.GUI then return end
+	
+	local notification = Instance.new("TextLabel", GUISystem.GUI)
+	notification.Size = UDim2.new(0, 400, 0, 50)
+	notification.Position = UDim2.new(0.5, -200, 0.8, 0)
+	notification.BackgroundColor3 = Color3.new(0.1, 0, 0)
+	notification.BackgroundTransparency = 0.3
+	notification.Text = message
+	notification.TextColor3 = color or Color3.new(1, 0, 0)
+	notification.Font = Enum.Font.Fantasy
+	notification.TextSize = 20
+	notification.TextStrokeTransparency = 0
+	notification.TextStrokeColor3 = Color3.new(0, 0, 0)
+	
+	local corner = Instance.new("UICorner", notification)
+	corner.CornerRadius = UDim.new(0, 8)
+	
+	-- Slide in animation
+	notification.Position = UDim2.new(0.5, -200, 1, 50)
+	local slideIn = Utility.CreateTween(notification, {
+		Position = UDim2.new(0.5, -200, 0.8, 0)
+	}, 0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+	slideIn:Play()
+	
+	coroutine.wrap(function()
+		wait(duration or 3)
+		local slideOut = Utility.CreateTween(notification, {
+			Position = UDim2.new(0.5, -200, 1, 50),
+			TextTransparency = 1,
+			BackgroundTransparency = 1
+		}, 0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+		slideOut:Play()
+		slideOut.Completed:Connect(function()
+			notification:Destroy()
+		end)
+	end)()
+end
+
+-- Show welcome notification
+NotificationSystem.Show("John Doe has awakened...", 5, Color3.new(1, 0, 0))
+
+--=============================================================--
+--                    TARGET LOCK SYSTEM                          --
+--=============================================================--
+local TargetLockSystem = {}
+TargetLockSystem.LockedTarget = nil
+TargetLockSystem.LockIndicator = nil
+
+function TargetLockSystem.ToggleLock()
+	if TargetLockSystem.LockedTarget then
+		-- Unlock
+		TargetLockSystem.LockedTarget = nil
+		if TargetLockSystem.LockIndicator then
+			TargetLockSystem.LockIndicator:Destroy()
+			TargetLockSystem.LockIndicator = nil
+		end
+		NotificationSystem.Show("Target Unlocked", 2)
+	else
+		-- Lock to nearest player
+		local target, dist = Utility.GetNearestPlayer(torso.Position, 100, chara)
+		if target then
+			TargetLockSystem.LockedTarget = target
+			
+			-- Create lock indicator
+			local billboard = Instance.new("BillboardGui")
+			billboard.Name = "LockIndicator"
+			billboard.Size = UDim2.new(0, 50, 0, 50)
+			billboard.StudsOffset = Vector3.new(0, 3, 0)
+			billboard.AlwaysOnTop = true
+			
+			local icon = Instance.new("TextLabel", billboard)
+			icon.Size = UDim2.new(1, 0, 1, 0)
+			icon.BackgroundTransparency = 1
+			icon.Text = "🎯"
+			icon.TextSize = 30
+			icon.Font = Enum.Font.Fantasy
+			
+			billboard.Parent = target:FindFirstChild("Head") or target:FindFirstChild("Torso")
+			billboard.Adornee = target:FindFirstChild("Head") or target:FindFirstChild("Torso")
+			
+			TargetLockSystem.LockIndicator = billboard
+			
+			-- Get player name
+			local targetName = "Unknown"
+			for _, plr in pairs(Players:GetPlayers()) do
+				if plr.Character == target then
+					targetName = plr.Name
+					break
+				end
+			end
+			NotificationSystem.Show("Locked onto: " .. targetName, 2, Color3.new(1, 0.5, 0))
+		end
+	end
+end
+
+--=============================================================--
+--                    WEATHER SYSTEM                              --
+--=============================================================--
+local WeatherSystem = {}
+WeatherSystem.CurrentWeather = "Clear"
+
+function WeatherSystem.SetWeather(weatherType)
+	WeatherSystem.CurrentWeather = weatherType
+	
+	if weatherType == "DarkStorm" then
+		Lighting.Brightness = 0
+		Lighting.FogEnd = 200
+		Lighting.FogColor = Color3.new(0.02, 0, 0)
+		Lighting.Ambient = Color3.new(0.1, 0, 0)
+		
+		-- Start storm effects
+		EnvironmentSystem.DarkStorm(30)
+		
+	elseif weatherType == "BloodRain" then
+		Lighting.FogEnd = 300
+		Lighting.FogColor = Color3.new(0.1, 0, 0)
+		
+		-- Blood rain particles
+		coroutine.wrap(function()
+			for i = 1, 100 do
+				wait(0.1)
+				local rain = Instance.new("Part", Workspace)
+				rain.Size = Vector3.new(0.1, 2, 0.1)
+				rain.Material = Enum.Material.Neon
+				rain.BrickColor = BrickColor.new("Really red")
+				rain.Anchored = false
+				rain.CanCollide = false
+				rain.Position = torso.Position + Vector3.new(math.random(-30, 30), 50, math.random(-30, 30))
+				rain.Transparency = 0.3
+				Debris:AddItem(rain, 5)
+			end
+		end)()
+		
+	elseif weatherType == "Corruption" then
+		Lighting.Brightness = 0
+		Lighting.FogEnd = 100
+		Lighting.FogColor = Color3.new(0, 0, 0)
+		Lighting.Ambient = Color3.new(0.5, 0, 0)
+		
+		-- Corruption spreading effect
+		EnvironmentSystem.CorruptTerrain(torso.Position, 50)
+		
+	elseif weatherType == "Clear" then
+		Lighting.Brightness = 2
+		Lighting.FogEnd = 100000
+		Lighting.FogColor = Color3.new(0.75, 0.75, 0.75)
+		Lighting.Ambient = Color3.new(1, 0, 0)
+	end
+end
+
+--=============================================================--
+--                    MAIN GAME LOOP                              --
+--=============================================================--
+local gameStartTime = tick()
+
+while true do
+	wait(.01)
+	
+	-- Update time alive
+	StateManager.TimeAlive = tick() - gameStartTime
+	
+	-- Name tag glitch effect
+	chance = math.random(0,100)
+	if chance < 10 then
+		sel = math.random(1, #CONFIG.GlitchMessages)
+		tecks.Text = CONFIG.GlitchMessages[sel]
+	else
+		tecks.Text = CONFIG.PhaseMessages[StateManager.CurrentPhase] or "John Doe"
+	end
+	
+	if humanoid.Health > 0 then
+		-- Infinite health
+		humanoid.MaxHealth = math.huge
+		humanoid.Health = math.huge
+		
+		-- Lighting effects
+		Lighting.OutdoorAmbient = Color3.new(1,0,0)
+		Lighting.Ambient = Color3.new(1,0,0)
+		
+		-- Body colors
+		leftArm.BrickColor = BrickColor.new("Cool yellow")
+		rightArm.BrickColor = BrickColor.new("Cool yellow")
+		leftLeg.BrickColor = BrickColor.new("Medium blue")
+		rightLeg.BrickColor = BrickColor.new("Medium blue")
+		torso.BrickColor = BrickColor.new("Bright yellow")
+		
+		-- Prevent anchoring
+		leftArm.Anchored = false
+		rightArm.Anchored = false
+		leftLeg.Anchored = false
+		rightLeg.Anchored = false
+		torso.Anchored = false
+		
+		-- Remove accessories
+		ch = chara:GetChildren()
+		for i = 1, #ch do
+			if ch[i].ClassName == "Accessory" or ch[i].ClassName == "Hat" then
+				ch[i]:Destroy()
+			end
+		end
+		
+		-- Remove tools
+		tools = player.Backpack:GetChildren()
+		for i = 1, #tools do
+			if tools[i].ClassName == "HopperBin" then
+				tools[i]:Destroy()
+			end
+		end
+		
+		-- Skybox rotation
+		skybox.CFrame = skybox.CFrame * CFrame.fromEulerAnglesXYZ(0,math.rad(1),0)
+		
+		-- Name tag shake
+		tecks.Position = UDim2.new(0,math.random(-3,3),0,math.random(-3,3))
+		
+		-- Ground trace
+		local jtrace = Instance.new("Part",game.Workspace)
+		jtrace.Name = "JDTrace"
+		jtrace.Size = Vector3.new(10,0,10)
+		jtrace.Position = torso.Position
+		jtrace.CFrame = torso.CFrame - Vector3.new(0,3,0)
+		jtrace.Anchored = true
+		jtrace.CanCollide = false
+		jtrace.BrickColor = BrickColor.new("Really black")
+		jtrace.Material = "Granite"
+		BurningEff(jtrace)
+		Debris:AddItem(jtrace, 1)
+		
+		-- Phase check
+		PhaseSystem.CheckPhaseTransition()
+		
+		-- Update GUI
+		GUISystem.UpdateStats()
+		GUISystem.UpdateCooldowns()
+		
+		-- Update music
+		MusicSystem.UpdateMusicByPhase(StateManager.CurrentPhase)
+		
+		-- Target lock follow
+		if TargetLockSystem.LockedTarget then
+			if not TargetLockSystem.LockedTarget:FindFirstChild("Humanoid") or TargetLockSystem.LockedTarget.Humanoid.Health <= 0 then
+				TargetLockSystem.ToggleLock() -- Unlock if target is dead
+			end
+		end
+		
+		-- Phase-specific ambient effects
+		if StateManager.CurrentPhase >= 2 then
+			-- More intense ground trace
+			jtrace.Size = Vector3.new(15, 0, 15)
+			
+			-- Subtle screen shake
+			if math.random(1, 100) <= 5 then
+				Utility.Shake(0.1, 0.1)
+			end
+		end
+		
+		if StateManager.CurrentPhase >= 3 then
+			-- Even more intense effects
+			jtrace.Size = Vector3.new(20, 0, 20)
+			
+			-- Random lightning
+			if math.random(1, 200) <= 3 then
+				EnvironmentSystem.LightningStrike(torso.Position + Vector3.new(math.random(-30, 30), 0, math.random(-30, 30)))
+			end
+			
+			-- Corruption spread
+			if math.random(1, 300) <= 2 then
+				EnvironmentSystem.CorruptTerrain(torso.Position, 15)
+			end
+		end
+		
+		-- Debug info
+		if CONFIG.DebugMode then
+			subtitleLabel.Text = string.format(
+				"Phase:%d | Kills:%d | Combo:%d | Abilities:%d",
+				StateManager.CurrentPhase,
+				StateManager.KillCount,
+				StateManager.ComboCount,
+				StateManager.AbilitiesUsed
+			)
+		end
+	end
+end
