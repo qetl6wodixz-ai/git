@@ -1,0 +1,3403 @@
+--[[
+    ╔══════════════════════════════════════════════════════════════════════╗
+    ║                                                                      ║
+    ║             🐹  CHOMIK COLLECTOR HUB  v4.0  ULTRA                    ║
+    ║                                                                      ║
+    ║   ██████╗██╗  ██╗ ██████╗ ███╗   ███╗██╗██╗  ██╗                    ║
+    ║  ██╔════╝██║  ██║██╔═══██╗████╗ ████║██║██║ ██╔╝                    ║
+    ║  ██║     ███████║██║   ██║██╔████╔██║██║█████╔╝                     ║
+    ║  ██║     ██╔══██║██║   ██║██║╚██╔╝██║██║██╔═██╗                    ║
+    ║  ╚██████╗██║  ██║╚██████╔╝██║ ╚═╝ ██║██║██║  ██╗                   ║
+    ║   ╚═════╝╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚═╝╚═╝╚═╝  ╚═╝                ║
+    ║                                                                      ║
+    ║  Features:                                                           ║
+    ║   • Ultra-detailed GUI with gradients & glow effects                 ║
+    ║   • 50+ Achievements with progress bars & tiers                      ║
+    ║   • Animated notifications with particle effects                     ║
+    ║   • ESP with distance, rarity colors & pulse                         ║
+    ║   • 4 Collection modes with route optimizer                          ║
+    ║   • Real-time statistics & session analytics                         ║
+    ║   • Comprehensive logging with 8 types                               ║
+    ║   • Anti-AFK system                                                  ║
+    ║   • Keybind manager with rebinding                                   ║
+    ║   • Teleport effects with particles & trails                         ║
+    ║   • Death-persistent visited tracking                                ║
+    ║   • Search, filter & sort collection                                 ║
+    ║   • Auto-retry with exponential backoff                              ║
+    ║   • 8 color themes with live preview                                 ║
+    ║   • Combo / Streak tracking                                          ║
+    ║   • Performance monitor (FPS/Ping/Memory)                            ║
+    ║   • Smooth scroll sidebar with drag reorder                          ║
+    ║   • Floating status bar                                              ║
+    ║   • Collection completion celebration                                ║
+    ╚══════════════════════════════════════════════════════════════════════╝
+--]]
+
+-- ============================================================
+-- SECTION 1: SERVICES
+-- ============================================================
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local CoreGui = game:GetService("CoreGui")
+local StarterGui = game:GetService("StarterGui")
+local HttpService = game:GetService("HttpService")
+local Lighting = game:GetService("Lighting")
+local SoundService = game:GetService("SoundService")
+local Camera = workspace.CurrentCamera
+
+local player = Players.LocalPlayer
+local mouse = player:GetMouse()
+
+-- ============================================================
+-- SECTION 2: CONFIGURATION
+-- ============================================================
+
+local Config = {
+    General = {
+        Cooldown = 0.1,
+        FolderName = "chomiki",
+        DexName = "ChomikDex",
+        AutoCollect = false,
+        CollectOnSpawn = true,
+        MaxRetries = 3,
+        RetryDelay = 0.5,
+        RetryBackoffMultiplier = 1.5,
+    },
+
+    CollectMode = {
+        Current = "Sequential",
+        AvailableModes = {"Sequential", "Nearest", "Random", "Reverse"},
+        ModeDescriptions = {
+            Sequential = "Собирает по порядку из папки",
+            Nearest = "Всегда идёт к ближайшему",
+            Random = "Случайный порядок",
+            Reverse = "Обратный порядок",
+        },
+        ModeIcons = {
+            Sequential = "📋",
+            Nearest = "🎯",
+            Random = "🎲",
+            Reverse = "🔄",
+        },
+    },
+
+    Visuals = {
+        ESPEnabled = false,
+        ESPColor = Color3.fromRGB(0, 255, 100),
+        ESPCollectedColor = Color3.fromRGB(80, 80, 80),
+        ESPUnvisitedColor = Color3.fromRGB(255, 215, 0),
+        ESPTransparency = 0.5,
+        ESPShowNames = true,
+        ESPShowDistance = true,
+        ESPMaxDistance = 5000,
+        ESPPulseEnabled = true,
+        ESPPulseSpeed = 2,
+        TeleportEffect = true,
+        TeleportEffectColor = Color3.fromRGB(0, 200, 255),
+        TeleportParticleCount = 8,
+        TeleportRingEffect = true,
+        TrailEnabled = false,
+        TrailColor = Color3.fromRGB(100, 200, 255),
+        HighlightTarget = true,
+        GlowEffects = true,
+        AnimatedBackground = false,
+    },
+
+    GUI = {
+        Theme = "Dark",
+        AccentColor = Color3.fromRGB(0, 170, 255),
+        AccentColorSecondary = Color3.fromRGB(0, 120, 200),
+        BackgroundColor = Color3.fromRGB(18, 18, 28),
+        SecondaryColor = Color3.fromRGB(28, 28, 42),
+        TertiaryColor = Color3.fromRGB(38, 38, 58),
+        QuaternaryColor = Color3.fromRGB(48, 48, 70),
+        TextColor = Color3.fromRGB(225, 225, 235),
+        DimTextColor = Color3.fromRGB(130, 130, 155),
+        VeryDimTextColor = Color3.fromRGB(80, 80, 100),
+        SuccessColor = Color3.fromRGB(40, 200, 100),
+        SuccessColorDark = Color3.fromRGB(25, 130, 65),
+        WarningColor = Color3.fromRGB(255, 190, 0),
+        WarningColorDark = Color3.fromRGB(180, 130, 0),
+        ErrorColor = Color3.fromRGB(255, 60, 60),
+        ErrorColorDark = Color3.fromRGB(180, 40, 40),
+        InfoColor = Color3.fromRGB(100, 150, 255),
+        RareColor = Color3.fromRGB(160, 80, 255),
+        LegendaryColor = Color3.fromRGB(255, 170, 0),
+        MythicColor = Color3.fromRGB(255, 50, 100),
+        Font = Enum.Font.GothamBold,
+        FontSemiBold = Enum.Font.GothamSemibold,
+        FontMedium = Enum.Font.GothamMedium,
+        FontRegular = Enum.Font.Gotham,
+        FontMono = Enum.Font.RobotoMono,
+        CornerRadius = UDim.new(0, 8),
+        CornerRadiusSmall = UDim.new(0, 5),
+        CornerRadiusLarge = UDim.new(0, 12),
+        CornerRadiusRound = UDim.new(0, 20),
+        WindowSize = UDim2.new(0, 620, 0, 460),
+        SidebarWidth = 145,
+        TitleBarHeight = 44,
+        AnimationSpeed = 0.25,
+        AnimationSpeedFast = 0.15,
+        AnimationSpeedSlow = 0.4,
+        NotificationDuration = 4,
+        Transparency = 0,
+        ShadowTransparency = 0.55,
+        StrokeTransparency = 0.6,
+        CardElevation = 2,
+        ButtonHeight = 32,
+        SmallButtonHeight = 26,
+        ToggleWidth = 42,
+        ToggleHeight = 22,
+        SliderHeight = 6,
+        SliderKnobSize = 16,
+        ScrollBarWidth = 4,
+        TabButtonHeight = 34,
+        StatusBarHeight = 28,
+    },
+
+    AntiAFK = {
+        Enabled = true,
+        Interval = 60,
+    },
+
+    Keybinds = {
+        ToggleGUI = Enum.KeyCode.RightShift,
+        StartCollect = Enum.KeyCode.F5,
+        StopCollect = Enum.KeyCode.F6,
+        ToggleESP = Enum.KeyCode.F7,
+        TeleportNearest = Enum.KeyCode.F8,
+    },
+
+    Combo = {
+        Timeout = 3,
+        Milestones = {5, 10, 15, 20, 30, 50, 75, 100, 150, 200, 300, 500},
+    },
+
+    Performance = {
+        FPSHistorySize = 60,
+        PingHistorySize = 60,
+        UpdateInterval = 1,
+    },
+}
+
+-- ============================================================
+-- SECTION 3: THEMES
+-- ============================================================
+
+local Themes = {
+    Dark = {
+        AccentColor = Color3.fromRGB(0, 170, 255),
+        AccentColorSecondary = Color3.fromRGB(0, 120, 200),
+        BackgroundColor = Color3.fromRGB(18, 18, 28),
+        SecondaryColor = Color3.fromRGB(28, 28, 42),
+        TertiaryColor = Color3.fromRGB(38, 38, 58),
+        QuaternaryColor = Color3.fromRGB(48, 48, 70),
+        TextColor = Color3.fromRGB(225, 225, 235),
+        DimTextColor = Color3.fromRGB(130, 130, 155),
+        VeryDimTextColor = Color3.fromRGB(80, 80, 100),
+    },
+    Midnight = {
+        AccentColor = Color3.fromRGB(130, 80, 255),
+        AccentColorSecondary = Color3.fromRGB(90, 50, 200),
+        BackgroundColor = Color3.fromRGB(12, 12, 25),
+        SecondaryColor = Color3.fromRGB(22, 22, 40),
+        TertiaryColor = Color3.fromRGB(32, 32, 55),
+        QuaternaryColor = Color3.fromRGB(42, 42, 70),
+        TextColor = Color3.fromRGB(210, 210, 230),
+        DimTextColor = Color3.fromRGB(120, 120, 155),
+        VeryDimTextColor = Color3.fromRGB(70, 70, 100),
+    },
+    Ocean = {
+        AccentColor = Color3.fromRGB(0, 210, 180),
+        AccentColorSecondary = Color3.fromRGB(0, 150, 130),
+        BackgroundColor = Color3.fromRGB(10, 25, 30),
+        SecondaryColor = Color3.fromRGB(15, 35, 45),
+        TertiaryColor = Color3.fromRGB(25, 50, 60),
+        QuaternaryColor = Color3.fromRGB(35, 65, 75),
+        TextColor = Color3.fromRGB(200, 235, 235),
+        DimTextColor = Color3.fromRGB(110, 160, 160),
+        VeryDimTextColor = Color3.fromRGB(60, 100, 100),
+    },
+    Blood = {
+        AccentColor = Color3.fromRGB(255, 45, 45),
+        AccentColorSecondary = Color3.fromRGB(200, 30, 30),
+        BackgroundColor = Color3.fromRGB(25, 10, 10),
+        SecondaryColor = Color3.fromRGB(40, 18, 18),
+        TertiaryColor = Color3.fromRGB(55, 28, 28),
+        QuaternaryColor = Color3.fromRGB(70, 38, 38),
+        TextColor = Color3.fromRGB(235, 210, 210),
+        DimTextColor = Color3.fromRGB(155, 120, 120),
+        VeryDimTextColor = Color3.fromRGB(100, 70, 70),
+    },
+    Forest = {
+        AccentColor = Color3.fromRGB(50, 210, 80),
+        AccentColorSecondary = Color3.fromRGB(35, 150, 55),
+        BackgroundColor = Color3.fromRGB(10, 22, 10),
+        SecondaryColor = Color3.fromRGB(18, 35, 18),
+        TertiaryColor = Color3.fromRGB(28, 50, 28),
+        QuaternaryColor = Color3.fromRGB(38, 65, 38),
+        TextColor = Color3.fromRGB(210, 235, 210),
+        DimTextColor = Color3.fromRGB(120, 155, 120),
+        VeryDimTextColor = Color3.fromRGB(70, 100, 70),
+    },
+    Sunset = {
+        AccentColor = Color3.fromRGB(255, 120, 40),
+        AccentColorSecondary = Color3.fromRGB(200, 85, 25),
+        BackgroundColor = Color3.fromRGB(30, 16, 10),
+        SecondaryColor = Color3.fromRGB(45, 26, 18),
+        TertiaryColor = Color3.fromRGB(60, 36, 26),
+        QuaternaryColor = Color3.fromRGB(75, 48, 36),
+        TextColor = Color3.fromRGB(235, 220, 210),
+        DimTextColor = Color3.fromRGB(155, 135, 120),
+        VeryDimTextColor = Color3.fromRGB(100, 80, 65),
+    },
+    Sakura = {
+        AccentColor = Color3.fromRGB(255, 120, 170),
+        AccentColorSecondary = Color3.fromRGB(200, 80, 130),
+        BackgroundColor = Color3.fromRGB(25, 14, 20),
+        SecondaryColor = Color3.fromRGB(38, 22, 32),
+        TertiaryColor = Color3.fromRGB(52, 32, 44),
+        QuaternaryColor = Color3.fromRGB(66, 42, 56),
+        TextColor = Color3.fromRGB(240, 215, 225),
+        DimTextColor = Color3.fromRGB(160, 125, 140),
+        VeryDimTextColor = Color3.fromRGB(100, 75, 85),
+    },
+    Arctic = {
+        AccentColor = Color3.fromRGB(140, 210, 255),
+        AccentColorSecondary = Color3.fromRGB(90, 160, 210),
+        BackgroundColor = Color3.fromRGB(16, 20, 28),
+        SecondaryColor = Color3.fromRGB(24, 32, 44),
+        TertiaryColor = Color3.fromRGB(34, 44, 60),
+        QuaternaryColor = Color3.fromRGB(44, 56, 76),
+        TextColor = Color3.fromRGB(220, 230, 240),
+        DimTextColor = Color3.fromRGB(130, 150, 170),
+        VeryDimTextColor = Color3.fromRGB(75, 90, 110),
+    },
+}
+
+-- ============================================================
+-- SECTION 4: STATE
+-- ============================================================
+
+local State = {
+    visitedChomiks = {},
+    isCollecting = false,
+    isPaused = false,
+    isGUIVisible = true,
+    isMinimized = false,
+    currentTarget = nil,
+    startTime = 0,
+    sessionStartTime = tick(),
+
+    Stats = {
+        totalCollected = 0,
+        totalTeleports = 0,
+        totalDistance = 0,
+        totalDeaths = 0,
+        totalSkipped = 0,
+        totalErrors = 0,
+        collectionsPerMinute = 0,
+        fastestCollection = math.huge,
+        slowestCollection = 0,
+        averageCollectionTime = 0,
+        collectionTimes = {},
+        sessionCollected = 0,
+        distanceHistory = {},
+        collectHistory = {},
+        errorStreak = 0,
+        successStreak = 0,
+        maxSuccessStreak = 0,
+    },
+
+    Combo = {
+        Count = 0,
+        Timer = 0,
+        MaxCombo = 0,
+        Multiplier = 1,
+        History = {},
+    },
+
+    Performance = {
+        FPS = 60,
+        Ping = 0,
+        Memory = 0,
+        FPSHistory = {},
+        PingHistory = {},
+    },
+
+    Achievements = {},
+    AchievementsUnlocked = {},
+
+    ESPObjects = {},
+    ESPConnections = {},
+    Logs = {},
+    MaxLogs = 500,
+    Notifications = {},
+    GUIElements = {},
+    ActiveTweens = {},
+}
+
+-- ============================================================
+-- SECTION 5: UTILITY FUNCTIONS
+-- ============================================================
+
+local Util = {}
+
+function Util.Round(number, decimals)
+    decimals = decimals or 0
+    local mult = 10 ^ decimals
+    return math.floor(number * mult + 0.5) / mult
+end
+
+function Util.FormatNumber(n)
+    if n >= 1000000 then
+        return Util.Round(n / 1000000, 2) .. "M"
+    elseif n >= 1000 then
+        return Util.Round(n / 1000, 1) .. "K"
+    end
+    return tostring(math.floor(n))
+end
+
+function Util.FormatNumberComma(n)
+    n = math.floor(n)
+    local str = tostring(n)
+    local result = ""
+    local count = 0
+    for i = #str, 1, -1 do
+        count = count + 1
+        result = str:sub(i, i) .. result
+        if count % 3 == 0 and i > 1 then
+            result = "," .. result
+        end
+    end
+    return result
+end
+
+function Util.FormatTime(seconds)
+    seconds = math.max(0, math.floor(seconds))
+    local hours = math.floor(seconds / 3600)
+    local mins = math.floor((seconds % 3600) / 60)
+    local secs = seconds % 60
+    if hours > 0 then
+        return string.format("%d:%02d:%02d", hours, mins, secs)
+    else
+        return string.format("%d:%02d", mins, secs)
+    end
+end
+
+function Util.FormatTimeDetailed(seconds)
+    seconds = math.max(0, math.floor(seconds))
+    local hours = math.floor(seconds / 3600)
+    local mins = math.floor((seconds % 3600) / 60)
+    local secs = seconds % 60
+    if hours > 0 then
+        return string.format("%dч %02dм %02dс", hours, mins, secs)
+    elseif mins > 0 then
+        return string.format("%dм %02dс", mins, secs)
+    else
+        return string.format("%dс", secs)
+    end
+end
+
+function Util.FormatTimestamp()
+    local t = os.date("*t")
+    return string.format("[%02d:%02d:%02d]", t.hour, t.min, t.sec)
+end
+
+function Util.FormatMs(seconds)
+    return Util.Round(seconds * 1000, 0) .. "мс"
+end
+
+function Util.Lerp(a, b, t)
+    return a + (b - a) * math.clamp(t, 0, 1)
+end
+
+function Util.LerpColor(c1, c2, t)
+    t = math.clamp(t, 0, 1)
+    return Color3.new(
+        Util.Lerp(c1.R, c2.R, t),
+        Util.Lerp(c1.G, c2.G, t),
+        Util.Lerp(c1.B, c2.B, t)
+    )
+end
+
+function Util.DarkenColor(color, amount)
+    amount = amount or 0.3
+    return Color3.new(
+        math.max(0, color.R - amount),
+        math.max(0, color.G - amount),
+        math.max(0, color.B - amount)
+    )
+end
+
+function Util.LightenColor(color, amount)
+    amount = amount or 0.2
+    return Color3.new(
+        math.min(1, color.R + amount),
+        math.min(1, color.G + amount),
+        math.min(1, color.B + amount)
+    )
+end
+
+function Util.ColorToHex(color)
+    return string.format("#%02X%02X%02X",
+        math.floor(color.R * 255),
+        math.floor(color.G * 255),
+        math.floor(color.B * 255)
+    )
+end
+
+function Util.GetDistance(pos1, pos2)
+    if typeof(pos1) == "CFrame" then pos1 = pos1.Position end
+    if typeof(pos2) == "CFrame" then pos2 = pos2.Position end
+    return (pos1 - pos2).Magnitude
+end
+
+function Util.GetItemPosition(item)
+    if item:IsA("Model") then
+        local primary = item.PrimaryPart
+        if primary then return primary.CFrame end
+        return item:GetPivot()
+    elseif item:IsA("BasePart") then
+        return item.CFrame
+    end
+    return nil
+end
+
+function Util.ShuffleTable(t)
+    local shuffled = {}
+    for i, v in ipairs(t) do shuffled[i] = v end
+    for i = #shuffled, 2, -1 do
+        local j = math.random(1, i)
+        shuffled[i], shuffled[j] = shuffled[j], shuffled[i]
+    end
+    return shuffled
+end
+
+function Util.DeepCopy(orig)
+    if type(orig) ~= "table" then return orig end
+    local copy = {}
+    for k, v in pairs(orig) do
+        copy[k] = type(v) == "table" and Util.DeepCopy(v) or v
+    end
+    return copy
+end
+
+function Util.TableContains(t, value)
+    for _, v in pairs(t) do
+        if v == value then return true end
+    end
+    return false
+end
+
+function Util.CountTable(t)
+    local count = 0
+    for _ in pairs(t) do count = count + 1 end
+    return count
+end
+
+function Util.SafeCall(func, ...)
+    local success, result = pcall(func, ...)
+    if not success then
+        warn("[ChomikHub] Error: " .. tostring(result))
+        State.Stats.totalErrors = State.Stats.totalErrors + 1
+    end
+    return success, result
+end
+
+function Util.CreateInstance(className, properties)
+    local instance = Instance.new(className)
+    for prop, value in pairs(properties or {}) do
+        if prop ~= "Parent" then
+            instance[prop] = value
+        end
+    end
+    if properties and properties.Parent then
+        instance.Parent = properties.Parent
+    end
+    return instance
+end
+
+function Util.AddCorner(parent, radius)
+    if not parent then return nil end
+    return Util.CreateInstance("UICorner", {
+        CornerRadius = radius or Config.GUI.CornerRadius,
+        Parent = parent,
+    })
+end
+
+function Util.AddStroke(parent, color, thickness, transparency, lineJoin)
+    return Util.CreateInstance("UIStroke", {
+        Color = color or Config.GUI.AccentColor,
+        Thickness = thickness or 1,
+        Transparency = transparency or Config.GUI.StrokeTransparency,
+        LineJoinMode = lineJoin or Enum.LineJoinMode.Round,
+        Parent = parent,
+    })
+end
+
+function Util.AddPadding(parent, top, bottom, left, right)
+    return Util.CreateInstance("UIPadding", {
+        PaddingTop = UDim.new(0, top or 6),
+        PaddingBottom = UDim.new(0, bottom or 6),
+        PaddingLeft = UDim.new(0, left or 6),
+        PaddingRight = UDim.new(0, right or 6),
+        Parent = parent,
+    })
+end
+
+function Util.AddListLayout(parent, padding, direction, hAlign, vAlign, sortOrder)
+    return Util.CreateInstance("UIListLayout", {
+        Padding = UDim.new(0, padding or 5),
+        FillDirection = direction or Enum.FillDirection.Vertical,
+        HorizontalAlignment = hAlign or Enum.HorizontalAlignment.Center,
+        VerticalAlignment = vAlign or Enum.VerticalAlignment.Top,
+        SortOrder = sortOrder or Enum.SortOrder.LayoutOrder,
+        Parent = parent,
+    })
+end
+
+function Util.AddGradient(parent, color1, color2, rotation)
+    return Util.CreateInstance("UIGradient", {
+        Color = ColorSequence.new(color1 or Color3.new(1,1,1), color2 or Color3.fromRGB(200,200,200)),
+        Rotation = rotation or 90,
+        Parent = parent,
+    })
+end
+
+function Util.Tween(instance, properties, duration, easingStyle, easingDirection)
+    if not instance or not instance.Parent then return nil end
+    local tweenInfo = TweenInfo.new(
+        duration or Config.GUI.AnimationSpeed,
+        easingStyle or Enum.EasingStyle.Quart,
+        easingDirection or Enum.EasingDirection.Out
+    )
+    local tween = TweenService:Create(instance, tweenInfo, properties)
+    tween:Play()
+    return tween
+end
+
+function Util.TweenSequence(instance, steps, loopCount)
+    loopCount = loopCount or 1
+    task.spawn(function()
+        for _ = 1, loopCount do
+            for _, step in ipairs(steps) do
+                local tween = Util.Tween(instance, step.Properties, step.Duration, step.EasingStyle, step.EasingDirection)
+                if tween then tween.Completed:Wait() end
+            end
+        end
+    end)
+end
+
+function Util.RippleEffect(button, x, y, color)
+    local ripple = Util.CreateInstance("Frame", {
+        BackgroundColor3 = color or Color3.fromRGB(255, 255, 255),
+        BackgroundTransparency = 0.65,
+        Position = UDim2.new(0, x - button.AbsolutePosition.X, 0, y - button.AbsolutePosition.Y),
+        Size = UDim2.new(0, 0, 0, 0),
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        ZIndex = button.ZIndex + 1,
+        Parent = button,
+    })
+    Util.AddCorner(ripple, UDim.new(1, 0))
+
+    local maxSize = math.max(button.AbsoluteSize.X, button.AbsoluteSize.Y) * 2.5
+    local tween = Util.Tween(ripple, {
+        Size = UDim2.new(0, maxSize, 0, maxSize),
+        BackgroundTransparency = 1,
+    }, 0.6, Enum.EasingStyle.Quart)
+
+    if tween then
+        tween.Completed:Connect(function()
+            ripple:Destroy()
+        end)
+    end
+end
+
+function Util.PulseEffect(instance, scaleAmount, duration)
+    scaleAmount = scaleAmount or 0.05
+    duration = duration or 0.15
+    local origSize = instance.Size
+    Util.Tween(instance, {
+        Size = origSize + UDim2.new(scaleAmount, 0, scaleAmount, 0)
+    }, duration, Enum.EasingStyle.Back)
+    task.delay(duration, function()
+        Util.Tween(instance, {Size = origSize}, duration * 1.5, Enum.EasingStyle.Quart)
+    end)
+end
+
+function Util.ShakeEffect(instance, intensity, duration)
+    intensity = intensity or 3
+    duration = duration or 0.3
+    local origPos = instance.Position
+    local steps = math.floor(duration / 0.03)
+    task.spawn(function()
+        for i = 1, steps do
+            local offsetX = math.random(-intensity, intensity)
+            local offsetY = math.random(-intensity, intensity)
+            instance.Position = origPos + UDim2.new(0, offsetX, 0, offsetY)
+            task.wait(0.03)
+        end
+        Util.Tween(instance, {Position = origPos}, 0.1)
+    end)
+end
+
+function Util.GetPlayerPosition()
+    local char = player.Character
+    if char then
+        local root = char:FindFirstChild("HumanoidRootPart")
+        if root then return root.Position end
+    end
+    return Vector3.zero
+end
+
+function Util.IsPlayerAlive()
+    local char = player.Character
+    if not char then return false end
+    local humanoid = char:FindFirstChild("Humanoid")
+    return humanoid and humanoid.Health > 0
+end
+
+function Util.GetPercentColor(percent)
+    if percent >= 80 then return Config.GUI.SuccessColor
+    elseif percent >= 50 then return Config.GUI.WarningColor
+    elseif percent >= 25 then return Color3.fromRGB(255, 130, 50)
+    else return Config.GUI.ErrorColor end
+end
+
+function Util.GetComboColor(combo)
+    if combo >= 100 then return Config.GUI.MythicColor end
+    if combo >= 50 then return Config.GUI.LegendaryColor end
+    if combo >= 30 then return Config.GUI.ErrorColor end
+    if combo >= 20 then return Color3.fromRGB(255, 150, 0) end
+    if combo >= 10 then return Config.GUI.WarningColor end
+    if combo >= 5 then return Config.GUI.SuccessColor end
+    return Config.GUI.DimTextColor
+end
+
+-- ============================================================
+-- SECTION 6: LOGGER
+-- ============================================================
+
+local Logger = {}
+
+Logger.LogTypes = {
+    INFO     = {Color = Color3.fromRGB(180, 200, 255), Prefix = "ℹ️", Priority = 1},
+    SUCCESS  = {Color = Color3.fromRGB(80, 220, 120),  Prefix = "✅", Priority = 2},
+    WARNING  = {Color = Color3.fromRGB(255, 200, 60),  Prefix = "⚠️", Priority = 3},
+    ERROR    = {Color = Color3.fromRGB(255, 80, 80),   Prefix = "❌", Priority = 4},
+    TELEPORT = {Color = Color3.fromRGB(80, 200, 255),  Prefix = "🔀", Priority = 1},
+    COLLECT  = {Color = Color3.fromRGB(255, 215, 0),   Prefix = "⭐", Priority = 2},
+    SYSTEM   = {Color = Color3.fromRGB(160, 160, 190), Prefix = "⚙️", Priority = 1},
+    DEBUG    = {Color = Color3.fromRGB(120, 120, 140),  Prefix = "🔧", Priority = 0},
+    COMBO    = {Color = Color3.fromRGB(255, 150, 50),   Prefix = "🔥", Priority = 2},
+    ACHIEVE  = {Color = Color3.fromRGB(255, 215, 0),    Prefix = "🏆", Priority = 3},
+}
+
+function Logger.Log(message, logType)
+    logType = logType or "INFO"
+    local logData = Logger.LogTypes[logType] or Logger.LogTypes.INFO
+    local entry = {
+        Time = Util.FormatTimestamp(),
+        Message = message,
+        Type = logType,
+        Color = logData.Color,
+        Prefix = logData.Prefix,
+        Priority = logData.Priority,
+        Tick = tick(),
+    }
+    table.insert(State.Logs, 1, entry)
+    while #State.Logs > State.MaxLogs do table.remove(State.Logs) end
+
+    if State.GUIElements.LogScrollFrame then
+        Logger.UpdateLogGUI()
+    end
+
+    local consoleMsg = string.format("%s %s %s", entry.Time, logData.Prefix, message)
+    if logType == "ERROR" then warn(consoleMsg) else print(consoleMsg) end
+    return entry
+end
+
+function Logger.Info(msg) return Logger.Log(msg, "INFO") end
+function Logger.Success(msg) return Logger.Log(msg, "SUCCESS") end
+function Logger.Warning(msg) return Logger.Log(msg, "WARNING") end
+function Logger.Error(msg) return Logger.Log(msg, "ERROR") end
+function Logger.Teleport(msg) return Logger.Log(msg, "TELEPORT") end
+function Logger.Collect(msg) return Logger.Log(msg, "COLLECT") end
+function Logger.System(msg) return Logger.Log(msg, "SYSTEM") end
+function Logger.Debug(msg) return Logger.Log(msg, "DEBUG") end
+function Logger.Combo(msg) return Logger.Log(msg, "COMBO") end
+function Logger.Achieve(msg) return Logger.Log(msg, "ACHIEVE") end
+
+function Logger.Clear()
+    State.Logs = {}
+    if State.GUIElements.LogScrollFrame then Logger.UpdateLogGUI() end
+    Logger.System("Логи очищены")
+end
+
+function Logger.UpdateLogGUI()
+    local scrollFrame = State.GUIElements.LogScrollFrame
+    if not scrollFrame then return end
+    for _, child in pairs(scrollFrame:GetChildren()) do
+        if child:IsA("Frame") then child:Destroy() end
+    end
+    for i, entry in ipairs(State.Logs) do
+        if i > 100 then break end
+        local logFrame = Util.CreateInstance("Frame", {
+            BackgroundColor3 = i % 2 == 0 and Config.GUI.SecondaryColor or Config.GUI.BackgroundColor,
+            BackgroundTransparency = 0.2,
+            Size = UDim2.new(1, -6, 0, 24),
+            LayoutOrder = i,
+            Parent = scrollFrame,
+        })
+        Util.AddCorner(logFrame, Config.GUI.CornerRadiusSmall)
+
+        -- Colored left accent
+        Util.CreateInstance("Frame", {
+            BackgroundColor3 = entry.Color,
+            Size = UDim2.new(0, 3, 0.7, 0),
+            Position = UDim2.new(0, 2, 0.15, 0),
+            Parent = logFrame,
+        })
+
+        Util.CreateInstance("TextLabel", {
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0, 10, 0, 0),
+            Size = UDim2.new(0, 60, 1, 0),
+            Text = entry.Time,
+            TextColor3 = Config.GUI.VeryDimTextColor,
+            TextSize = 10,
+            Font = Config.GUI.FontMono,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            Parent = logFrame,
+        })
+
+        Util.CreateInstance("TextLabel", {
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0, 72, 0, 0),
+            Size = UDim2.new(1, -78, 1, 0),
+            Text = entry.Prefix .. " " .. entry.Message,
+            TextColor3 = entry.Color,
+            TextSize = 11,
+            Font = Config.GUI.FontRegular,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            TextTruncate = Enum.TextTruncate.AtEnd,
+            Parent = logFrame,
+        })
+    end
+end
+
+-- ============================================================
+-- SECTION 7: NOTIFICATION SYSTEM
+-- ============================================================
+
+local Notify = {}
+
+function Notify.Init()
+    if State.GUIElements.NotificationContainer then
+        State.GUIElements.NotificationContainer:Destroy()
+    end
+    State.GUIElements.NotificationContainer = Util.CreateInstance("ScreenGui", {
+        Name = "ChomikNotifications",
+        ResetOnSpawn = false,
+        ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+        DisplayOrder = 100,
+        Parent = CoreGui,
+    })
+    local holder = Util.CreateInstance("Frame", {
+        Name = "Holder",
+        BackgroundTransparency = 1,
+        Position = UDim2.new(1, -340, 0, 10),
+        Size = UDim2.new(0, 330, 1, -20),
+        Parent = State.GUIElements.NotificationContainer,
+    })
+    Util.AddListLayout(holder, 6, Enum.FillDirection.Vertical, Enum.HorizontalAlignment.Right, Enum.VerticalAlignment.Top)
+    State.GUIElements.NotificationHolder = holder
+end
+
+function Notify.Send(title, message, notifType, duration)
+    notifType = notifType or "INFO"
+    duration = duration or Config.GUI.NotificationDuration
+
+    local holder = State.GUIElements.NotificationHolder
+    if not holder then Notify.Init(); holder = State.GUIElements.NotificationHolder end
+
+    local colors = {
+        INFO = Config.GUI.AccentColor,
+        SUCCESS = Config.GUI.SuccessColor,
+        WARNING = Config.GUI.WarningColor,
+        ERROR = Config.GUI.ErrorColor,
+        ACHIEVE = Config.GUI.LegendaryColor,
+        COMBO = Color3.fromRGB(255, 150, 50),
+    }
+    local icons = {
+        INFO = "ℹ️", SUCCESS = "✅", WARNING = "⚠️",
+        ERROR = "❌", ACHIEVE = "🏆", COMBO = "🔥",
+    }
+
+    local accentColor = colors[notifType] or colors.INFO
+    local icon = icons[notifType] or icons.INFO
+
+    local notifFrame = Util.CreateInstance("Frame", {
+        BackgroundColor3 = Config.GUI.BackgroundColor,
+        BackgroundTransparency = 0.02,
+        Size = UDim2.new(1, 0, 0, 78),
+        ClipsDescendants = true,
+        Parent = holder,
+    })
+    Util.AddCorner(notifFrame, Config.GUI.CornerRadiusLarge)
+    Util.AddStroke(notifFrame, accentColor, 1.5, 0.2)
+
+    -- Gradient background
+    Util.CreateInstance("Frame", {
+        Name = "GradientBg",
+        BackgroundColor3 = accentColor,
+        BackgroundTransparency = 0.92,
+        Size = UDim2.new(1, 0, 1, 0),
+        ZIndex = 0,
+        Parent = notifFrame,
+    })
+
+    -- Left accent bar with gradient
+    local accentBar = Util.CreateInstance("Frame", {
+        BackgroundColor3 = accentColor,
+        Size = UDim2.new(0, 4, 1, 0),
+        BorderSizePixel = 0,
+        Parent = notifFrame,
+    })
+
+    -- Icon circle
+    local iconBg = Util.CreateInstance("Frame", {
+        BackgroundColor3 = accentColor,
+        BackgroundTransparency = 0.85,
+        Position = UDim2.new(0, 12, 0, 10),
+        Size = UDim2.new(0, 32, 0, 32),
+        Parent = notifFrame,
+    })
+    Util.AddCorner(iconBg, UDim.new(1, 0))
+
+    Util.CreateInstance("TextLabel", {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 1, 0),
+        Text = icon,
+        TextSize = 16,
+        Parent = iconBg,
+    })
+
+    -- Title
+    Util.CreateInstance("TextLabel", {
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 52, 0, 8),
+        Size = UDim2.new(1, -88, 0, 18),
+        Text = title,
+        TextColor3 = Config.GUI.TextColor,
+        TextSize = 13,
+        Font = Config.GUI.Font,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = notifFrame,
+    })
+
+    -- Close
+    local closeBtn = Util.CreateInstance("TextButton", {
+        BackgroundColor3 = Config.GUI.TertiaryColor,
+        BackgroundTransparency = 0.5,
+        Position = UDim2.new(1, -34, 0, 6),
+        Size = UDim2.new(0, 28, 0, 28),
+        Text = "✕",
+        TextColor3 = Config.GUI.DimTextColor,
+        TextSize = 12,
+        Font = Config.GUI.Font,
+        Parent = notifFrame,
+    })
+    Util.AddCorner(closeBtn, UDim.new(0, 6))
+
+    -- Message
+    Util.CreateInstance("TextLabel", {
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 52, 0, 28),
+        Size = UDim2.new(1, -60, 0, 34),
+        Text = message,
+        TextColor3 = Config.GUI.DimTextColor,
+        TextSize = 11,
+        Font = Config.GUI.FontRegular,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextWrapped = true,
+        TextYAlignment = Enum.TextYAlignment.Top,
+        Parent = notifFrame,
+    })
+
+    -- Progress bar
+    local progressBg = Util.CreateInstance("Frame", {
+        BackgroundColor3 = Config.GUI.TertiaryColor,
+        BackgroundTransparency = 0.3,
+        Position = UDim2.new(0, 12, 1, -7),
+        Size = UDim2.new(1, -24, 0, 3),
+        Parent = notifFrame,
+    })
+    Util.AddCorner(progressBg, UDim.new(1, 0))
+
+    local progressFill = Util.CreateInstance("Frame", {
+        BackgroundColor3 = accentColor,
+        Size = UDim2.new(1, 0, 1, 0),
+        Parent = progressBg,
+    })
+    Util.AddCorner(progressFill, UDim.new(1, 0))
+
+    -- Animate in
+    notifFrame.Position = UDim2.new(1, 60, 0, 0)
+    notifFrame.BackgroundTransparency = 0.5
+    Util.Tween(notifFrame, {Position = UDim2.new(0, 0, 0, 0), BackgroundTransparency = 0.02}, 0.35, Enum.EasingStyle.Back)
+
+    -- Progress bar countdown
+    Util.Tween(progressFill, {Size = UDim2.new(0, 0, 1, 0)}, duration, Enum.EasingStyle.Linear)
+
+    local function closeNotif()
+        local tween = Util.Tween(notifFrame, {
+            Position = UDim2.new(1, 60, 0, 0),
+            BackgroundTransparency = 1,
+        }, 0.3, Enum.EasingStyle.Quart)
+        if tween then
+            tween.Completed:Connect(function() notifFrame:Destroy() end)
+        end
+    end
+
+    closeBtn.MouseButton1Click:Connect(closeNotif)
+    task.delay(duration, function()
+        if notifFrame and notifFrame.Parent then closeNotif() end
+    end)
+
+    return notifFrame
+end
+
+function Notify.Info(title, msg, dur) return Notify.Send(title, msg, "INFO", dur) end
+function Notify.Success(title, msg, dur) return Notify.Send(title, msg, "SUCCESS", dur) end
+function Notify.Warning(title, msg, dur) return Notify.Send(title, msg, "WARNING", dur) end
+function Notify.Error(title, msg, dur) return Notify.Send(title, msg, "ERROR", dur) end
+function Notify.Achievement(title, msg, dur) return Notify.Send(title, msg, "ACHIEVE", dur or 6) end
+function Notify.ComboNotify(title, msg, dur) return Notify.Send(title, msg, "COMBO", dur or 3) end
+
+-- ============================================================
+-- SECTION 8: ACHIEVEMENT SYSTEM (50+ achievements)
+-- ============================================================
+
+local Achievements = {}
+
+Achievements.Tiers = {
+    {Name = "Bronze",   Color = Color3.fromRGB(180, 130, 80),  Icon = "🥉"},
+    {Name = "Silver",   Color = Color3.fromRGB(180, 180, 200), Icon = "🥈"},
+    {Name = "Gold",     Color = Color3.fromRGB(255, 215, 0),   Icon = "🥇"},
+    {Name = "Diamond",  Color = Color3.fromRGB(100, 200, 255), Icon = "💎"},
+    {Name = "Mythic",   Color = Color3.fromRGB(255, 80, 150),  Icon = "🌟"},
+}
+
+function Achievements.Define(id, name, description, icon, tier, checkFunc, progressFunc, maxProgress)
+    tier = tier or 1
+    State.Achievements[id] = {
+        Id = id,
+        Name = name,
+        Description = description,
+        Icon = icon,
+        Tier = Achievements.Tiers[tier] or Achievements.Tiers[1],
+        TierIndex = tier,
+        Check = checkFunc,
+        GetProgress = progressFunc,
+        MaxProgress = maxProgress or 1,
+        Unlocked = false,
+        UnlockedAt = nil,
+        NotifiedAt = nil,
+    }
+end
+
+function Achievements.Unlock(id)
+    local ach = State.Achievements[id]
+    if not ach or ach.Unlocked then return end
+
+    ach.Unlocked = true
+    ach.UnlockedAt = tick()
+    State.AchievementsUnlocked[id] = true
+
+    Logger.Achieve(ach.Tier.Icon .. " " .. ach.Name .. " — " .. ach.Description)
+
+    Notify.Achievement(
+        ach.Tier.Icon .. " " .. ach.Name,
+        ach.Description .. "\n" .. ach.Tier.Name .. " Achievement",
+        6
+    )
+
+    if State.GUIElements.AchievementsList then
+        Achievements.RefreshGUI()
+    end
+end
+
+function Achievements.GetProgress(id)
+    local ach = State.Achievements[id]
+    if not ach then return 0, 1 end
+    if ach.Unlocked then return ach.MaxProgress, ach.MaxProgress end
+    if ach.GetProgress then
+        local ok, current = pcall(ach.GetProgress)
+        if ok then return math.min(current, ach.MaxProgress), ach.MaxProgress end
+    end
+    return 0, ach.MaxProgress
+end
+
+function Achievements.GetProgressPercent(id)
+    local current, max = Achievements.GetProgress(id)
+    return max > 0 and (current / max * 100) or 0
+end
+
+function Achievements.CheckAll()
+    for id, ach in pairs(State.Achievements) do
+        if not ach.Unlocked and ach.Check then
+            local ok, result = pcall(ach.Check)
+            if ok and result then
+                Achievements.Unlock(id)
+            end
+        end
+    end
+end
+
+function Achievements.GetStats()
+    local total, unlocked, byTier = 0, 0, {}
+    for _, tier in ipairs(Achievements.Tiers) do
+        byTier[tier.Name] = {Total = 0, Unlocked = 0}
+    end
+    for _, ach in pairs(State.Achievements) do
+        total = total + 1
+        byTier[ach.Tier.Name].Total = byTier[ach.Tier.Name].Total + 1
+        if ach.Unlocked then
+            unlocked = unlocked + 1
+            byTier[ach.Tier.Name].Unlocked = byTier[ach.Tier.Name].Unlocked + 1
+        end
+    end
+    return {Total = total, Unlocked = unlocked, Percent = total > 0 and Util.Round(unlocked/total*100, 1) or 0, ByTier = byTier}
+end
+
+function Achievements.RegisterAll()
+    local s = State.Stats
+    local c = State.Combo
+
+    -- ═══ COLLECTION ACHIEVEMENTS (Bronze → Mythic) ═══
+    Achievements.Define("collect_1", "Первый шаг", "Собери первого хомика", "🐹", 1,
+        function() return s.totalCollected >= 1 end,
+        function() return s.totalCollected end, 1)
+
+    Achievements.Define("collect_5", "Начинающий", "Собери 5 хомиков", "🌱", 1,
+        function() return s.totalCollected >= 5 end,
+        function() return s.totalCollected end, 5)
+
+    Achievements.Define("collect_10", "Любитель", "Собери 10 хомиков", "📦", 1,
+        function() return s.totalCollected >= 10 end,
+        function() return s.totalCollected end, 10)
+
+    Achievements.Define("collect_25", "Увлечённый", "Собери 25 хомиков", "📦", 2,
+        function() return s.totalCollected >= 25 end,
+        function() return s.totalCollected end, 25)
+
+    Achievements.Define("collect_50", "Коллекционер", "Собери 50 хомиков", "🎒", 2,
+        function() return s.totalCollected >= 50 end,
+        function() return s.totalCollected end, 50)
+
+    Achievements.Define("collect_100", "Мастер хомиков", "Собери 100 хомиков", "🏅", 3,
+        function() return s.totalCollected >= 100 end,
+        function() return s.totalCollected end, 100)
+
+    Achievements.Define("collect_250", "Великий собиратель", "Собери 250 хомиков", "👑", 3,
+        function() return s.totalCollected >= 250 end,
+        function() return s.totalCollected end, 250)
+
+    Achievements.Define("collect_500", "Легенда", "Собери 500 хомиков", "⚜️", 4,
+        function() return s.totalCollected >= 500 end,
+        function() return s.totalCollected end, 500)
+
+    Achievements.Define("collect_1000", "Бог хомиков", "Собери 1000 хомиков", "💎", 5,
+        function() return s.totalCollected >= 1000 end,
+        function() return s.totalCollected end, 1000)
+
+    Achievements.Define("collect_2500", "Трансцендентный", "Собери 2500 хомиков", "🌟", 5,
+        function() return s.totalCollected >= 2500 end,
+        function() return s.totalCollected end, 2500)
+
+    -- ═══ SPEED ACHIEVEMENTS ═══
+    Achievements.Define("speed_500ms", "Быстрый", "Собери хомика за <500мс", "⚡", 1,
+        function() return s.fastestCollection < 0.5 and s.fastestCollection > 0 end,
+        function() return s.fastestCollection < 0.5 and 1 or 0 end, 1)
+
+    Achievements.Define("speed_200ms", "Молниеносный", "Собери хомика за <200мс", "⚡", 2,
+        function() return s.fastestCollection < 0.2 and s.fastestCollection > 0 end,
+        function() return s.fastestCollection < 0.2 and 1 or 0 end, 1)
+
+    Achievements.Define("speed_100ms", "Скорость света", "Собери хомика за <100мс", "💫", 3,
+        function() return s.fastestCollection < 0.1 and s.fastestCollection > 0 end,
+        function() return s.fastestCollection < 0.1 and 1 or 0 end, 1)
+
+    Achievements.Define("speed_50ms", "Мгновение", "Собери хомика за <50мс", "✨", 4,
+        function() return s.fastestCollection < 0.05 and s.fastestCollection > 0 end,
+        function() return s.fastestCollection < 0.05 and 1 or 0 end, 1)
+
+    -- ═══ DISTANCE ACHIEVEMENTS ═══
+    Achievements.Define("dist_1k", "Путешественник", "Пройди 1,000 studs", "🚶", 1,
+        function() return s.totalDistance >= 1000 end,
+        function() return s.totalDistance end, 1000)
+
+    Achievements.Define("dist_5k", "Странник", "Пройди 5,000 studs", "🧭", 1,
+        function() return s.totalDistance >= 5000 end,
+        function() return s.totalDistance end, 5000)
+
+    Achievements.Define("dist_10k", "Марафонец", "Пройди 10,000 studs", "🏃", 2,
+        function() return s.totalDistance >= 10000 end,
+        function() return s.totalDistance end, 10000)
+
+    Achievements.Define("dist_50k", "Ультрамарафонец", "Пройди 50,000 studs", "🏃‍♂️", 3,
+        function() return s.totalDistance >= 50000 end,
+        function() return s.totalDistance end, 50000)
+
+    Achievements.Define("dist_100k", "Кругосветник", "Пройди 100,000 studs", "🌍", 4,
+        function() return s.totalDistance >= 100000 end,
+        function() return s.totalDistance end, 100000)
+
+    Achievements.Define("dist_500k", "Межзвёздный", "Пройди 500,000 studs", "🚀", 5,
+        function() return s.totalDistance >= 500000 end,
+        function() return s.totalDistance end, 500000)
+
+    -- ═══ SURVIVAL ACHIEVEMENTS ═══
+    Achievements.Define("die_1", "Первая смерть", "Умри и продолжи сбор", "💀", 1,
+        function() return s.totalDeaths >= 1 and s.totalCollected > 0 end,
+        function() return s.totalDeaths end, 1)
+
+    Achievements.Define("die_5", "Настойчивый", "Умри 5 раз и продолжи", "💪", 2,
+        function() return s.totalDeaths >= 5 end,
+        function() return s.totalDeaths end, 5)
+
+    Achievements.Define("die_10", "Несгибаемый", "Умри 10 раз и продолжи", "🛡️", 2,
+        function() return s.totalDeaths >= 10 end,
+        function() return s.totalDeaths end, 10)
+
+    Achievements.Define("die_25", "Неубиваемый", "Умри 25 раз и продолжи", "⚔️", 3,
+        function() return s.totalDeaths >= 25 end,
+        function() return s.totalDeaths end, 25)
+
+    Achievements.Define("die_50", "Бессмертный", "Умри 50 раз и продолжи", "♾️", 4,
+        function() return s.totalDeaths >= 50 end,
+        function() return s.totalDeaths end, 50)
+
+    -- ═══ SESSION TIME ACHIEVEMENTS ═══
+    Achievements.Define("time_5m", "Пять минут", "Сессия длится 5 минут", "⏱️", 1,
+        function() return StatsEngine.GetSessionTime() >= 300 end,
+        function() return StatsEngine.GetSessionTime() end, 300)
+
+    Achievements.Define("time_15m", "Четверть часа", "Сессия длится 15 минут", "⏰", 1,
+        function() return StatsEngine.GetSessionTime() >= 900 end,
+        function() return StatsEngine.GetSessionTime() end, 900)
+
+    Achievements.Define("time_30m", "Полчаса!", "Сессия длится 30 минут", "🕐", 2,
+        function() return StatsEngine.GetSessionTime() >= 1800 end,
+        function() return StatsEngine.GetSessionTime() end, 1800)
+
+    Achievements.Define("time_1h", "Часовщик", "Сессия длится 1 час", "🕑", 3,
+        function() return StatsEngine.GetSessionTime() >= 3600 end,
+        function() return StatsEngine.GetSessionTime() end, 3600)
+
+    Achievements.Define("time_2h", "Двухчасовой марафон", "Сессия длится 2 часа", "🕒", 4,
+        function() return StatsEngine.GetSessionTime() >= 7200 end,
+        function() return StatsEngine.GetSessionTime() end, 7200)
+
+    -- ═══ COMBO ACHIEVEMENTS ═══
+    Achievements.Define("combo_5", "Первое комбо", "Достигни комбо x5", "🔥", 1,
+        function() return c.MaxCombo >= 5 end,
+        function() return c.MaxCombo end, 5)
+
+    Achievements.Define("combo_10", "Комбо мастер", "Достигни комбо x10", "🔥", 1,
+        function() return c.MaxCombo >= 10 end,
+        function() return c.MaxCombo end, 10)
+
+    Achievements.Define("combo_25", "Комбо эксперт", "Достигни комбо x25", "🔥", 2,
+        function() return c.MaxCombo >= 25 end,
+        function() return c.MaxCombo end, 25)
+
+    Achievements.Define("combo_50", "Комбо легенда", "Достигни комбо x50", "🔥", 3,
+        function() return c.MaxCombo >= 50 end,
+        function() return c.MaxCombo end, 50)
+
+    Achievements.Define("combo_100", "Комбо бог", "Достигни комбо x100", "🔥", 4,
+        function() return c.MaxCombo >= 100 end,
+        function() return c.MaxCombo end, 100)
+
+    Achievements.Define("combo_200", "Неостановимый", "Достигни комбо x200", "🔥", 5,
+        function() return c.MaxCombo >= 200 end,
+        function() return c.MaxCombo end, 200)
+
+    -- ═══ QUALITY ACHIEVEMENTS ═══
+    Achievements.Define("no_err_10", "Аккуратный", "10 сборов без ошибок", "✨", 1,
+        function() return s.totalCollected >= 10 and s.totalErrors == 0 end,
+        function() return s.totalErrors == 0 and s.totalCollected or 0 end, 10)
+
+    Achievements.Define("no_err_50", "Безупречный", "50 сборов без ошибок", "✨", 2,
+        function() return s.totalCollected >= 50 and s.totalErrors == 0 end,
+        function() return s.totalErrors == 0 and s.totalCollected or 0 end, 50)
+
+    Achievements.Define("no_err_100", "Перфекционист", "100 сборов без ошибок", "✨", 3,
+        function() return s.totalCollected >= 100 and s.totalErrors == 0 end,
+        function() return s.totalErrors == 0 and s.totalCollected or 0 end, 100)
+
+    Achievements.Define("streak_10", "Серия из 10", "10 сборов подряд без ошибок", "📈", 1,
+        function() return s.maxSuccessStreak >= 10 end,
+        function() return s.maxSuccessStreak end, 10)
+
+    Achievements.Define("streak_50", "Серия из 50", "50 сборов подряд без ошибок", "📈", 2,
+        function() return s.maxSuccessStreak >= 50 end,
+        function() return s.maxSuccessStreak end, 50)
+
+    Achievements.Define("streak_100", "Серия из 100", "100 сборов подряд без ошибок", "📈", 3,
+        function() return s.maxSuccessStreak >= 100 end,
+        function() return s.maxSuccessStreak end, 100)
+
+    -- ═══ RATE ACHIEVEMENTS ═══
+    Achievements.Define("cpm_5", "Разогрев", "5+ сборов в минуту", "🚀", 1,
+        function() return StatsEngine.GetCollectionsPerMinute() >= 5 end,
+        function() return StatsEngine.GetCollectionsPerMinute() end, 5)
+
+    Achievements.Define("cpm_10", "Ускорение", "10+ сборов в минуту", "🚀", 2,
+        function() return StatsEngine.GetCollectionsPerMinute() >= 10 end,
+        function() return StatsEngine.GetCollectionsPerMinute() end, 10)
+
+    Achievements.Define("cpm_20", "Полная скорость", "20+ сборов в минуту", "🚀", 3,
+        function() return StatsEngine.GetCollectionsPerMinute() >= 20 end,
+        function() return StatsEngine.GetCollectionsPerMinute() end, 20)
+
+    Achievements.Define("cpm_40", "Гиперскорость", "40+ сборов в минуту", "🚀", 4,
+        function() return StatsEngine.GetCollectionsPerMinute() >= 40 end,
+        function() return StatsEngine.GetCollectionsPerMinute() end, 40)
+
+    -- ═══ COMPLETION ACHIEVEMENTS ═══
+    Achievements.Define("complete_25", "Четверть пути", "Заполни 25% коллекции", "📊", 2,
+        function()
+            local r = RouteOptimizer.GetStats()
+            return r.CompletionPercent >= 25
+        end,
+        function()
+            local r = RouteOptimizer.GetStats()
+            return r.CompletionPercent
+        end, 25)
+
+    Achievements.Define("complete_50", "На полпути", "Заполни 50% коллекции", "📊", 3,
+        function()
+            local r = RouteOptimizer.GetStats()
+            return r.CompletionPercent >= 50
+        end,
+        function()
+            local r = RouteOptimizer.GetStats()
+            return r.CompletionPercent
+        end, 50)
+
+    Achievements.Define("complete_75", "Почти!", "Заполни 75% коллекции", "📊", 4,
+        function()
+            local r = RouteOptimizer.GetStats()
+            return r.CompletionPercent >= 75
+        end,
+        function()
+            local r = RouteOptimizer.GetStats()
+            return r.CompletionPercent
+        end, 75)
+
+    Achievements.Define("complete_100", "ПОЛНАЯ КОЛЛЕКЦИЯ!", "Заполни 100% коллекции", "🎉", 5,
+        function()
+            local r = RouteOptimizer.GetStats()
+            return r.CompletionPercent >= 100
+        end,
+        function()
+            local r = RouteOptimizer.GetStats()
+            return r.CompletionPercent
+        end, 100)
+
+    -- ═══ TIME OF DAY ACHIEVEMENTS ═══
+    Achievements.Define("night_owl", "Ночная сова", "Играй после полуночи", "🦉", 2,
+        function()
+            local h = tonumber(os.date("%H"))
+            return h >= 0 and h < 4 and s.totalCollected > 0
+        end,
+        function() return tonumber(os.date("%H")) < 4 and 1 or 0 end, 1)
+
+    Achievements.Define("early_bird", "Ранняя пташка", "Играй до 6 утра", "🐦", 2,
+        function()
+            local h = tonumber(os.date("%H"))
+            return h >= 4 and h < 6 and s.totalCollected > 0
+        end,
+        function() return (tonumber(os.date("%H")) >= 4 and tonumber(os.date("%H")) < 6) and 1 or 0 end, 1)
+
+    -- ═══ TELEPORT ACHIEVEMENTS ═══
+    Achievements.Define("tp_100", "Телепортёр", "Совершите 100 телепортов", "🔀", 1,
+        function() return s.totalTeleports >= 100 end,
+        function() return s.totalTeleports end, 100)
+
+    Achievements.Define("tp_500", "Мастер телепорта", "Совершите 500 телепортов", "🔀", 2,
+        function() return s.totalTeleports >= 500 end,
+        function() return s.totalTeleports end, 500)
+
+    Achievements.Define("tp_1000", "Телепорт-маньяк", "Совершите 1000 телепортов", "🔀", 3,
+        function() return s.totalTeleports >= 1000 end,
+        function() return s.totalTeleports end, 1000)
+
+    Logger.System("Зарегистрировано достижений: " .. Util.CountTable(State.Achievements))
+end
+
+function Achievements.RefreshGUI()
+    local listFrame = State.GUIElements.AchievementsList
+    if not listFrame then return end
+
+    for _, child in pairs(listFrame:GetChildren()) do
+        if child:IsA("Frame") then child:Destroy() end
+    end
+
+    -- Sort: unlocked first (by tier desc), then locked (by progress desc)
+    local sorted = {}
+    for _, ach in pairs(State.Achievements) do table.insert(sorted, ach) end
+    table.sort(sorted, function(a, b)
+        if a.Unlocked ~= b.Unlocked then return a.Unlocked end
+        if a.Unlocked and b.Unlocked then return (a.UnlockedAt or 0) > (b.UnlockedAt or 0) end
+        -- Both locked: sort by progress %
+        local pA = Achievements.GetProgressPercent(a.Id)
+        local pB = Achievements.GetProgressPercent(b.Id)
+        if pA ~= pB then return pA > pB end
+        return a.TierIndex > b.TierIndex
+    end)
+
+    for i, ach in ipairs(sorted) do
+        local current, max = Achievements.GetProgress(ach.Id)
+        local pct = max > 0 and (current / max) or 0
+
+        local achFrame = Util.CreateInstance("Frame", {
+            BackgroundColor3 = ach.Unlocked and Util.DarkenColor(ach.Tier.Color, 0.35) or Config.GUI.SecondaryColor,
+            BackgroundTransparency = ach.Unlocked and 0.15 or 0.2,
+            Size = UDim2.new(1, -4, 0, 56),
+            LayoutOrder = i,
+            Parent = listFrame,
+        })
+        Util.AddCorner(achFrame, UDim.new(0, 8))
+
+        if ach.Unlocked then
+            Util.AddStroke(achFrame, ach.Tier.Color, 1, 0.4)
+        end
+
+        -- Tier color bar
+        Util.CreateInstance("Frame", {
+            BackgroundColor3 = ach.Tier.Color,
+            BackgroundTransparency = ach.Unlocked and 0 or 0.6,
+            Position = UDim2.new(0, 2, 0.1, 0),
+            Size = UDim2.new(0, 3, 0.8, 0),
+            Parent = achFrame,
+        })
+
+        -- Icon
+        Util.CreateInstance("TextLabel", {
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0, 10, 0, 4),
+            Size = UDim2.new(0, 24, 0, 24),
+            Text = ach.Icon,
+            TextSize = 18,
+            TextTransparency = ach.Unlocked and 0 or 0.3,
+            Parent = achFrame,
+        })
+
+        -- Name
+        Util.CreateInstance("TextLabel", {
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0, 38, 0, 3),
+            Size = UDim2.new(1, -80, 0, 16),
+            Text = ach.Name,
+            TextColor3 = ach.Unlocked and ach.Tier.Color or Config.GUI.TextColor,
+            TextSize = 12,
+            Font = Config.GUI.Font,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            TextTransparency = ach.Unlocked and 0 or 0.1,
+            Parent = achFrame,
+        })
+
+        -- Description
+        Util.CreateInstance("TextLabel", {
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0, 38, 0, 19),
+            Size = UDim2.new(1, -80, 0, 13),
+            Text = ach.Description,
+            TextColor3 = Config.GUI.DimTextColor,
+            TextSize = 10,
+            Font = Config.GUI.FontRegular,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            Parent = achFrame,
+        })
+
+        -- Tier badge
+        Util.CreateInstance("TextLabel", {
+            BackgroundTransparency = 1,
+            Position = UDim2.new(1, -38, 0, 3),
+            Size = UDim2.new(0, 30, 0, 16),
+            Text = ach.Unlocked and "✅" or "🔒",
+            TextSize = 14,
+            Parent = achFrame,
+        })
+
+        -- Tier name
+        Util.CreateInstance("TextLabel", {
+            BackgroundTransparency = 1,
+            Position = UDim2.new(1, -55, 0, 19),
+            Size = UDim2.new(0, 50, 0, 11),
+            Text = ach.Tier.Icon .. " " .. ach.Tier.Name,
+            TextColor3 = ach.Tier.Color,
+            TextSize = 8,
+            Font = Config.GUI.FontRegular,
+            TextXAlignment = Enum.TextXAlignment.Right,
+            Parent = achFrame,
+        })
+
+        -- Progress bar
+        local progBg = Util.CreateInstance("Frame", {
+            BackgroundColor3 = Config.GUI.TertiaryColor,
+            BackgroundTransparency = 0.3,
+            Position = UDim2.new(0, 38, 0, 36),
+            Size = UDim2.new(1, -80, 0, 6),
+            Parent = achFrame,
+        })
+        Util.AddCorner(progBg, UDim.new(1, 0))
+
+        local progFill = Util.CreateInstance("Frame", {
+            BackgroundColor3 = ach.Unlocked and ach.Tier.Color or Config.GUI.AccentColor,
+            Size = UDim2.new(math.clamp(pct, 0, 1), 0, 1, 0),
+            Parent = progBg,
+        })
+        Util.AddCorner(progFill, UDim.new(1, 0))
+        if not ach.Unlocked then
+            Util.AddGradient(progFill, Config.GUI.AccentColor, Util.LightenColor(Config.GUI.AccentColor, 0.15), 0)
+        end
+
+        -- Progress text
+        local progText
+        if ach.Unlocked then
+            progText = "Выполнено!"
+        elseif max <= 1 then
+            progText = Util.Round(pct * 100, 0) .. "%"
+        else
+            progText = Util.FormatNumber(current) .. " / " .. Util.FormatNumber(max)
+        end
+
+        Util.CreateInstance("TextLabel", {
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0, 38, 0, 43),
+            Size = UDim2.new(1, -80, 0, 10),
+            Text = progText,
+            TextColor3 = ach.Unlocked and ach.Tier.Color or Config.GUI.VeryDimTextColor,
+            TextSize = 8,
+            Font = Config.GUI.FontMono,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            Parent = achFrame,
+        })
+    end
+end
+
+-- Achievement checker loop
+task.spawn(function()
+    task.wait(3)
+    while true do
+        Util.SafeCall(Achievements.CheckAll)
+        task.wait(3)
+    end
+end)
+
+-- ============================================================
+-- SECTION 9: COMBO SYSTEM
+-- ============================================================
+
+local ComboSystem = {}
+
+function ComboSystem.Add()
+    local now = tick()
+    local c = State.Combo
+
+    if now - c.Timer <= Config.Combo.Timeout then
+        c.Count = c.Count + 1
+    else
+        c.Count = 1
+    end
+    c.Timer = now
+
+    if c.Count > c.MaxCombo then c.MaxCombo = c.Count end
+
+    -- Multiplier
+    if c.Count >= 100 then c.Multiplier = 5
+    elseif c.Count >= 50 then c.Multiplier = 4
+    elseif c.Count >= 30 then c.Multiplier = 3
+    elseif c.Count >= 20 then c.Multiplier = 2.5
+    elseif c.Count >= 10 then c.Multiplier = 2
+    elseif c.Count >= 5 then c.Multiplier = 1.5
+    else c.Multiplier = 1 end
+
+    -- Milestones
+    for _, ms in ipairs(Config.Combo.Milestones) do
+        if c.Count == ms then
+            Notify.ComboNotify("🔥 COMBO x" .. ms, "Множитель: x" .. c.Multiplier)
+            Logger.Combo("Комбо x" .. ms .. "! (x" .. c.Multiplier .. ")")
+            break
+        end
+    end
+end
+
+function ComboSystem.Break()
+    local c = State.Combo
+    if c.Count >= 5 then
+        Logger.Info("💔 Комбо сломано на x" .. c.Count)
+    end
+    c.Count = 0
+    c.Multiplier = 1
+end
+
+-- Timeout checker
+task.spawn(function()
+    while true do
+        task.wait(0.5)
+        if State.Combo.Count > 0 and tick() - State.Combo.Timer > Config.Combo.Timeout then
+            ComboSystem.Break()
+        end
+    end
+end)
+
+-- ============================================================
+-- SECTION 10: PERFORMANCE MONITOR
+-- ============================================================
+
+local PerfMonitor = {}
+
+function PerfMonitor.Update()
+    local fps = math.floor(1 / RunService.RenderStepped:Wait())
+    State.Performance.FPS = fps
+    table.insert(State.Performance.FPSHistory, fps)
+    if #State.Performance.FPSHistory > Config.Performance.FPSHistorySize then
+        table.remove(State.Performance.FPSHistory, 1)
+    end
+
+    local ping = math.floor(player:GetNetworkPing() * 1000)
+    State.Performance.Ping = ping
+    table.insert(State.Performance.PingHistory, ping)
+    if #State.Performance.PingHistory > Config.Performance.PingHistorySize then
+        table.remove(State.Performance.PingHistory, 1)
+    end
+
+    State.Performance.Memory = Util.Round(collectgarbage("count") / 1024, 2)
+end
+
+task.spawn(function()
+    while true do
+        Util.SafeCall(PerfMonitor.Update)
+        task.wait(Config.Performance.UpdateInterval)
+    end
+end)
+
+-- ============================================================
+-- SECTION 11: ESP SYSTEM
+-- ============================================================
+
+local ESP = {}
+
+function ESP.CreateHighlight(item, color, transparency)
+    local h = Instance.new("Highlight")
+    h.Name = "ChomikESP"
+    h.FillColor = color or Config.Visuals.ESPColor
+    h.FillTransparency = transparency or Config.Visuals.ESPTransparency
+    h.OutlineColor = Util.LightenColor(color or Config.Visuals.ESPColor, 0.2)
+    h.OutlineTransparency = 0.2
+    h.Adornee = item
+    h.Parent = item
+    return h
+end
+
+function ESP.CreateBillboard(item, text, color)
+    if not Config.Visuals.ESPShowNames then return nil end
+    local adornee = item:IsA("Model") and (item.PrimaryPart or item:FindFirstChildWhichIsA("BasePart")) or item
+    if not adornee then return nil end
+
+    local bb = Instance.new("BillboardGui")
+    bb.Name = "ChomikBillboard"
+    bb.Size = UDim2.new(0, 180, 0, 44)
+    bb.StudsOffset = Vector3.new(0, 3.5, 0)
+    bb.AlwaysOnTop = true
+    bb.MaxDistance = Config.Visuals.ESPMaxDistance
+    bb.Adornee = adornee
+    bb.Parent = item
+
+    -- Background
+    local bg = Util.CreateInstance("Frame", {
+        BackgroundColor3 = Color3.new(0, 0, 0),
+        BackgroundTransparency = 0.45,
+        Size = UDim2.new(1, 0, 1, 0),
+        Parent = bb,
+    })
+    Util.AddCorner(bg, UDim.new(0, 8))
+
+    -- Name
+    Util.CreateInstance("TextLabel", {
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 0, 0, 2),
+        Size = UDim2.new(1, 0, 0, 20),
+        Text = text or item.Name,
+        TextColor3 = color or Config.Visuals.ESPColor,
+        TextSize = 13,
+        Font = Config.GUI.Font,
+        TextStrokeTransparency = 0.4,
+        TextStrokeColor3 = Color3.new(0, 0, 0),
+        Parent = bg,
+    })
+
+    -- Distance
+    Util.CreateInstance("TextLabel", {
+        Name = "DistLabel",
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 0, 0, 22),
+        Size = UDim2.new(1, 0, 0, 16),
+        Text = "0m",
+        TextColor3 = Color3.fromRGB(180, 180, 180),
+        TextSize = 10,
+        Font = Config.GUI.FontMono,
+        TextStrokeTransparency = 0.5,
+        TextStrokeColor3 = Color3.new(0, 0, 0),
+        Parent = bg,
+    })
+
+    return bb
+end
+
+function ESP.Enable()
+    Config.Visuals.ESPEnabled = true
+    ESP.Refresh()
+    Logger.Info("ESP включен")
+end
+
+function ESP.Disable()
+    Config.Visuals.ESPEnabled = false
+    ESP.ClearAll()
+    Logger.Info("ESP выключен")
+end
+
+function ESP.Toggle()
+    if Config.Visuals.ESPEnabled then ESP.Disable() else ESP.Enable() end
+end
+
+function ESP.ClearAll()
+    for _, obj in pairs(State.ESPObjects) do
+        if obj and obj.Parent then obj:Destroy() end
+    end
+    State.ESPObjects = {}
+    for _, conn in pairs(State.ESPConnections) do
+        if conn then conn:Disconnect() end
+    end
+    State.ESPConnections = {}
+end
+
+function ESP.Refresh()
+    ESP.ClearAll()
+    if not Config.Visuals.ESPEnabled then return end
+
+    local worldFolder = workspace:FindFirstChild(Config.General.FolderName)
+    if not worldFolder then return end
+    local playerDex = player:FindFirstChild(Config.General.DexName)
+
+    for _, item in pairs(worldFolder:GetChildren()) do
+        local isOwned = playerDex and playerDex:FindFirstChild(item.Name)
+        local isVisited = State.visitedChomiks[item.Name]
+        local color = (isOwned or isVisited) and Config.Visuals.ESPCollectedColor or Config.Visuals.ESPUnvisitedColor
+
+        local h = ESP.CreateHighlight(item, color)
+        table.insert(State.ESPObjects, h)
+
+        local bb = ESP.CreateBillboard(item, item.Name, color)
+        if bb then table.insert(State.ESPObjects, bb) end
+    end
+end
+
+function ESP.UpdateDistances()
+    if not Config.Visuals.ESPEnabled or not Config.Visuals.ESPShowDistance then return end
+    local myPos = Util.GetPlayerPosition()
+    local worldFolder = workspace:FindFirstChild(Config.General.FolderName)
+    if not worldFolder then return end
+
+    for _, item in pairs(worldFolder:GetChildren()) do
+        local bb = item:FindFirstChild("ChomikBillboard")
+        if bb then
+            local bg = bb:FindFirstChildWhichIsA("Frame")
+            local distLabel = bg and bg:FindFirstChild("DistLabel")
+            if distLabel then
+                local pos = Util.GetItemPosition(item)
+                if pos then
+                    distLabel.Text = Util.Round((pos.Position - myPos).Magnitude, 1) .. "m"
+                end
+            end
+        end
+    end
+end
+
+function ESP.CreateTeleportEffect(position)
+    if not Config.Visuals.TeleportEffect then return end
+
+    -- Main sphere
+    local sphere = Instance.new("Part")
+    sphere.Shape = Enum.PartType.Ball
+    sphere.Size = Vector3.new(1, 1, 1)
+    sphere.Position = position
+    sphere.Anchored = true
+    sphere.CanCollide = false
+    sphere.Material = Enum.Material.Neon
+    sphere.Color = Config.Visuals.TeleportEffectColor
+    sphere.Transparency = 0.2
+    sphere.Parent = workspace
+
+    local t1 = Util.Tween(sphere, {Size = Vector3.new(14, 14, 14), Transparency = 1}, 0.5)
+    if t1 then t1.Completed:Connect(function() sphere:Destroy() end) end
+
+    -- Ring effect
+    if Config.Visuals.TeleportRingEffect then
+        local ring = Instance.new("Part")
+        ring.Shape = Enum.PartType.Cylinder
+        ring.Size = Vector3.new(0.2, 1, 1)
+        ring.CFrame = CFrame.new(position) * CFrame.Angles(0, 0, math.rad(90))
+        ring.Anchored = true
+        ring.CanCollide = false
+        ring.Material = Enum.Material.Neon
+        ring.Color = Util.LightenColor(Config.Visuals.TeleportEffectColor, 0.2)
+        ring.Transparency = 0.3
+        ring.Parent = workspace
+
+        local t2 = Util.Tween(ring, {
+            Size = Vector3.new(0.2, 20, 20),
+            Transparency = 1,
+        }, 0.7)
+        if t2 then t2.Completed:Connect(function() ring:Destroy() end) end
+    end
+
+    -- Particles
+    for i = 1, Config.Visuals.TeleportParticleCount do
+        local angle = (i / Config.Visuals.TeleportParticleCount) * math.pi * 2
+        local radius = 2
+        local px = position.X + math.cos(angle) * radius
+        local pz = position.Z + math.sin(angle) * radius
+
+        local particle = Instance.new("Part")
+        particle.Shape = Enum.PartType.Ball
+        particle.Size = Vector3.new(0.4, 0.4, 0.4)
+        particle.Position = Vector3.new(px, position.Y, pz)
+        particle.Anchored = true
+        particle.CanCollide = false
+        particle.Material = Enum.Material.Neon
+        particle.Color = Config.Visuals.TeleportEffectColor
+        particle.Transparency = 0.15
+        particle.Parent = workspace
+
+        local targetY = position.Y + math.random(4, 10)
+        local t3 = Util.Tween(particle, {
+            Position = Vector3.new(px + math.random(-2, 2), targetY, pz + math.random(-2, 2)),
+            Transparency = 1,
+            Size = Vector3.new(0.05, 0.05, 0.05),
+        }, 0.4 + math.random() * 0.4)
+        if t3 then t3.Completed:Connect(function() particle:Destroy() end) end
+    end
+end
+
+-- ESP distance updater
+task.spawn(function()
+    while true do
+        task.wait(0.5)
+        if Config.Visuals.ESPEnabled then Util.SafeCall(ESP.UpdateDistances) end
+    end
+end)
+
+-- ============================================================
+-- SECTION 12: ROUTE OPTIMIZER
+-- ============================================================
+
+local RouteOptimizer = {}
+
+function RouteOptimizer.GetCollectableItems()
+    local worldFolder = workspace:FindFirstChild(Config.General.FolderName)
+    if not worldFolder then return {} end
+    local playerDex = player:FindFirstChild(Config.General.DexName)
+    local items = {}
+
+    for _, item in pairs(worldFolder:GetChildren()) do
+        local isOwned = playerDex and playerDex:FindFirstChild(item.Name)
+        local isVisited = State.visitedChomiks[item.Name]
+        if not isOwned and not isVisited then
+            local pos = Util.GetItemPosition(item)
+            if pos then
+                table.insert(items, {Instance = item, Name = item.Name, Position = pos.Position, CFrame = pos})
+            end
+        end
+    end
+    return items
+end
+
+function RouteOptimizer.SortByDistance(items, fromPos)
+    fromPos = fromPos or Util.GetPlayerPosition()
+    table.sort(items, function(a, b)
+        return (a.Position - fromPos).Magnitude < (b.Position - fromPos).Magnitude
+    end)
+    return items
+end
+
+function RouteOptimizer.NearestNeighbor(items, startPos)
+    startPos = startPos or Util.GetPlayerPosition()
+    local route, remaining = {}, {}
+    for _, item in ipairs(items) do table.insert(remaining, item) end
+    local currentPos = startPos
+
+    while #remaining > 0 do
+        local nearestIdx, nearestDist = 1, math.huge
+        for i, item in ipairs(remaining) do
+            local dist = (item.Position - currentPos).Magnitude
+            if dist < nearestDist then nearestDist = dist; nearestIdx = i end
+        end
+        local nearest = remaining[nearestIdx]
+        table.insert(route, nearest)
+        currentPos = nearest.Position
+        table.remove(remaining, nearestIdx)
+    end
+    return route
+end
+
+function RouteOptimizer.GetOptimizedRoute()
+    local items = RouteOptimizer.GetCollectableItems()
+    local mode = Config.CollectMode.Current
+    if mode == "Nearest" then return RouteOptimizer.NearestNeighbor(items)
+    elseif mode == "Random" then return Util.ShuffleTable(items)
+    elseif mode == "Reverse" then
+        local r = {}
+        for i = #items, 1, -1 do table.insert(r, items[i]) end
+        return r
+    else return items end
+end
+
+function RouteOptimizer.GetTotalRouteDistance(route)
+    if #route < 1 then return 0 end
+    local total, prev = 0, Util.GetPlayerPosition()
+    for _, item in ipairs(route) do
+        total = total + (item.Position - prev).Magnitude
+        prev = item.Position
+    end
+    return total
+end
+
+function RouteOptimizer.GetStats()
+    local items = RouteOptimizer.GetCollectableItems()
+    local worldFolder = workspace:FindFirstChild(Config.General.FolderName)
+    local totalItems = worldFolder and #worldFolder:GetChildren() or 0
+    local playerDex = player:FindFirstChild(Config.General.DexName)
+    local ownedCount = playerDex and #playerDex:GetChildren() or 0
+    return {
+        TotalInWorld = totalItems,
+        Remaining = #items,
+        Owned = ownedCount,
+        Visited = Util.CountTable(State.visitedChomiks),
+        CompletionPercent = totalItems > 0 and Util.Round((ownedCount / totalItems) * 100, 1) or 0,
+    }
+end
+
+-- ============================================================
+-- SECTION 13: STATISTICS ENGINE
+-- ============================================================
+
+local StatsEngine = {}
+
+function StatsEngine.RecordCollection(itemName, distance, timeTaken)
+    local s = State.Stats
+    s.totalCollected = s.totalCollected + 1
+    s.sessionCollected = s.sessionCollected + 1
+    s.totalDistance = s.totalDistance + distance
+    s.totalTeleports = s.totalTeleports + 1
+    s.successStreak = s.successStreak + 1
+    s.errorStreak = 0
+    if s.successStreak > s.maxSuccessStreak then s.maxSuccessStreak = s.successStreak end
+    if timeTaken < s.fastestCollection then s.fastestCollection = timeTaken end
+    if timeTaken > s.slowestCollection then s.slowestCollection = timeTaken end
+
+    table.insert(s.collectionTimes, timeTaken)
+    if #s.collectionTimes > 100 then table.remove(s.collectionTimes, 1) end
+
+    local sum = 0
+    for _, t in ipairs(s.collectionTimes) do sum = sum + t end
+    s.averageCollectionTime = sum / #s.collectionTimes
+
+    table.insert(s.collectHistory, {Name = itemName, Time = tick(), Distance = distance, Duration = timeTaken})
+    if #s.collectHistory > 500 then table.remove(s.collectHistory, 1) end
+
+    ComboSystem.Add()
+end
+
+function StatsEngine.RecordError()
+    State.Stats.totalErrors = State.Stats.totalErrors + 1
+    State.Stats.errorStreak = State.Stats.errorStreak + 1
+    State.Stats.successStreak = 0
+end
+
+function StatsEngine.RecordDeath()
+    State.Stats.totalDeaths = State.Stats.totalDeaths + 1
+end
+
+function StatsEngine.RecordSkip()
+    State.Stats.totalSkipped = State.Stats.totalSkipped + 1
+end
+
+function StatsEngine.GetSessionTime()
+    return tick() - State.sessionStartTime
+end
+
+function StatsEngine.GetCollectionsPerMinute()
+    local t = StatsEngine.GetSessionTime()
+    if t < 1 then return 0 end
+    return Util.Round(State.Stats.sessionCollected / (t / 60), 1)
+end
+
+function StatsEngine.ResetSession()
+    local s = State.Stats
+    s.sessionCollected = 0
+    State.sessionStartTime = tick()
+    s.collectionTimes = {}
+    s.collectHistory = {}
+    s.fastestCollection = math.huge
+    s.slowestCollection = 0
+    s.errorStreak = 0
+    s.successStreak = 0
+    s.maxSuccessStreak = 0
+    State.Combo = {Count = 0, Timer = 0, MaxCombo = 0, Multiplier = 1, History = {}}
+    Logger.System("Статистика сессии сброшена")
+end
+
+-- ============================================================
+-- SECTION 14: ANTI-AFK
+-- ============================================================
+
+local AntiAFK = {}
+
+function AntiAFK.Start()
+    if AntiAFK._connection then return end
+    local ok = pcall(function()
+        local VU = game:GetService("VirtualUser")
+        AntiAFK._connection = player.Idled:Connect(function()
+            VU:CaptureController()
+            VU:ClickButton2(Vector2.new())
+            Logger.System("Anti-AFK: предотвращён кик")
+        end)
+    end)
+    if ok then Logger.System("Anti-AFK: активирован")
+    else Logger.Warning("Anti-AFK: альтернативный режим") end
+end
+
+function AntiAFK.Stop()
+    if AntiAFK._connection then AntiAFK._connection:Disconnect(); AntiAFK._connection = nil end
+    Logger.System("Anti-AFK: деактивирован")
+end
+
+-- ============================================================
+-- SECTION 15: KEYBIND MANAGER
+-- ============================================================
+
+local KeybindManager = {}
+KeybindManager._binds = {}
+
+function KeybindManager.Register(name, key, callback)
+    KeybindManager._binds[name] = {Key = key, Callback = callback, Enabled = true}
+end
+
+function KeybindManager.Init()
+    UserInputService.InputBegan:Connect(function(input, gp)
+        if gp then return end
+        for _, bind in pairs(KeybindManager._binds) do
+            if bind.Enabled and input.KeyCode == bind.Key then
+                Util.SafeCall(bind.Callback)
+            end
+        end
+    end)
+end
+
+-- ============================================================
+-- SECTION 16: COLLECTOR ENGINE
+-- ============================================================
+
+local Collector = {}
+
+function Collector.Start()
+    if State.isCollecting then Logger.Warning("Сбор уже запущен!"); return end
+    State.isCollecting = true
+    State.isPaused = false
+    Logger.Info("Запуск сбора хомиков...")
+    Notify.Success("Сбор запущен", "Режим: " .. Config.CollectMode.ModeIcons[Config.CollectMode.Current] .. " " .. Config.CollectMode.Current)
+    task.spawn(function() Collector._collectLoop() end)
+end
+
+function Collector.Stop()
+    State.isCollecting = false
+    State.isPaused = false
+    State.currentTarget = nil
+    Logger.Info("Сбор остановлен")
+    Notify.Warning("Сбор остановлен", "Собрано: " .. State.Stats.sessionCollected .. " | Комбо макс: x" .. State.Combo.MaxCombo)
+end
+
+function Collector.Pause()
+    State.isPaused = true
+    Logger.Info("Сбор приостановлен")
+end
+
+function Collector.Resume()
+    State.isPaused = false
+    Logger.Info("Сбор возобновлён")
+end
+
+function Collector.TogglePause()
+    if State.isPaused then Collector.Resume() else Collector.Pause() end
+end
+
+function Collector._collectLoop()
+    while State.isCollecting do
+        if not Util.IsPlayerAlive() then
+            Logger.Warning("Персонаж мёртв, ожидание...")
+            player.CharacterAdded:Wait()
+            task.wait(1)
+            continue
+        end
+        if State.isPaused then task.wait(0.1); continue end
+
+        local route = RouteOptimizer.GetOptimizedRoute()
+        if #route == 0 then
+            Logger.Success("🎉 Все доступные хомики собраны!")
+            Notify.Success("🎉 Готово!", "Все хомики собраны!")
+            State.isCollecting = false
+            break
+        end
+
+        for _, itemData in ipairs(route) do
+            if not State.isCollecting or not Util.IsPlayerAlive() then break end
+            while State.isPaused do task.wait(0.1); if not State.isCollecting then break end end
+            if not State.isCollecting then break end
+
+            -- Re-check
+            local pDex = player:FindFirstChild(Config.General.DexName)
+            if (pDex and pDex:FindFirstChild(itemData.Name)) or State.visitedChomiks[itemData.Name] then
+                StatsEngine.RecordSkip()
+                continue
+            end
+
+            local ok = Collector._teleportToItem(itemData)
+            if ok then State.visitedChomiks[itemData.Name] = true end
+        end
+        task.wait(0.5)
+    end
+end
+
+function Collector._teleportToItem(itemData)
+    local char = player.Character
+    if not char then return false end
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return false end
+
+    local startTime = tick()
+    local startPos = root.Position
+    State.currentTarget = itemData.Name
+
+    if not itemData.Instance or not itemData.Instance.Parent then
+        Logger.Warning("'" .. itemData.Name .. "' не существует")
+        return false
+    end
+
+    local targetCFrame = Util.GetItemPosition(itemData.Instance)
+    if not targetCFrame then
+        Logger.Error("Не удалось получить позицию: " .. itemData.Name)
+        return false
+    end
+
+    ESP.CreateTeleportEffect(root.Position)
+
+    local success = false
+    local retryDelay = Config.General.RetryDelay
+    for attempt = 1, Config.General.MaxRetries do
+        local ok = pcall(function() root.CFrame = targetCFrame end)
+        if ok then success = true; break end
+        Logger.Warning("Попытка " .. attempt .. " не удалась")
+        task.wait(retryDelay)
+        retryDelay = retryDelay * Config.General.RetryBackoffMultiplier
+    end
+
+    if not success then
+        Logger.Error("Не удалось ТП к: " .. itemData.Name)
+        StatsEngine.RecordError()
+        return false
+    end
+
+    ESP.CreateTeleportEffect(targetCFrame.Position)
+
+    local timeTaken = tick() - startTime
+    local distance = (targetCFrame.Position - startPos).Magnitude
+
+    StatsEngine.RecordCollection(itemData.Name, distance, timeTaken)
+    Logger.Teleport(itemData.Name .. " (" .. Util.Round(distance, 0) .. "m, " .. Util.FormatMs(timeTaken) .. ")")
+
+    if Config.Visuals.ESPEnabled then
+        local h = itemData.Instance:FindFirstChild("ChomikESP")
+        if h then h.FillColor = Config.Visuals.ESPCollectedColor; h.OutlineColor = Config.Visuals.ESPCollectedColor end
+    end
+
+    State.currentTarget = nil
+    task.wait(Config.General.Cooldown)
+    return true
+end
+
+function Collector.TeleportToNearest()
+    if not Util.IsPlayerAlive() then Notify.Error("Ошибка", "Персонаж мёртв!"); return end
+    local items = RouteOptimizer.GetCollectableItems()
+    if #items == 0 then Notify.Info("Информация", "Нет доступных хомиков!"); return end
+    items = RouteOptimizer.SortByDistance(items)
+    local nearest = items[1]
+    local char = player.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    if root then
+        root.CFrame = nearest.CFrame
+        State.visitedChomiks[nearest.Name] = true
+        ESP.CreateTeleportEffect(nearest.CFrame.Position)
+        Logger.Teleport("Ближайший: " .. nearest.Name)
+        Notify.Success("Телепорт", nearest.Name)
+    end
+end
+
+-- ============================================================
+-- SECTION 17: GUI BUILDER
+-- ============================================================
+
+local GUI = {}
+
+function GUI.Init()
+    local existing = CoreGui:FindFirstChild("ChomikCollectorHub")
+    if existing then existing:Destroy() end
+
+    local screenGui = Util.CreateInstance("ScreenGui", {
+        Name = "ChomikCollectorHub",
+        ResetOnSpawn = false,
+        ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+        DisplayOrder = 50,
+        Parent = CoreGui,
+    })
+    State.GUIElements.ScreenGui = screenGui
+
+    -- Main Window
+    local mainFrame = Util.CreateInstance("Frame", {
+        Name = "MainWindow",
+        BackgroundColor3 = Config.GUI.BackgroundColor,
+        Position = UDim2.new(0.5, -310, 0.5, -230),
+        Size = Config.GUI.WindowSize,
+        ClipsDescendants = true,
+        Parent = screenGui,
+    })
+    Util.AddCorner(mainFrame, Config.GUI.CornerRadiusLarge)
+    Util.AddStroke(mainFrame, Config.GUI.AccentColor, 1, Config.GUI.StrokeTransparency)
+    State.GUIElements.MainFrame = mainFrame
+
+    -- Shadow
+    Util.CreateInstance("ImageLabel", {
+        Name = "Shadow",
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, -18, 0, -18),
+        Size = UDim2.new(1, 36, 1, 36),
+        Image = "rbxassetid://5554236805",
+        ImageColor3 = Color3.new(0, 0, 0),
+        ImageTransparency = Config.GUI.ShadowTransparency,
+        ScaleType = Enum.ScaleType.Slice,
+        SliceCenter = Rect.new(23, 23, 277, 277),
+        ZIndex = -1,
+        Parent = mainFrame,
+    })
+
+    GUI._createTitleBar(mainFrame)
+    GUI._createTabSystem(mainFrame)
+    GUI._createStatusBar(mainFrame)
+    GUI._makeDraggable(mainFrame)
+
+    -- Open animation
+    mainFrame.BackgroundTransparency = 1
+    mainFrame.Size = UDim2.new(0, 540, 0, 380)
+    Util.Tween(mainFrame, {
+        BackgroundTransparency = Config.GUI.Transparency,
+        Size = Config.GUI.WindowSize,
+    }, 0.5, Enum.EasingStyle.Back)
+
+    Logger.System("GUI инициализирован")
+end
+
+function GUI._createTitleBar(parent)
+    local tb = Util.CreateInstance("Frame", {
+        Name = "TitleBar",
+        BackgroundColor3 = Config.GUI.SecondaryColor,
+        Size = UDim2.new(1, 0, 0, Config.GUI.TitleBarHeight),
+        Parent = parent,
+    })
+    Util.AddCorner(tb, Config.GUI.CornerRadiusLarge)
+    Util.CreateInstance("Frame", {
+        BackgroundColor3 = Config.GUI.SecondaryColor,
+        Position = UDim2.new(0, 0, 1, -14),
+        Size = UDim2.new(1, 0, 0, 14),
+        BorderSizePixel = 0,
+        Parent = tb,
+    })
+
+    -- Gradient line under titlebar
+    local gradLine = Util.CreateInstance("Frame", {
+        BackgroundColor3 = Config.GUI.AccentColor,
+        Position = UDim2.new(0, 0, 1, -2),
+        Size = UDim2.new(1, 0, 0, 2),
+        BorderSizePixel = 0,
+        Parent = tb,
+    })
+    Util.AddGradient(gradLine, Config.GUI.AccentColor, Config.GUI.AccentColorSecondary, 0)
+
+    -- Logo + Title
+    Util.CreateInstance("TextLabel", {
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 14, 0, 0),
+        Size = UDim2.new(0, 30, 1, 0),
+        Text = "🐹",
+        TextSize = 20,
+        Parent = tb,
+    })
+
+    Util.CreateInstance("TextLabel", {
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 42, 0, 0),
+        Size = UDim2.new(0, 200, 1, 0),
+        Text = "Chomik Hub",
+        TextColor3 = Config.GUI.TextColor,
+        TextSize = 16,
+        Font = Config.GUI.Font,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = tb,
+    })
+
+    Util.CreateInstance("TextLabel", {
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 160, 0, 0),
+        Size = UDim2.new(0, 60, 1, 0),
+        Text = "v4.0",
+        TextColor3 = Config.GUI.VeryDimTextColor,
+        TextSize = 10,
+        Font = Config.GUI.FontRegular,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = tb,
+    })
+
+    -- Window buttons
+    local function makeWinBtn(pos, text, color, callback)
+        local btn = Util.CreateInstance("TextButton", {
+            BackgroundColor3 = color,
+            BackgroundTransparency = 0.85,
+            Position = pos,
+            Size = UDim2.new(0, 30, 0, 30),
+            Text = text,
+            TextColor3 = color,
+            TextSize = text == "—" and 18 or 13,
+            Font = Config.GUI.Font,
+            AutoButtonColor = false,
+            Parent = tb,
+        })
+        Util.AddCorner(btn, UDim.new(0, 7))
+        btn.MouseButton1Click:Connect(callback)
+        btn.MouseEnter:Connect(function() Util.Tween(btn, {BackgroundTransparency = 0.4}, 0.12) end)
+        btn.MouseLeave:Connect(function() Util.Tween(btn, {BackgroundTransparency = 0.85}, 0.12) end)
+        return btn
+    end
+
+    makeWinBtn(UDim2.new(1, -108, 0.5, -15), "—", Config.GUI.WarningColor, function() GUI.ToggleMinimize() end)
+    makeWinBtn(UDim2.new(1, -72, 0.5, -15), "✕", Config.GUI.ErrorColor, function() GUI.ToggleVisibility() end)
+
+    -- Combo display in titlebar
+    local comboFrame = Util.CreateInstance("Frame", {
+        Name = "ComboFrame",
+        BackgroundColor3 = Config.GUI.TertiaryColor,
+        BackgroundTransparency = 0.5,
+        Position = UDim2.new(1, -190, 0.5, -12),
+        Size = UDim2.new(0, 70, 0, 24),
+        Parent = tb,
+    })
+    Util.AddCorner(comboFrame, UDim.new(0, 6))
+
+    local comboLabel = Util.CreateInstance("TextLabel", {
+        Name = "ComboLabel",
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 1, 0),
+        Text = "🔥 —",
+        TextColor3 = Config.GUI.DimTextColor,
+        TextSize = 12,
+        Font = Config.GUI.Font,
+        Parent = comboFrame,
+    })
+    State.GUIElements.TitleComboLabel = comboLabel
+
+    State.GUIElements.TitleBar = tb
+end
+
+function GUI._createStatusBar(parent)
+    local sb = Util.CreateInstance("Frame", {
+        Name = "StatusBar",
+        BackgroundColor3 = Config.GUI.SecondaryColor,
+        Position = UDim2.new(0, 0, 1, -Config.GUI.StatusBarHeight),
+        Size = UDim2.new(1, 0, 0, Config.GUI.StatusBarHeight),
+        Parent = parent,
+    })
+    Util.AddCorner(sb, Config.GUI.CornerRadiusLarge)
+    Util.CreateInstance("Frame", {
+        BackgroundColor3 = Config.GUI.SecondaryColor,
+        Size = UDim2.new(1, 0, 0, 14),
+        BorderSizePixel = 0,
+        Parent = sb,
+    })
+
+    -- Status items
+    local statusItems = {
+        {Id = "SB_Status", Text = "⏹ Стоп", Width = 0.2},
+        {Id = "SB_Collected", Text = "📦 0", Width = 0.15},
+        {Id = "SB_Time", Text = "⏱️ 0:00", Width = 0.18},
+        {Id = "SB_FPS", Text = "FPS: 60", Width = 0.15},
+        {Id = "SB_Ping", Text = "Ping: 0", Width = 0.15},
+        {Id = "SB_Combo", Text = "🔥 x0", Width = 0.17},
+    }
+
+    local xOffset = 0
+    for _, item in ipairs(statusItems) do
+        local label = Util.CreateInstance("TextLabel", {
+            Name = item.Id,
+            BackgroundTransparency = 1,
+            Position = UDim2.new(xOffset, 5, 0, 0),
+            Size = UDim2.new(item.Width, -5, 1, 0),
+            Text = item.Text,
+            TextColor3 = Config.GUI.DimTextColor,
+            TextSize = 10,
+            Font = Config.GUI.FontMono,
+            TextTruncate = Enum.TextTruncate.AtEnd,
+            Parent = sb,
+        })
+        State.GUIElements[item.Id] = label
+        xOffset = xOffset + item.Width
+    end
+
+    State.GUIElements.StatusBar = sb
+end
+
+function GUI._createTabSystem(parent)
+    local sidebarWidth = Config.GUI.SidebarWidth
+    local titleH = Config.GUI.TitleBarHeight
+    local statusH = Config.GUI.StatusBarHeight
+
+    -- Sidebar
+    local sidebar = Util.CreateInstance("ScrollingFrame", {
+        Name = "Sidebar",
+        BackgroundColor3 = Config.GUI.SecondaryColor,
+        Position = UDim2.new(0, 0, 0, titleH),
+        Size = UDim2.new(0, sidebarWidth, 1, -titleH - statusH),
+        CanvasSize = UDim2.new(0, 0, 0, 0),
+        AutomaticCanvasSize = Enum.AutomaticSize.Y,
+        ScrollBarThickness = 0,
+        ScrollingDirection = Enum.ScrollingDirection.Y,
+        ClipsDescendants = true,
+        Parent = parent,
+    })
+    Util.AddPadding(sidebar, 8, 8, 6, 6)
+    Util.AddListLayout(sidebar, 3)
+
+    -- Content
+    local content = Util.CreateInstance("Frame", {
+        Name = "ContentArea",
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, sidebarWidth + 3, 0, titleH + 3),
+        Size = UDim2.new(1, -sidebarWidth - 6, 1, -titleH - statusH - 6),
+        ClipsDescendants = true,
+        Parent = parent,
+    })
+    State.GUIElements.ContentArea = content
+
+    -- Tabs
+    local tabs = {
+        {Name = "Главная",    Icon = "🏠", Builder = GUI._buildHomeTab,       Order = 1},
+        {Name = "Коллекция",  Icon = "📦", Builder = GUI._buildCollectionTab, Order = 2},
+        {Name = "Достижения", Icon = "🏆", Builder = GUI._buildAchievementsTab, Order = 3},
+        {Name = "Настройки",  Icon = "⚙️", Builder = GUI._buildSettingsTab,   Order = 4},
+        {Name = "Стата",      Icon = "📊", Builder = GUI._buildStatsTab,      Order = 5},
+        {Name = "Логи",       Icon = "📝", Builder = GUI._buildLogsTab,       Order = 6},
+        {Name = "Инфо",       Icon = "❓", Builder = GUI._buildInfoTab,       Order = 7},
+    }
+
+    State.GUIElements.TabButtons = {}
+    State.GUIElements.TabPages = {}
+
+    for _, tab in ipairs(tabs) do
+        -- Button
+        local tabBtn = Util.CreateInstance("TextButton", {
+            Name = tab.Name .. "Tab",
+            BackgroundColor3 = Config.GUI.TertiaryColor,
+            BackgroundTransparency = 0.5,
+            Size = UDim2.new(1, 0, 0, Config.GUI.TabButtonHeight),
+            Text = "",
+            AutoButtonColor = false,
+            LayoutOrder = tab.Order,
+            Parent = sidebar,
+        })
+        Util.AddCorner(tabBtn, UDim.new(0, 7))
+
+        -- Active indicator
+        local indicator = Util.CreateInstance("Frame", {
+            Name = "Indicator",
+            BackgroundColor3 = Config.GUI.AccentColor,
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0, 0, 0.15, 0),
+            Size = UDim2.new(0, 3, 0.7, 0),
+            Parent = tabBtn,
+        })
+        Util.AddCorner(indicator, UDim.new(1, 0))
+
+        Util.CreateInstance("TextLabel", {
+            Name = "Icon",
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0, 6, 0, 0),
+            Size = UDim2.new(0, 22, 1, 0),
+            Text = tab.Icon,
+            TextSize = 14,
+            Parent = tabBtn,
+        })
+        Util.CreateInstance("TextLabel", {
+            Name = "Label",
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0, 28, 0, 0),
+            Size = UDim2.new(1, -32, 1, 0),
+            Text = tab.Name,
+            TextColor3 = Config.GUI.DimTextColor,
+            TextSize = 11,
+            Font = Config.GUI.FontRegular,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            TextTruncate = Enum.TextTruncate.AtEnd,
+            Parent = tabBtn,
+        })
+
+        -- Page
+        local page = Util.CreateInstance("ScrollingFrame", {
+            Name = tab.Name .. "Page",
+            BackgroundTransparency = 1,
+            Size = UDim2.new(1, 0, 1, 0),
+            CanvasSize = UDim2.new(0, 0, 0, 0),
+            ScrollBarThickness = Config.GUI.ScrollBarWidth,
+            ScrollBarImageColor3 = Config.GUI.AccentColor,
+            Visible = false,
+            AutomaticCanvasSize = Enum.AutomaticSize.Y,
+            Parent = content,
+        })
+        Util.AddPadding(page, 4, 4, 4, 4)
+        Util.AddListLayout(page, 8)
+
+        tab.Builder(page)
+
+        State.GUIElements.TabButtons[tab.Name] = tabBtn
+        State.GUIElements.TabPages[tab.Name] = page
+
+        tabBtn.MouseButton1Click:Connect(function() GUI.SwitchTab(tab.Name) end)
+        tabBtn.MouseEnter:Connect(function()
+            if State.GUIElements.CurrentTab ~= tab.Name then
+                Util.Tween(tabBtn, {BackgroundTransparency = 0.25}, Config.GUI.AnimationSpeedFast)
+            end
+        end)
+        tabBtn.MouseLeave:Connect(function()
+            if State.GUIElements.CurrentTab ~= tab.Name then
+                Util.Tween(tabBtn, {BackgroundTransparency = 0.5}, Config.GUI.AnimationSpeedFast)
+            end
+        end)
+    end
+
+    GUI.SwitchTab("Главная")
+end
+
+function GUI.SwitchTab(tabName)
+    for name, page in pairs(State.GUIElements.TabPages) do
+        page.Visible = false
+        local btn = State.GUIElements.TabButtons[name]
+        if btn then
+            local label = btn:FindFirstChild("Label")
+            local ind = btn:FindFirstChild("Indicator")
+            Util.Tween(btn, {BackgroundTransparency = 0.5, BackgroundColor3 = Config.GUI.TertiaryColor}, 0.2)
+            if label then Util.Tween(label, {TextColor3 = Config.GUI.DimTextColor}, 0.2); label.Font = Config.GUI.FontRegular end
+            if ind then Util.Tween(ind, {BackgroundTransparency = 1}, 0.2) end
+        end
+    end
+
+    local page = State.GUIElements.TabPages[tabName]
+    local btn = State.GUIElements.TabButtons[tabName]
+    if page then page.Visible = true; page.CanvasPosition = Vector2.zero end
+    if btn then
+        local label = btn:FindFirstChild("Label")
+        local ind = btn:FindFirstChild("Indicator")
+        Util.Tween(btn, {BackgroundTransparency = 0.05, BackgroundColor3 = Config.GUI.AccentColor}, 0.2)
+        if label then Util.Tween(label, {TextColor3 = Config.GUI.TextColor}, 0.2); label.Font = Config.GUI.Font end
+        if ind then Util.Tween(ind, {BackgroundTransparency = 0}, 0.2) end
+    end
+    State.GUIElements.CurrentTab = tabName
+end
+
+-- ============================================================
+-- SECTION 18: GUI COMPONENT HELPERS
+-- ============================================================
+
+function GUI._createCard(parent, title, height, accentColor)
+    local card = Util.CreateInstance("Frame", {
+        BackgroundColor3 = Config.GUI.SecondaryColor,
+        BackgroundTransparency = 0.15,
+        Size = UDim2.new(1, 0, 0, height + 32),
+        ClipsDescendants = true,
+        Parent = parent,
+    })
+    Util.AddCorner(card, Config.GUI.CornerRadius)
+    Util.AddStroke(card, accentColor or Config.GUI.TertiaryColor, 1, 0.7)
+
+    Util.CreateInstance("TextLabel", {
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 12, 0, 0),
+        Size = UDim2.new(1, -24, 0, 28),
+        Text = title,
+        TextColor3 = Config.GUI.TextColor,
+        TextSize = 13,
+        Font = Config.GUI.Font,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = card,
+    })
+
+    local sep = Util.CreateInstance("Frame", {
+        BackgroundColor3 = accentColor or Config.GUI.AccentColor,
+        BackgroundTransparency = 0.6,
+        Position = UDim2.new(0, 12, 0, 27),
+        Size = UDim2.new(1, -24, 0, 1),
+        BorderSizePixel = 0,
+        Parent = card,
+    })
+    if accentColor then
+        Util.AddGradient(sep, accentColor, Util.DarkenColor(accentColor, 0.15), 0)
+    end
+
+    local content = Util.CreateInstance("Frame", {
+        Name = "Content",
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 12, 0, 32),
+        Size = UDim2.new(1, -24, 0, height),
+        Parent = card,
+    })
+    Util.AddListLayout(content, 5, Enum.FillDirection.Vertical, Enum.HorizontalAlignment.Left)
+    return content
+end
+
+function GUI._createButton(parent, text, color, position, size)
+    color = color or Config.GUI.AccentColor
+    local btn = Util.CreateInstance("TextButton", {
+        BackgroundColor3 = color,
+        BackgroundTransparency = 0.15,
+        Position = position or UDim2.new(0, 0, 0, 0),
+        Size = size or UDim2.new(1, 0, 0, Config.GUI.ButtonHeight),
+        Text = text,
+        TextColor3 = Config.GUI.TextColor,
+        TextSize = 12,
+        Font = Config.GUI.Font,
+        AutoButtonColor = false,
+        Parent = parent,
+    })
+    Util.AddCorner(btn, UDim.new(0, 7))
+    Util.AddGradient(btn, color, Util.DarkenColor(color, 0.06), 90)
+
+    btn.MouseEnter:Connect(function() Util.Tween(btn, {BackgroundTransparency = 0}, Config.GUI.AnimationSpeedFast) end)
+    btn.MouseLeave:Connect(function() Util.Tween(btn, {BackgroundTransparency = 0.15}, Config.GUI.AnimationSpeedFast) end)
+    btn.MouseButton1Click:Connect(function()
+        Util.PulseEffect(btn, -0.01, 0.06)
+    end)
+    return btn
+end
+
+function GUI._createToggle(parent, label, default, callback)
+    local frame = Util.CreateInstance("Frame", {BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 26), Parent = parent})
+    Util.CreateInstance("TextLabel", {
+        BackgroundTransparency = 1, Size = UDim2.new(0.7, 0, 1, 0),
+        Text = label, TextColor3 = Config.GUI.DimTextColor, TextSize = 11,
+        Font = Config.GUI.FontRegular, TextXAlignment = Enum.TextXAlignment.Left, Parent = frame,
+    })
+
+    local w, h = Config.GUI.ToggleWidth, Config.GUI.ToggleHeight
+    local bg = Util.CreateInstance("Frame", {
+        BackgroundColor3 = default and Config.GUI.SuccessColor or Config.GUI.TertiaryColor,
+        Position = UDim2.new(1, -w - 2, 0.5, -h/2), Size = UDim2.new(0, w, 0, h), Parent = frame,
+    })
+    Util.AddCorner(bg, UDim.new(1, 0))
+
+    local knobSize = h - 4
+    local knob = Util.CreateInstance("Frame", {
+        BackgroundColor3 = Color3.new(1, 1, 1),
+        Position = default and UDim2.new(1, -knobSize-2, 0.5, -knobSize/2) or UDim2.new(0, 2, 0.5, -knobSize/2),
+        Size = UDim2.new(0, knobSize, 0, knobSize), Parent = bg,
+    })
+    Util.AddCorner(knob, UDim.new(1, 0))
+
+    -- Shadow on knob
+    Util.AddStroke(knob, Color3.new(0, 0, 0), 1, 0.8)
+
+    local isOn = default
+    local btn = Util.CreateInstance("TextButton", {BackgroundTransparency = 1, Size = UDim2.new(1, 0, 1, 0), Text = "", Parent = bg})
+    btn.MouseButton1Click:Connect(function()
+        isOn = not isOn
+        Util.Tween(bg, {BackgroundColor3 = isOn and Config.GUI.SuccessColor or Config.GUI.TertiaryColor}, 0.2)
+        Util.Tween(knob, {Position = isOn and UDim2.new(1, -knobSize-2, 0.5, -knobSize/2) or UDim2.new(0, 2, 0.5, -knobSize/2)}, 0.2, Enum.EasingStyle.Back)
+        if callback then callback(isOn) end
+    end)
+    return frame
+end
+
+function GUI._createSlider(parent, label, minVal, maxVal, default, callback)
+    local frame = Util.CreateInstance("Frame", {BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 38), Parent = parent})
+    local valLabel = Util.CreateInstance("TextLabel", {
+        BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 16),
+        Text = label .. ": " .. Util.Round(default, 2),
+        TextColor3 = Config.GUI.DimTextColor, TextSize = 11, Font = Config.GUI.FontRegular,
+        TextXAlignment = Enum.TextXAlignment.Left, Parent = frame,
+    })
+
+    local h = Config.GUI.SliderHeight
+    local kSize = Config.GUI.SliderKnobSize
+    local bg = Util.CreateInstance("Frame", {
+        BackgroundColor3 = Config.GUI.TertiaryColor, Position = UDim2.new(0, 0, 0, 22),
+        Size = UDim2.new(1, 0, 0, h), Parent = frame,
+    })
+    Util.AddCorner(bg, UDim.new(1, 0))
+
+    local norm = (default - minVal) / (maxVal - minVal)
+    local fill = Util.CreateInstance("Frame", {
+        BackgroundColor3 = Config.GUI.AccentColor, Size = UDim2.new(norm, 0, 1, 0), Parent = bg,
+    })
+    Util.AddCorner(fill, UDim.new(1, 0))
+    Util.AddGradient(fill, Config.GUI.AccentColor, Util.LightenColor(Config.GUI.AccentColor, 0.12), 0)
+
+    local knob = Util.CreateInstance("Frame", {
+        BackgroundColor3 = Color3.new(1, 1, 1),
+        Position = UDim2.new(norm, -kSize/2, 0.5, -kSize/2),
+        Size = UDim2.new(0, kSize, 0, kSize), ZIndex = 2, Parent = bg,
+    })
+    Util.AddCorner(knob, UDim.new(1, 0))
+    Util.AddStroke(knob, Config.GUI.AccentColor, 2, 0.3)
+
+    local dragging = false
+    local sliderBtn = Util.CreateInstance("TextButton", {
+        BackgroundTransparency = 1, Size = UDim2.new(1, 0, 1, 14),
+        Position = UDim2.new(0, 0, 0, -7), Text = "", ZIndex = 3, Parent = bg,
+    })
+
+    local function update(input)
+        local rel = math.clamp((input.Position.X - bg.AbsolutePosition.X) / bg.AbsoluteSize.X, 0, 1)
+        local val = minVal + (maxVal - minVal) * rel
+        fill.Size = UDim2.new(rel, 0, 1, 0)
+        knob.Position = UDim2.new(rel, -kSize/2, 0.5, -kSize/2)
+        valLabel.Text = label .. ": " .. Util.Round(val, 2)
+        if callback then callback(val) end
+    end
+
+    sliderBtn.MouseButton1Down:Connect(function() dragging = true end)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then update(input) end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+    end)
+    sliderBtn.MouseButton1Click:Connect(function()
+        local mp = UserInputService:GetMouseLocation()
+        local rel = math.clamp((mp.X - bg.AbsolutePosition.X) / bg.AbsoluteSize.X, 0, 1)
+        local val = minVal + (maxVal - minVal) * rel
+        Util.Tween(fill, {Size = UDim2.new(rel, 0, 1, 0)}, 0.15)
+        Util.Tween(knob, {Position = UDim2.new(rel, -kSize/2, 0.5, -kSize/2)}, 0.15)
+        valLabel.Text = label .. ": " .. Util.Round(val, 2)
+        if callback then callback(val) end
+    end)
+    return frame
+end
+
+function GUI._createProgressBar(parent, height, color, value, showText)
+    local bg = Util.CreateInstance("Frame", {
+        BackgroundColor3 = Config.GUI.TertiaryColor, Size = UDim2.new(1, 0, 0, height or 8), Parent = parent,
+    })
+    Util.AddCorner(bg, UDim.new(1, 0))
+
+    local fill = Util.CreateInstance("Frame", {
+        Name = "Fill", BackgroundColor3 = color or Config.GUI.AccentColor,
+        Size = UDim2.new(math.clamp(value or 0, 0, 1), 0, 1, 0), Parent = bg,
+    })
+    Util.AddCorner(fill, UDim.new(1, 0))
+    Util.AddGradient(fill, color or Config.GUI.AccentColor, Util.LightenColor(color or Config.GUI.AccentColor, 0.15), 0)
+
+    if showText then
+        Util.CreateInstance("TextLabel", {
+            Name = "Text", BackgroundTransparency = 1, Size = UDim2.new(1, 0, 1, 0),
+            Text = Util.Round((value or 0) * 100, 0) .. "%",
+            TextColor3 = Config.GUI.TextColor, TextSize = 9, Font = Config.GUI.FontMono, ZIndex = 2, Parent = bg,
+        })
+    end
+    return bg
+end
+
+function GUI._applyTheme(themeName)
+    local theme = Themes[themeName]
+    if not theme then return end
+    Config.GUI.Theme = themeName
+    for k, v in pairs(theme) do Config.GUI[k] = v end
+    GUI.Init()
+    Logger.System("Тема: " .. themeName)
+end
+
+function GUI._makeDraggable(frame)
+    local dragging, dragStart, startPos, dragInput = false, nil, nil, nil
+    local target = frame:FindFirstChild("TitleBar") or frame
+
+    target.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true; dragStart = input.Position; startPos = frame.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then dragging = false end
+            end)
+        end
+    end)
+    target.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then dragInput = input end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            Util.Tween(frame, {Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)}, 0.12, Enum.EasingStyle.Quad)
+        end
+    end)
+end
+
+function GUI.ToggleVisibility()
+    State.isGUIVisible = not State.isGUIVisible
+    local mf = State.GUIElements.MainFrame
+    if not mf then return end
+    if State.isGUIVisible then
+        mf.Visible = true
+        Util.Tween(mf, {BackgroundTransparency = Config.GUI.Transparency, Size = Config.GUI.WindowSize}, 0.3, Enum.EasingStyle.Back)
+    else
+        local t = Util.Tween(mf, {BackgroundTransparency = 1, Size = UDim2.new(0, 450, 0, 350)}, 0.2)
+        if t then t.Completed:Connect(function() mf.Visible = false end) end
+    end
+end
+
+function GUI.ToggleMinimize()
+    local mf = State.GUIElements.MainFrame
+    if not mf then return end
+    State.isMinimized = mf.Size.Y.Offset <= 50
+    if State.isMinimized then
+        Util.Tween(mf, {Size = Config.GUI.WindowSize}, 0.3, Enum.EasingStyle.Back)
+    else
+        Util.Tween(mf, {Size = UDim2.new(0, Config.GUI.WindowSize.X.Offset, 0, Config.GUI.TitleBarHeight + 2)}, 0.25)
+    end
+end
+
+-- ============================================================
+-- SECTION 19: TAB BUILDERS
+-- ============================================================
+
+function GUI._buildHomeTab(parent)
+    -- Status
+    local statusCard = GUI._createCard(parent, "📡 Статус", 95, Config.GUI.AccentColor)
+    local statusLabel = Util.CreateInstance("TextLabel", {
+        Name = "StatusLabel", BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 22),
+        Text = "⏹ Остановлен", TextColor3 = Config.GUI.DimTextColor, TextSize = 17, Font = Config.GUI.Font, Parent = statusCard,
+    })
+    State.GUIElements.HomeStatusLabel = statusLabel
+
+    local progressLabel = Util.CreateInstance("TextLabel", {
+        BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 16),
+        Text = "Прогресс: 0/0 (0%)", TextColor3 = Config.GUI.DimTextColor, TextSize = 11, Font = Config.GUI.FontRegular, Parent = statusCard,
+    })
+    State.GUIElements.HomeProgressLabel = progressLabel
+
+    local progBar = GUI._createProgressBar(statusCard, 10, Config.GUI.AccentColor, 0, true)
+    State.GUIElements.HomeProgressBar = progBar:FindFirstChild("Fill")
+    State.GUIElements.HomeProgressText = progBar:FindFirstChild("Text")
+
+    -- Controls
+    local ctrlCard = GUI._createCard(parent, "🎮 Управление", 85)
+
+    local row1 = Util.CreateInstance("Frame", {BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 34), Parent = ctrlCard})
+    local startBtn = GUI._createButton(row1, "▶ Старт", Config.GUI.SuccessColor, UDim2.new(0, 0, 0, 0), UDim2.new(0.32, -3, 1, 0))
+    startBtn.MouseButton1Click:Connect(function() Collector.Start() end)
+    local pauseBtn = GUI._createButton(row1, "⏸ Пауза", Config.GUI.WarningColor, UDim2.new(0.34, 0, 0, 0), UDim2.new(0.32, -3, 1, 0))
+    pauseBtn.MouseButton1Click:Connect(function() Collector.TogglePause() end)
+    local stopBtn = GUI._createButton(row1, "⏹ Стоп", Config.GUI.ErrorColor, UDim2.new(0.68, 0, 0, 0), UDim2.new(0.32, 0, 1, 0))
+    stopBtn.MouseButton1Click:Connect(function() Collector.Stop() end)
+
+    local row2 = Util.CreateInstance("Frame", {BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 34), Parent = ctrlCard})
+    local nearBtn = GUI._createButton(row2, "🎯 Ближайший", Config.GUI.AccentColor, UDim2.new(0, 0, 0, 0), UDim2.new(0.49, -2, 1, 0))
+    nearBtn.MouseButton1Click:Connect(function() Collector.TeleportToNearest() end)
+    local espBtn = GUI._createButton(row2, "👁 ESP", Config.GUI.RareColor, UDim2.new(0.51, 0, 0, 0), UDim2.new(0.49, 0, 1, 0))
+    espBtn.MouseButton1Click:Connect(function() ESP.Toggle() end)
+
+    -- Mode
+    local modeCard = GUI._createCard(parent, "🔀 Режим сбора", 50)
+    local modeRow = Util.CreateInstance("Frame", {BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 30), Parent = modeCard})
+
+    for i, mode in ipairs(Config.CollectMode.AvailableModes) do
+        local icon = Config.CollectMode.ModeIcons[mode] or "📋"
+        local isActive = mode == Config.CollectMode.Current
+        local mBtn = Util.CreateInstance("TextButton", {
+            BackgroundColor3 = isActive and Config.GUI.AccentColor or Config.GUI.TertiaryColor,
+            BackgroundTransparency = isActive and 0 or 0.5,
+            Position = UDim2.new((i-1) * 0.25, 2, 0, 0),
+            Size = UDim2.new(0.25, -4, 1, 0),
+            Text = icon .. " " .. mode,
+            TextColor3 = Config.GUI.TextColor, TextSize = 9, Font = Config.GUI.FontRegular,
+            Parent = modeRow,
+        })
+        Util.AddCorner(mBtn, Config.GUI.CornerRadiusSmall)
+
+        mBtn.MouseButton1Click:Connect(function()
+            Config.CollectMode.Current = mode
+            for _, child in pairs(modeRow:GetChildren()) do
+                if child:IsA("TextButton") then
+                    local active = string.find(child.Text, mode)
+                    Util.Tween(child, {
+                        BackgroundColor3 = active and Config.GUI.AccentColor or Config.GUI.TertiaryColor,
+                        BackgroundTransparency = active and 0 or 0.5,
+                    }, 0.2)
+                end
+            end
+            Logger.Info("Режим: " .. icon .. " " .. mode)
+            Notify.Info("Режим", Config.CollectMode.ModeDescriptions[mode])
+        end)
+    end
+
+    -- Quick stats
+    local qsCard = GUI._createCard(parent, "📈 Быстрая статистика", 65)
+    local qsGrid = Util.CreateInstance("Frame", {BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 55), Parent = qsCard})
+
+    local qsItems = {
+        {Name = "Собрано", Id = "QS_Collected", Value = "0", Color = Config.GUI.SuccessColor},
+        {Name = "Время", Id = "QS_Time", Value = "0:00", Color = Config.GUI.AccentColor},
+        {Name = "С/мин", Id = "QS_CPM", Value = "0", Color = Config.GUI.WarningColor},
+        {Name = "Комбо", Id = "QS_Combo", Value = "x0", Color = Color3.fromRGB(255, 150, 50)},
+    }
+
+    for i, stat in ipairs(qsItems) do
+        local col = (i - 1) % 4
+        local sf = Util.CreateInstance("Frame", {
+            BackgroundColor3 = Config.GUI.TertiaryColor, BackgroundTransparency = 0.4,
+            Position = UDim2.new(col * 0.25, 2, 0, 0), Size = UDim2.new(0.25, -4, 1, 0), Parent = qsGrid,
+        })
+        Util.AddCorner(sf, UDim.new(0, 6))
+
+        Util.CreateInstance("TextLabel", {
+            BackgroundTransparency = 1, Position = UDim2.new(0, 0, 0, 4), Size = UDim2.new(1, 0, 0, 12),
+            Text = stat.Name, TextColor3 = Config.GUI.VeryDimTextColor, TextSize = 9, Font = Config.GUI.FontRegular, Parent = sf,
+        })
+        local vl = Util.CreateInstance("TextLabel", {
+            Name = stat.Id, BackgroundTransparency = 1, Position = UDim2.new(0, 0, 0, 18), Size = UDim2.new(1, 0, 0, 28),
+            Text = stat.Value, TextColor3 = stat.Color, TextSize = 17, Font = Config.GUI.Font, Parent = sf,
+        })
+        State.GUIElements[stat.Id] = vl
+    end
+end
+
+function GUI._buildCollectionTab(parent)
+    local searchCard = GUI._createCard(parent, "🔍 Поиск и фильтры", 75)
+    local searchBox = Util.CreateInstance("TextBox", {
+        BackgroundColor3 = Config.GUI.TertiaryColor, Size = UDim2.new(1, 0, 0, 28),
+        Text = "", PlaceholderText = "🔍 Поиск хомика...",
+        PlaceholderColor3 = Config.GUI.VeryDimTextColor,
+        TextColor3 = Config.GUI.TextColor, TextSize = 12,
+        Font = Config.GUI.FontRegular, ClearTextOnFocus = false, Parent = searchCard,
+    })
+    Util.AddCorner(searchBox, UDim.new(0, 6))
+    Util.AddPadding(searchBox, 0, 0, 10, 10)
+
+    local filterRow = Util.CreateInstance("Frame", {BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 25), Parent = searchCard})
+    local filters = {"Все", "Новые", "Собранные", "Посещённые"}
+    local currentFilter = "Все"
+    for i, f in ipairs(filters) do
+        local fb = Util.CreateInstance("TextButton", {
+            BackgroundColor3 = f == "Все" and Config.GUI.AccentColor or Config.GUI.TertiaryColor,
+            BackgroundTransparency = f == "Все" and 0 or 0.5,
+            Position = UDim2.new((i-1) * 0.25, 2, 0, 0), Size = UDim2.new(0.25, -4, 1, 0),
+            Text = f, TextColor3 = Config.GUI.TextColor, TextSize = 10, Font = Config.GUI.FontRegular, Parent = filterRow,
+        })
+        Util.AddCorner(fb, Config.GUI.CornerRadiusSmall)
+        fb.MouseButton1Click:Connect(function()
+            currentFilter = f
+            for _, c in pairs(filterRow:GetChildren()) do
+                if c:IsA("TextButton") then
+                    Util.Tween(c, {
+                        BackgroundColor3 = c.Text == f and Config.GUI.AccentColor or Config.GUI.TertiaryColor,
+                        BackgroundTransparency = c.Text == f and 0 or 0.5,
+                    }, 0.2)
+                end
+            end
+            GUI._refreshCollection(currentFilter, searchBox.Text)
+        end)
+    end
+
+    local counter = Util.CreateInstance("TextLabel", {
+        Name = "CollCounter", BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 16),
+        Text = "Найдено: 0", TextColor3 = Config.GUI.DimTextColor, TextSize = 11, Font = Config.GUI.FontRegular, Parent = parent,
+    })
+    State.GUIElements.CollectionCounter = counter
+
+    local listFrame = Util.CreateInstance("Frame", {
+        BackgroundColor3 = Config.GUI.SecondaryColor, BackgroundTransparency = 0.3,
+        Size = UDim2.new(1, 0, 0, 300), ClipsDescendants = true, Parent = parent,
+    })
+    Util.AddCorner(listFrame, Config.GUI.CornerRadius)
+
+    local listScroll = Util.CreateInstance("ScrollingFrame", {
+        BackgroundTransparency = 1, Size = UDim2.new(1, 0, 1, 0),
+        CanvasSize = UDim2.new(0, 0, 0, 0), ScrollBarThickness = 3,
+        ScrollBarImageColor3 = Config.GUI.AccentColor, AutomaticCanvasSize = Enum.AutomaticSize.Y, Parent = listFrame,
+    })
+    Util.AddPadding(listScroll, 4, 4, 4, 4)
+    Util.AddListLayout(listScroll, 3)
+    State.GUIElements.CollectionListScroll = listScroll
+
+    local refreshBtn = GUI._createButton(parent, "🔄 Обновить список", Config.GUI.AccentColor, nil, UDim2.new(1, 0, 0, 28))
+    refreshBtn.MouseButton1Click:Connect(function() GUI._refreshCollection(currentFilter, searchBox.Text) end)
+    searchBox:GetPropertyChangedSignal("Text"):Connect(function() GUI._refreshCollection(currentFilter, searchBox.Text) end)
+    task.defer(function() GUI._refreshCollection("Все", "") end)
+end
+
+function GUI._refreshCollection(filter, search)
+    local ls = State.GUIElements.CollectionListScroll
+    if not ls then return end
+    for _, c in pairs(ls:GetChildren()) do if c:IsA("Frame") then c:Destroy() end end
+
+    local wf = workspace:FindFirstChild(Config.General.FolderName)
+    if not wf then return end
+    local pDex = player:FindFirstChild(Config.General.DexName)
+    local count, myPos = 0, Util.GetPlayerPosition()
+
+    for i, item in ipairs(wf:GetChildren()) do
+        local isOwned = pDex and pDex:FindFirstChild(item.Name)
+        local isVisited = State.visitedChomiks[item.Name]
+
+        local show = true
+        if filter == "Новые" and (isOwned or isVisited) then show = false end
+        if filter == "Собранные" and not isOwned then show = false end
+        if filter == "Посещённые" and not isVisited then show = false end
+        if search and search ~= "" and not string.find(string.lower(item.Name), string.lower(search)) then show = false end
+
+        if show then
+            count = count + 1
+            local icon, color
+            if isOwned then icon = "✅"; color = Config.GUI.SuccessColor
+            elseif isVisited then icon = "👁"; color = Config.GUI.WarningColor
+            else icon = "❓"; color = Config.GUI.DimTextColor end
+
+            local itemPos = Util.GetItemPosition(item)
+            local dist = itemPos and Util.Round((itemPos.Position - myPos).Magnitude, 0) or "?"
+
+            local row = Util.CreateInstance("Frame", {
+                BackgroundColor3 = count % 2 == 0 and Config.GUI.TertiaryColor or Config.GUI.SecondaryColor,
+                BackgroundTransparency = 0.25, Size = UDim2.new(1, -4, 0, 28), LayoutOrder = i, Parent = ls,
+            })
+            Util.AddCorner(row, Config.GUI.CornerRadiusSmall)
+
+            Util.CreateInstance("TextLabel", {BackgroundTransparency = 1, Position = UDim2.new(0, 5, 0, 0), Size = UDim2.new(0, 18, 1, 0), Text = icon, TextSize = 13, Parent = row})
+            Util.CreateInstance("TextLabel", {BackgroundTransparency = 1, Position = UDim2.new(0, 25, 0, 0), Size = UDim2.new(0.45, -25, 1, 0), Text = item.Name, TextColor3 = color, TextSize = 10, Font = Config.GUI.FontRegular, TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, Parent = row})
+            Util.CreateInstance("TextLabel", {BackgroundTransparency = 1, Position = UDim2.new(0.5, 0, 0, 0), Size = UDim2.new(0.18, 0, 1, 0), Text = dist .. "m", TextColor3 = Config.GUI.VeryDimTextColor, TextSize = 9, Font = Config.GUI.FontMono, Parent = row})
+
+            if not isOwned and itemPos then
+                local tpBtn = Util.CreateInstance("TextButton", {
+                    BackgroundColor3 = Config.GUI.AccentColor, BackgroundTransparency = 0.3,
+                    Position = UDim2.new(0.72, 0, 0.1, 0), Size = UDim2.new(0.26, -4, 0.8, 0),
+                    Text = "ТП", TextColor3 = Config.GUI.TextColor, TextSize = 10, Font = Config.GUI.Font, Parent = row,
+                })
+                Util.AddCorner(tpBtn, UDim.new(0, 4))
+                tpBtn.MouseButton1Click:Connect(function()
+                    local char = player.Character; local root = char and char:FindFirstChild("HumanoidRootPart")
+                    if root then
+                        root.CFrame = itemPos; State.visitedChomiks[item.Name] = true
+                        ESP.CreateTeleportEffect(itemPos.Position)
+                        Logger.Teleport("Ручной ТП: " .. item.Name); Notify.Success("ТП", item.Name)
+                    end
+                end)
+            end
+        end
+    end
+    if State.GUIElements.CollectionCounter then State.GUIElements.CollectionCounter.Text = "Найдено: " .. count end
+end
+
+function GUI._buildAchievementsTab(parent)
+    local headerCard = GUI._createCard(parent, "🏆 Достижения", 70, Config.GUI.LegendaryColor)
+
+    local achStats = Achievements.GetStats()
+
+    local progressLabel = Util.CreateInstance("TextLabel", {
+        Name = "AchProgress", BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 18),
+        Text = "Разблокировано: " .. achStats.Unlocked .. " / " .. achStats.Total .. " (" .. achStats.Percent .. "%)",
+        TextColor3 = Config.GUI.TextColor, TextSize = 13, Font = Config.GUI.Font, Parent = headerCard,
+    })
+    State.GUIElements.AchProgressLabel = progressLabel
+
+    local mainBar = GUI._createProgressBar(headerCard, 10, Config.GUI.LegendaryColor, achStats.Total > 0 and achStats.Unlocked / achStats.Total or 0, true)
+    State.GUIElements.AchProgressBar = mainBar
+
+    -- Tier breakdown
+    local tierRow = Util.CreateInstance("Frame", {BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 20), Parent = headerCard})
+    for i, tier in ipairs(Achievements.Tiers) do
+        local td = achStats.ByTier[tier.Name]
+        Util.CreateInstance("TextLabel", {
+            BackgroundTransparency = 1,
+            Position = UDim2.new((i-1) / #Achievements.Tiers, 2, 0, 0),
+            Size = UDim2.new(1 / #Achievements.Tiers, -4, 1, 0),
+            Text = tier.Icon .. " " .. (td and td.Unlocked or 0) .. "/" .. (td and td.Total or 0),
+            TextColor3 = tier.Color, TextSize = 9, Font = Config.GUI.FontMono, Parent = tierRow,
+        })
+    end
+
+    -- Achievement list
+    local achList = Util.CreateInstance("ScrollingFrame", {
+        Name = "AchievementsList",
+        BackgroundColor3 = Config.GUI.SecondaryColor, BackgroundTransparency = 0.3,
+        Size = UDim2.new(1, 0, 0, 400),
+        CanvasSize = UDim2.new(0, 0, 0, 0), ScrollBarThickness = 3,
+        ScrollBarImageColor3 = Config.GUI.LegendaryColor,
+        AutomaticCanvasSize = Enum.AutomaticSize.Y, ClipsDescendants = true, Parent = parent,
+    })
+    Util.AddCorner(achList, Config.GUI.CornerRadius)
+    Util.AddPadding(achList, 5, 5, 5, 5)
+    Util.AddListLayout(achList, 4)
+    State.GUIElements.AchievementsList = achList
+
+    Achievements.RefreshGUI()
+end
+
+function GUI._buildSettingsTab(parent)
+    local genCard = GUI._createCard(parent, "⚙️ Общие", 140)
+    GUI._createSlider(genCard, "Задержка (сек)", 0.01, 2, Config.General.Cooldown, function(v) Config.General.Cooldown = v end)
+    GUI._createSlider(genCard, "Макс. попыток", 1, 10, Config.General.MaxRetries, function(v) Config.General.MaxRetries = math.floor(v) end)
+    GUI._createToggle(genCard, "Сбор при спавне", Config.General.CollectOnSpawn, function(v) Config.General.CollectOnSpawn = v end)
+    GUI._createToggle(genCard, "Anti-AFK", Config.AntiAFK.Enabled, function(v) Config.AntiAFK.Enabled = v; if v then AntiAFK.Start() else AntiAFK.Stop() end end)
+
+    local visCard = GUI._createCard(parent, "👁 Визуальные", 120)
+    GUI._createToggle(visCard, "Эффект телепорта", Config.Visuals.TeleportEffect, function(v) Config.Visuals.TeleportEffect = v end)
+    GUI._createToggle(visCard, "ESP имена", Config.Visuals.ESPShowNames, function(v) Config.Visuals.ESPShowNames = v; if Config.Visuals.ESPEnabled then ESP.Refresh() end end)
+    GUI._createToggle(visCard, "ESP расстояние", Config.Visuals.ESPShowDistance, function(v) Config.Visuals.ESPShowDistance = v end)
+    GUI._createSlider(visCard, "ESP прозрачность", 0, 1, Config.Visuals.ESPTransparency, function(v) Config.Visuals.ESPTransparency = v end)
+
+    local themeCard = GUI._createCard(parent, "🎨 Темы", 45)
+    local themeRow = Util.CreateInstance("Frame", {BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 30), Parent = themeCard})
+    local themeNames = {}
+    for n in pairs(Themes) do table.insert(themeNames, n) end
+    table.sort(themeNames)
+    for i, tn in ipairs(themeNames) do
+        local td = Themes[tn]
+        local tb = Util.CreateInstance("TextButton", {
+            BackgroundColor3 = td.AccentColor,
+            Position = UDim2.new((i-1) / #themeNames, 2, 0, 0),
+            Size = UDim2.new(1 / #themeNames, -4, 1, 0),
+            Text = tn, TextColor3 = Color3.new(1, 1, 1), TextSize = 8, Font = Config.GUI.Font, Parent = themeRow,
+        })
+        Util.AddCorner(tb, Config.GUI.CornerRadiusSmall)
+        tb.MouseButton1Click:Connect(function() GUI._applyTheme(tn); Notify.Info("Тема", tn) end)
+    end
+
+    local resetCard = GUI._createCard(parent, "🔄 Сброс", 75)
+    local rv = GUI._createButton(resetCard, "🔄 Сбросить посещённых", Config.GUI.WarningColor, nil, UDim2.new(1, 0, 0, 28))
+    rv.MouseButton1Click:Connect(function() State.visitedChomiks = {}; Logger.System("Посещённые сброшены"); Notify.Warning("Сброс", "Список сброшен!") end)
+    local rs = GUI._createButton(resetCard, "📊 Сбросить статистику", Config.GUI.ErrorColor, nil, UDim2.new(1, 0, 0, 28))
+    rs.MouseButton1Click:Connect(function() StatsEngine.ResetSession(); Notify.Warning("Сброс", "Статистика сброшена!") end)
+end
+
+function GUI._buildStatsTab(parent)
+    local sessionCard = GUI._createCard(parent, "📊 Статистика сессии", 240)
+    local statItems = {
+        {Id = "ST_Collected", Label = "Собрано за сессию"},
+        {Id = "ST_TotalTP", Label = "Всего телепортов"},
+        {Id = "ST_Distance", Label = "Пройдено (studs)"},
+        {Id = "ST_Deaths", Label = "Смертей"},
+        {Id = "ST_Skipped", Label = "Пропущено"},
+        {Id = "ST_Errors", Label = "Ошибок"},
+        {Id = "ST_CPM", Label = "Сборов/мин"},
+        {Id = "ST_Fastest", Label = "Быстрейший"},
+        {Id = "ST_Average", Label = "Среднее время"},
+        {Id = "ST_Session", Label = "Время сессии"},
+        {Id = "ST_MaxCombo", Label = "Макс. комбо"},
+        {Id = "ST_MaxStreak", Label = "Макс. серия без ошибок"},
+    }
+
+    for i, stat in ipairs(statItems) do
+        local row = Util.CreateInstance("Frame", {
+            BackgroundColor3 = i % 2 == 0 and Config.GUI.TertiaryColor or Config.GUI.SecondaryColor,
+            BackgroundTransparency = 0.25, Size = UDim2.new(1, 0, 0, 22), LayoutOrder = i, Parent = sessionCard,
+        })
+        Util.AddCorner(row, UDim.new(0, 4))
+        Util.CreateInstance("TextLabel", {BackgroundTransparency = 1, Position = UDim2.new(0, 8, 0, 0), Size = UDim2.new(0.6, 0, 1, 0), Text = stat.Label, TextColor3 = Config.GUI.DimTextColor, TextSize = 10, Font = Config.GUI.FontRegular, TextXAlignment = Enum.TextXAlignment.Left, Parent = row})
+        local vl = Util.CreateInstance("TextLabel", {Name = stat.Id, BackgroundTransparency = 1, Position = UDim2.new(0.6, 0, 0, 0), Size = UDim2.new(0.4, -8, 1, 0), Text = "—", TextColor3 = Config.GUI.AccentColor, TextSize = 11, Font = Config.GUI.Font, TextXAlignment = Enum.TextXAlignment.Right, Parent = row})
+        State.GUIElements[stat.Id] = vl
+    end
+
+    local globalCard = GUI._createCard(parent, "🌍 Общий прогресс", 80)
+    local rStats = RouteOptimizer.GetStats()
+    local globalItems = {
+        {Id = "GL_Total", Label = "Всего хомиков", Value = tostring(rStats.TotalInWorld), Color = Config.GUI.TextColor},
+        {Id = "GL_Owned", Label = "В коллекции", Value = tostring(rStats.Owned), Color = Config.GUI.SuccessColor},
+        {Id = "GL_Remaining", Label = "Осталось", Value = tostring(rStats.Remaining), Color = Config.GUI.WarningColor},
+        {Id = "GL_Percent", Label = "Завершено", Value = rStats.CompletionPercent .. "%", Color = Config.GUI.AccentColor},
+    }
+    for i, g in ipairs(globalItems) do
+        local row = Util.CreateInstance("Frame", {BackgroundColor3 = Config.GUI.TertiaryColor, BackgroundTransparency = 0.4, Size = UDim2.new(1, 0, 0, 20), LayoutOrder = i, Parent = globalCard})
+        Util.AddCorner(row, UDim.new(0, 4))
+        Util.CreateInstance("TextLabel", {BackgroundTransparency = 1, Position = UDim2.new(0, 8, 0, 0), Size = UDim2.new(0.55, 0, 1, 0), Text = g.Label, TextColor3 = Config.GUI.DimTextColor, TextSize = 10, Font = Config.GUI.FontRegular, TextXAlignment = Enum.TextXAlignment.Left, Parent = row})
+        local vl = Util.CreateInstance("TextLabel", {Name = g.Id, BackgroundTransparency = 1, Position = UDim2.new(0.55, 0, 0, 0), Size = UDim2.new(0.45, -8, 1, 0), Text = g.Value, TextColor3 = g.Color, TextSize = 11, Font = Config.GUI.Font, TextXAlignment = Enum.TextXAlignment.Right, Parent = row})
+        State.GUIElements[g.Id] = vl
+    end
+end
+
+function GUI._buildLogsTab(parent)
+    local ctrl = GUI._createCard(parent, "📝 Логи", 30)
+    local clearBtn = GUI._createButton(ctrl, "🗑 Очистить", Config.GUI.ErrorColor, nil, UDim2.new(1, 0, 0, 24))
+    clearBtn.MouseButton1Click:Connect(function() Logger.Clear() end)
+
+    local logFrame = Util.CreateInstance("Frame", {
+        BackgroundColor3 = Config.GUI.SecondaryColor, BackgroundTransparency = 0.3,
+        Size = UDim2.new(1, 0, 0, 400), ClipsDescendants = true, Parent = parent,
+    })
+    Util.AddCorner(logFrame, Config.GUI.CornerRadius)
+
+    local logScroll = Util.CreateInstance("ScrollingFrame", {
+        BackgroundTransparency = 1, Size = UDim2.new(1, 0, 1, 0),
+        CanvasSize = UDim2.new(0, 0, 0, 0), ScrollBarThickness = 3,
+        ScrollBarImageColor3 = Config.GUI.AccentColor, AutomaticCanvasSize = Enum.AutomaticSize.Y, Parent = logFrame,
+    })
+    Util.AddPadding(logScroll, 3, 3, 3, 3)
+    Util.AddListLayout(logScroll, 2)
+    State.GUIElements.LogScrollFrame = logScroll
+    Logger.UpdateLogGUI()
+end
+
+function GUI._buildInfoTab(parent)
+    local aboutCard = GUI._createCard(parent, "ℹ️ О скрипте", 130)
+    local lines = {
+        {"🐹 Chomik Collector Hub v4.0 Ultra", 15, Config.GUI.AccentColor, Config.GUI.Font},
+        {"", 3, nil, nil},
+        {"Автоматический сборщик хомиков с продвинутыми", 11, Config.GUI.DimTextColor, Config.GUI.FontRegular},
+        {"функциями: 50+ достижений, комбо-система,", 11, Config.GUI.DimTextColor, Config.GUI.FontRegular},
+        {"ESP, оптимизация маршрутов, 8 тем оформления.", 11, Config.GUI.DimTextColor, Config.GUI.FontRegular},
+        {"", 3, nil, nil},
+        {"Скрипт запоминает посещённых хомиков между", 10, Config.GUI.VeryDimTextColor, Config.GUI.FontRegular},
+        {"смертями и не телепортирует к ним повторно.", 10, Config.GUI.VeryDimTextColor, Config.GUI.FontRegular},
+    }
+    for i, l in ipairs(lines) do
+        Util.CreateInstance("TextLabel", {
+            BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, l[1] == "" and l[2] or l[2] + 4),
+            Text = l[1], TextColor3 = l[3] or Config.GUI.DimTextColor,
+            TextSize = l[2], Font = l[4] or Config.GUI.FontRegular,
+            TextXAlignment = Enum.TextXAlignment.Left, LayoutOrder = i, Parent = aboutCard,
+        })
+    end
+
+    local kbCard = GUI._createCard(parent, "⌨️ Горячие клавиши", 130)
+    local kbs = {
+        {"Показать/скрыть GUI", Config.Keybinds.ToggleGUI},
+        {"Начать сбор", Config.Keybinds.StartCollect},
+        {"Остановить сбор", Config.Keybinds.StopCollect},
+        {"Переключить ESP", Config.Keybinds.ToggleESP},
+        {"ТП к ближайшему", Config.Keybinds.TeleportNearest},
+    }
+    for i, kb in ipairs(kbs) do
+        local row = Util.CreateInstance("Frame", {
+            BackgroundColor3 = i % 2 == 0 and Config.GUI.TertiaryColor or Config.GUI.SecondaryColor,
+            BackgroundTransparency = 0.3, Size = UDim2.new(1, 0, 0, 22), LayoutOrder = i, Parent = kbCard,
+        })
+        Util.AddCorner(row, UDim.new(0, 4))
+        Util.CreateInstance("TextLabel", {BackgroundTransparency = 1, Position = UDim2.new(0, 8, 0, 0), Size = UDim2.new(0.6, 0, 1, 0), Text = kb[1], TextColor3 = Config.GUI.DimTextColor, TextSize = 10, Font = Config.GUI.FontRegular, TextXAlignment = Enum.TextXAlignment.Left, Parent = row})
+
+        local keyName = tostring(kb[2]):gsub("Enum.KeyCode.", "")
+        local keyBadge = Util.CreateInstance("Frame", {
+            BackgroundColor3 = Config.GUI.TertiaryColor, Position = UDim2.new(1, -65, 0.15, 0),
+            Size = UDim2.new(0, 58, 0.7, 0), Parent = row,
+        })
+        Util.AddCorner(keyBadge, UDim.new(0, 4))
+        Util.AddStroke(keyBadge, Config.GUI.AccentColor, 1, 0.6)
+        Util.CreateInstance("TextLabel", {BackgroundTransparency = 1, Size = UDim2.new(1, 0, 1, 0), Text = keyName, TextColor3 = Config.GUI.AccentColor, TextSize = 9, Font = Config.GUI.FontMono, Parent = keyBadge})
+    end
+
+    local gameCard = GUI._createCard(parent, "🎮 Информация", 80)
+    local gameItems = {{"Игрок", player.Name}, {"ID", tostring(player.UserId)}, {"PlaceId", tostring(game.PlaceId)}, {"JobId", string.sub(game.JobId, 1, 18) .. "..."}}
+    for i, gi in ipairs(gameItems) do
+        local row = Util.CreateInstance("Frame", {BackgroundColor3 = Config.GUI.TertiaryColor, BackgroundTransparency = 0.4, Size = UDim2.new(1, 0, 0, 18), LayoutOrder = i, Parent = gameCard})
+        Util.AddCorner(row, UDim.new(0, 3))
+        Util.CreateInstance("TextLabel", {BackgroundTransparency = 1, Position = UDim2.new(0, 8, 0, 0), Size = UDim2.new(0.3, 0, 1, 0), Text = gi[1], TextColor3 = Config.GUI.VeryDimTextColor, TextSize = 9, Font = Config.GUI.FontRegular, TextXAlignment = Enum.TextXAlignment.Left, Parent = row})
+        Util.CreateInstance("TextLabel", {BackgroundTransparency = 1, Position = UDim2.new(0.3, 0, 0, 0), Size = UDim2.new(0.7, -8, 1, 0), Text = gi[2], TextColor3 = Config.GUI.TextColor, TextSize = 9, Font = Config.GUI.FontMono, TextXAlignment = Enum.TextXAlignment.Right, TextTruncate = Enum.TextTruncate.AtEnd, Parent = row})
+    end
+end
+
+-- ============================================================
+-- SECTION 20: GUI UPDATE LOOP
+-- ============================================================
+
+local function updateGUILoop()
+    while true do
+        task.wait(0.5)
+        local s = State.Stats
+        local c = State.Combo
+        local p = State.Performance
+        local rStats = RouteOptimizer.GetStats()
+
+        -- Home status
+        if State.GUIElements.HomeStatusLabel then
+            if State.isCollecting then
+                if State.isPaused then
+                    State.GUIElements.HomeStatusLabel.Text = "⏸ Приостановлен"
+                    State.GUIElements.HomeStatusLabel.TextColor3 = Config.GUI.WarningColor
+                else
+                    local target = State.currentTarget and (" → " .. State.currentTarget) or ""
+                    State.GUIElements.HomeStatusLabel.Text = "▶ Сбор..." .. target
+                    State.GUIElements.HomeStatusLabel.TextColor3 = Config.GUI.SuccessColor
+                end
+            else
+                State.GUIElements.HomeStatusLabel.Text = "⏹ Остановлен"
+                State.GUIElements.HomeStatusLabel.TextColor3 = Config.GUI.DimTextColor
+            end
+        end
+
+        -- Progress
+        if State.GUIElements.HomeProgressLabel then
+            State.GUIElements.HomeProgressLabel.Text = string.format("Прогресс: %d/%d (%s%%)", rStats.Owned, rStats.TotalInWorld, rStats.CompletionPercent)
+        end
+        if State.GUIElements.HomeProgressBar then
+            local pct = rStats.TotalInWorld > 0 and (rStats.Owned / rStats.TotalInWorld) or 0
+            Util.Tween(State.GUIElements.HomeProgressBar, {Size = UDim2.new(pct, 0, 1, 0)}, 0.3)
+            if State.GUIElements.HomeProgressText then
+                State.GUIElements.HomeProgressText.Text = Util.Round(pct * 100, 1) .. "%"
+            end
+        end
+
+        -- Quick stats
+        if State.GUIElements.QS_Collected then State.GUIElements.QS_Collected.Text = tostring(s.sessionCollected) end
+        if State.GUIElements.QS_Time then State.GUIElements.QS_Time.Text = Util.FormatTime(StatsEngine.GetSessionTime()) end
+        if State.GUIElements.QS_CPM then State.GUIElements.QS_CPM.Text = tostring(StatsEngine.GetCollectionsPerMinute()) end
+        if State.GUIElements.QS_Combo then
+            State.GUIElements.QS_Combo.Text = "x" .. c.Count
+            State.GUIElements.QS_Combo.TextColor3 = Util.GetComboColor(c.Count)
+        end
+
+        -- Title combo
+        if State.GUIElements.TitleComboLabel then
+            if c.Count > 0 then
+                State.GUIElements.TitleComboLabel.Text = "🔥 x" .. c.Count
+                State.GUIElements.TitleComboLabel.TextColor3 = Util.GetComboColor(c.Count)
+            else
+                State.GUIElements.TitleComboLabel.Text = "🔥 —"
+                State.GUIElements.TitleComboLabel.TextColor3 = Config.GUI.DimTextColor
+            end
+        end
+
+        -- Status bar
+        if State.GUIElements.SB_Status then
+            if State.isCollecting then
+                State.GUIElements.SB_Status.Text = State.isPaused and "⏸ Пауза" or "▶ Сбор"
+                State.GUIElements.SB_Status.TextColor3 = State.isPaused and Config.GUI.WarningColor or Config.GUI.SuccessColor
+            else
+                State.GUIElements.SB_Status.Text = "⏹ Стоп"
+                State.GUIElements.SB_Status.TextColor3 = Config.GUI.DimTextColor
+            end
+        end
+        if State.GUIElements.SB_Collected then State.GUIElements.SB_Collected.Text = "📦 " .. s.sessionCollected end
+        if State.GUIElements.SB_Time then State.GUIElements.SB_Time.Text = "⏱️ " .. Util.FormatTime(StatsEngine.GetSessionTime()) end
+        if State.GUIElements.SB_FPS then
+            State.GUIElements.SB_FPS.Text = "FPS:" .. p.FPS
+            State.GUIElements.SB_FPS.TextColor3 = p.FPS > 45 and Config.GUI.SuccessColor or p.FPS > 25 and Config.GUI.WarningColor or Config.GUI.ErrorColor
+        end
+        if State.GUIElements.SB_Ping then
+            State.GUIElements.SB_Ping.Text = "Ping:" .. p.Ping
+            State.GUIElements.SB_Ping.TextColor3 = p.Ping < 100 and Config.GUI.SuccessColor or p.Ping < 200 and Config.GUI.WarningColor or Config.GUI.ErrorColor
+        end
+        if State.GUIElements.SB_Combo then
+            State.GUIElements.SB_Combo.Text = "🔥 x" .. c.Count
+            State.GUIElements.SB_Combo.TextColor3 = Util.GetComboColor(c.Count)
+        end
+
+        -- Detailed stats
+        if State.GUIElements.ST_Collected then State.GUIElements.ST_Collected.Text = tostring(s.sessionCollected) end
+        if State.GUIElements.ST_TotalTP then State.GUIElements.ST_TotalTP.Text = tostring(s.totalTeleports) end
+        if State.GUIElements.ST_Distance then State.GUIElements.ST_Distance.Text = Util.FormatNumberComma(s.totalDistance) end
+        if State.GUIElements.ST_Deaths then State.GUIElements.ST_Deaths.Text = tostring(s.totalDeaths) end
+        if State.GUIElements.ST_Skipped then State.GUIElements.ST_Skipped.Text = tostring(s.totalSkipped) end
+        if State.GUIElements.ST_Errors then State.GUIElements.ST_Errors.Text = tostring(s.totalErrors) end
+        if State.GUIElements.ST_CPM then State.GUIElements.ST_CPM.Text = tostring(StatsEngine.GetCollectionsPerMinute()) end
+        if State.GUIElements.ST_Fastest then
+            State.GUIElements.ST_Fastest.Text = s.fastestCollection < math.huge and Util.FormatMs(s.fastestCollection) or "—"
+        end
+        if State.GUIElements.ST_Average then
+            State.GUIElements.ST_Average.Text = s.averageCollectionTime > 0 and Util.FormatMs(s.averageCollectionTime) or "—"
+        end
+        if State.GUIElements.ST_Session then State.GUIElements.ST_Session.Text = Util.FormatTimeDetailed(StatsEngine.GetSessionTime()) end
+        if State.GUIElements.ST_MaxCombo then State.GUIElements.ST_MaxCombo.Text = "x" .. c.MaxCombo end
+        if State.GUIElements.ST_MaxStreak then State.GUIElements.ST_MaxStreak.Text = tostring(s.maxSuccessStreak) end
+
+        -- Global stats
+        if State.GUIElements.GL_Total then State.GUIElements.GL_Total.Text = tostring(rStats.TotalInWorld) end
+        if State.GUIElements.GL_Owned then State.GUIElements.GL_Owned.Text = tostring(rStats.Owned) end
+        if State.GUIElements.GL_Remaining then State.GUIElements.GL_Remaining.Text = tostring(rStats.Remaining) end
+        if State.GUIElements.GL_Percent then State.GUIElements.GL_Percent.Text = rStats.CompletionPercent .. "%" end
+
+        -- Achievement progress
+        if State.GUIElements.AchProgressLabel then
+            local achS = Achievements.GetStats()
+            State.GUIElements.AchProgressLabel.Text = "Разблокировано: " .. achS.Unlocked .. " / " .. achS.Total .. " (" .. achS.Percent .. "%)"
+        end
+    end
+end
+
+-- ============================================================
+-- SECTION 21: INITIALIZATION
+-- ============================================================
+
+local function initialize()
+    Logger.System("════════════════════════════════════")
+    Logger.System("  🐹 Chomik Collector Hub v4.0 Ultra")
+    Logger.System("  Инициализация...")
+    Logger.System("════════════════════════════════════")
+
+    Notify.Init()
+    Achievements.RegisterAll()
+    GUI.Init()
+    KeybindManager.Init()
+
+    KeybindManager.Register("ToggleGUI", Config.Keybinds.ToggleGUI, function() GUI.ToggleVisibility() end)
+    KeybindManager.Register("StartCollect", Config.Keybinds.StartCollect, function() Collector.Start() end)
+    KeybindManager.Register("StopCollect", Config.Keybinds.StopCollect, function() Collector.Stop() end)
+    KeybindManager.Register("ToggleESP", Config.Keybinds.ToggleESP, function() ESP.Toggle() end)
+    KeybindManager.Register("TeleportNearest", Config.Keybinds.TeleportNearest, function() Collector.TeleportToNearest() end)
+
+    if Config.AntiAFK.Enabled then AntiAFK.Start() end
+
+    player.CharacterAdded:Connect(function()
+        task.wait(0.5)
+        StatsEngine.RecordDeath()
+        Logger.Warning("Персонаж погиб (смерть #" .. State.Stats.totalDeaths .. ")")
+        if Config.General.CollectOnSpawn and not State.isCollecting then
+            task.wait(1)
+            Collector.Start()
+        end
+    end)
+
+    task.spawn(updateGUILoop)
+
+    Logger.Success("════════════════════════════════════")
+    Logger.Success("  ✅ Инициализация завершена!")
+    Logger.Success("  📊 " .. Util.CountTable(State.Achievements) .. " достижений")
+    Logger.Success("  🎨 " .. Util.CountTable(Themes) .. " тем")
+    Logger.Success("  ⌨️ " .. tostring(Config.Keybinds.ToggleGUI):gsub("Enum.KeyCode.", "") .. " — скрыть GUI")
+    Logger.Success("════════════════════════════════════")
+
+    Notify.Success("🐹 Chomik Hub v4.0", "Скрипт загружен! " .. Util.CountTable(State.Achievements) .. " достижений ожидают!", 6)
+
+    if Config.General.CollectOnSpawn and player.Character then
+        task.wait(1)
+        Collector.Start()
+    end
+end
+
+initialize()
