@@ -1,0 +1,1345 @@
+--=============================================--
+--          JOHN DOE — 10 PHASES               --
+--       DARK MATTER ULTIMATE EDITION          --
+--           FIXED FINAL VERSION               --
+--=============================================--
+
+--===========================================--
+--          SERVICES
+--===========================================--
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local Debris = game:GetService("Debris")
+local Lighting = game:GetService("Lighting")
+local UserInputService = game:GetService("UserInputService")
+
+--===========================================--
+--          PLAYER SETUP
+--===========================================--
+player = Players.LocalPlayer
+chara = player.Character
+Mouse = player:GetMouse()
+local Camera = workspace.CurrentCamera
+local Humanoid = chara.Humanoid
+
+local ch = chara:GetChildren()
+for i = 1, #ch do
+	if ch[i].Name == "Torso" then
+		if ch[i]:FindFirstChild("roblox") then ch[i].roblox.Transparency = 1 end
+	elseif ch[i].Name == "Head" then
+		if ch[i]:FindFirstChild("face") then ch[i].face.Transparency = 1 end
+		ch[i].Transparency = 1
+	elseif ch[i].ClassName == "Accessory" or ch[i].ClassName == "Shirt" or ch[i].ClassName == "Pants" or ch[i].ClassName == "ShirtGraphic" then
+		ch[i]:Destroy()
+	end
+end
+
+local defaultAnimate = chara:FindFirstChild("Animate")
+if defaultAnimate then defaultAnimate:Destroy() end
+
+chara["Left Arm"].BrickColor = BrickColor.new("Cool yellow")
+chara["Right Arm"].BrickColor = BrickColor.new("Cool yellow")
+chara["Left Leg"].BrickColor = BrickColor.new("Medium blue")
+chara["Right Leg"].BrickColor = BrickColor.new("Medium blue")
+chara.Torso.BrickColor = BrickColor.new("Bright yellow")
+
+--===========================================--
+--          GLOBAL VARIABLES
+--===========================================--
+local CurrentPhase = 0
+local KillCount = 0
+local DamageMultiplier = 1
+local SpeedMultiplier = 1
+local IsSprinting = false
+local GodMode = true
+local bladeactive = false
+local dell = false
+local IsTransitioning = false
+local EmoteActive = false
+local CameraShakeActive = false
+local AttackComboIndex = 0
+local LastFootstepTime = 0
+local DamageTickRate = 0.5
+local LastDamageTick = {}
+
+local PhaseKillReqs = {5, 10, 20, 30, 50, 75, 100, 125, 150, 200}
+
+local PhaseInfo = {
+	[0] = {Name="John Doe",Color=Color3.new(0,0,0),DamageMult=1,SpeedMult=1,SpikeCount=0,DarkLevel=0,WalkSpeed=16,RunSpeed=28,BodyDarkness=0},
+	[1] = {Name="Awakened John Doe",Color=Color3.new(0.6,0,0),DamageMult=1.3,SpeedMult=1.1,SpikeCount=6,DarkLevel=0.1,WalkSpeed=18,RunSpeed=32,BodyDarkness=0.05},
+	[2] = {Name="Corrupted John Doe",Color=Color3.new(0.7,0,0),DamageMult=1.6,SpeedMult=1.2,SpikeCount=12,DarkLevel=0.2,WalkSpeed=20,RunSpeed=36,BodyDarkness=0.1},
+	[3] = {Name="Tainted John Doe",Color=Color3.new(0.8,0,0),DamageMult=2.0,SpeedMult=1.3,SpikeCount=20,DarkLevel=0.3,WalkSpeed=22,RunSpeed=40,BodyDarkness=0.2},
+	[4] = {Name="Darkened John Doe",Color=Color3.new(0.5,0,0),DamageMult=2.5,SpeedMult=1.4,SpikeCount=30,DarkLevel=0.4,WalkSpeed=24,RunSpeed=44,BodyDarkness=0.3},
+	[5] = {Name="Consumed John Doe",Color=Color3.new(0.4,0,0),DamageMult=3.0,SpeedMult=1.5,SpikeCount=42,DarkLevel=0.5,WalkSpeed=26,RunSpeed=48,BodyDarkness=0.4},
+	[6] = {Name="Abyssal John Doe",Color=Color3.new(0.3,0,0),DamageMult=4.0,SpeedMult=1.6,SpikeCount=56,DarkLevel=0.6,WalkSpeed=28,RunSpeed=52,BodyDarkness=0.55},
+	[7] = {Name="Demonic John Doe",Color=Color3.new(0.2,0,0),DamageMult=5.0,SpeedMult=1.7,SpikeCount=72,DarkLevel=0.7,WalkSpeed=30,RunSpeed=56,BodyDarkness=0.7},
+	[8] = {Name="Eldritch John Doe",Color=Color3.new(0.15,0,0),DamageMult=6.5,SpeedMult=1.8,SpikeCount=90,DarkLevel=0.8,WalkSpeed=32,RunSpeed=60,BodyDarkness=0.8},
+	[9] = {Name="Void John Doe",Color=Color3.new(0.1,0,0),DamageMult=8.0,SpeedMult=1.9,SpikeCount=110,DarkLevel=0.9,WalkSpeed=34,RunSpeed=64,BodyDarkness=0.9},
+	[10] = {Name="GOD John Doe",Color=Color3.new(0,0,0),DamageMult=12.0,SpeedMult=2.0,SpikeCount=140,DarkLevel=1.0,WalkSpeed=38,RunSpeed=72,BodyDarkness=1.0},
+}
+
+-- ВСЕ ШИПЫ ЧЁРНО-КРАСНЫЕ С КРАСНЫМИ ЭФФЕКТАМИ
+local MegaSpikeData = {
+	[0]={Count=0,MinSize=Vector3.new(0,0,0),MaxSize=Vector3.new(0,0,0),Damage=0,Color=Color3.new(0,0,0),Material=Enum.Material.Granite,GlowEnabled=false,PulseEnabled=false,ParticlesEnabled=false,AnimationSpeed=0},
+	[1]={Count=6,MinSize=Vector3.new(0.15,0.5,0.15),MaxSize=Vector3.new(0.25,0.9,0.25),Damage=8,Color=Color3.new(0.1,0,0),SecondaryColor=Color3.new(1,0,0),Material=Enum.Material.Granite,GlowEnabled=false,PulseEnabled=false,ParticlesEnabled=false,AnimationSpeed=0.5},
+	[2]={Count=12,MinSize=Vector3.new(0.18,0.6,0.18),MaxSize=Vector3.new(0.35,1.2,0.35),Damage=12,Color=Color3.new(0.08,0,0),SecondaryColor=Color3.new(1,0,0),Material=Enum.Material.Granite,GlowEnabled=true,PulseEnabled=false,ParticlesEnabled=false,AnimationSpeed=0.7},
+	[3]={Count=20,MinSize=Vector3.new(0.2,0.8,0.2),MaxSize=Vector3.new(0.45,1.6,0.45),Damage=18,Color=Color3.new(0.06,0,0),SecondaryColor=Color3.new(1,0,0),Material=Enum.Material.Neon,GlowEnabled=true,PulseEnabled=true,ParticlesEnabled=false,AnimationSpeed=0.9},
+	[4]={Count=30,MinSize=Vector3.new(0.22,1.0,0.22),MaxSize=Vector3.new(0.5,2.0,0.5),Damage=25,Color=Color3.new(0.05,0,0),SecondaryColor=Color3.new(1,0,0),Material=Enum.Material.Neon,GlowEnabled=true,PulseEnabled=true,ParticlesEnabled=true,AnimationSpeed=1.1},
+	[5]={Count=42,MinSize=Vector3.new(0.25,1.2,0.25),MaxSize=Vector3.new(0.6,2.5,0.6),Damage=35,Color=Color3.new(0.04,0,0),SecondaryColor=Color3.new(1,0,0),Material=Enum.Material.Neon,GlowEnabled=true,PulseEnabled=true,ParticlesEnabled=true,AnimationSpeed=1.3},
+	[6]={Count=56,MinSize=Vector3.new(0.28,1.5,0.28),MaxSize=Vector3.new(0.7,3.0,0.7),Damage=45,Color=Color3.new(0.03,0,0),SecondaryColor=Color3.new(1,0,0),Material=Enum.Material.Neon,GlowEnabled=true,PulseEnabled=true,ParticlesEnabled=true,AnimationSpeed=1.5},
+	[7]={Count=72,MinSize=Vector3.new(0.3,1.8,0.3),MaxSize=Vector3.new(0.8,3.5,0.8),Damage=60,Color=Color3.new(0.02,0,0),SecondaryColor=Color3.new(1,0,0),Material=Enum.Material.Neon,GlowEnabled=true,PulseEnabled=true,ParticlesEnabled=true,AnimationSpeed=1.7},
+	[8]={Count=90,MinSize=Vector3.new(0.35,2.0,0.35),MaxSize=Vector3.new(0.9,4.0,0.9),Damage=80,Color=Color3.new(0.01,0,0),SecondaryColor=Color3.new(1,0,0),Material=Enum.Material.Neon,GlowEnabled=true,PulseEnabled=true,ParticlesEnabled=true,AnimationSpeed=2.0},
+	[9]={Count=110,MinSize=Vector3.new(0.4,2.5,0.4),MaxSize=Vector3.new(1.0,5.0,1.0),Damage=100,Color=Color3.new(0.005,0,0),SecondaryColor=Color3.new(1,0,0),Material=Enum.Material.Neon,GlowEnabled=true,PulseEnabled=true,ParticlesEnabled=true,AnimationSpeed=2.3},
+	[10]={Count=140,MinSize=Vector3.new(0.5,3.0,0.5),MaxSize=Vector3.new(1.2,6.0,1.2),Damage=150,Color=Color3.new(0,0,0),SecondaryColor=Color3.new(1,0,0),Material=Enum.Material.Neon,GlowEnabled=true,PulseEnabled=true,ParticlesEnabled=true,AnimationSpeed=2.5},
+}
+
+local AbilityPhaseReq = {Teleport=0,Grab=0,Slash=0,Dash=1,AreaAttack=2,BlackHole=3,SoulDrain=4,MeteorStrike=5,ShadowClone=6,FreezeWave=7,PoisonCloud=8,Shield=9,TimeStop=10}
+local AbilityCooldowns = {}
+local PlayerStats = {Kills=0,SoulsCollected=0}
+local MegaSpikes = {}
+local DarkTendrils = {}
+local FloatingOrbs = {}
+local PhaseWings = {}
+local BodyTrails = {}
+local AuraObjects = {}
+local EyeEffects = {}
+
+--===========================================--
+--          UTILITY
+--===========================================--
+New = function(Object,Parent,Name,Data)
+	local Object = Instance.new(Object) for Index,Value in pairs(Data or {}) do Object[Index]=Value end Object.Parent=Parent Object.Name=Name return Object
+end
+local function GetDistanceBetween(p1,p2) return (p1.Position-p2.Position).Magnitude end
+local function IsValidTarget(t) if t and t:FindFirstChild("Humanoid") and t.Humanoid.Health>0 and t~=chara and not t:FindFirstChild("HasBeenHit") then return true end return false end
+local function GetAllTargetsInRange(pos,range)
+	local r={} for _,plr in pairs(Players:GetPlayers()) do if plr~=player and plr.Character then
+		local t=plr.Character:FindFirstChild("Torso") or plr.Character:FindFirstChild("UpperTorso")
+		if t and (t.Position-pos).Magnitude<=range and IsValidTarget(plr.Character) then table.insert(r,plr.Character) end
+	end end return r
+end
+function CanUseAbility(n) local r=AbilityPhaseReq[n] return r and CurrentPhase>=r end
+function CanUseCooldown(n,cd) if AbilityCooldowns[n] and AbilityCooldowns[n]>tick() then return false end AbilityCooldowns[n]=tick()+cd return true end
+local function lerpColor(c1,c2,t) return Color3.new(c1.R+(c2.R-c1.R)*t,c1.G+(c2.G-c1.G)*t,c1.B+(c2.B-c1.B)*t) end
+
+--===========================================--
+--          PARTICLE EFFECTS (ВСЕ КРАСНЫЕ)
+--===========================================--
+function ScatterEff(part)
+	local e1=Instance.new("ParticleEmitter",part) e1.Size=NumberSequence.new(.1) e1.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,0),NumberSequenceKeypoint.new(.9,0),NumberSequenceKeypoint.new(1,1)})
+	e1.LightEmission=1 e1.Lifetime=NumberRange.new(1) e1.Speed=NumberRange.new(1) e1.Rate=100 e1.VelocitySpread=10000 e1.Texture="rbxassetid://347504241" e1.Color=ColorSequence.new(Color3.new(1,0,0))
+	local e2=e1:Clone() e2.Parent=part e2.Texture="rbxassetid://347504259"
+end
+
+function BurningEff(part)
+	local e1=Instance.new("ParticleEmitter",part) e1.Size=NumberSequence.new(.1)
+	e1.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,0),NumberSequenceKeypoint.new(.2,0),NumberSequenceKeypoint.new(1,1)})
+	e1.LightEmission=1 e1.Lifetime=NumberRange.new(1) e1.Speed=NumberRange.new(0) e1.Rate=100 e1.Texture="rbxassetid://347504241" e1.Acceleration=Vector3.new(0,10,0) e1.Color=ColorSequence.new(Color3.new(1,0,0))
+	local e2=e1:Clone() e2.Parent=part e2.Texture="rbxassetid://347504259"
+	local e3=Instance.new("ParticleEmitter",part) e3.Size=NumberSequence.new(1) e3.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,0),NumberSequenceKeypoint.new(1,1)})
+	e3.LightEmission=1 e3.Lifetime=NumberRange.new(1) e3.Speed=NumberRange.new(0) e3.Rate=100 e3.Texture="rbxasset://textures/particles/fire_main.dds" e3.Acceleration=Vector3.new(0,10,0) e3.Color=ColorSequence.new(Color3.new(1,0,0))
+end
+
+function ElectricEff(part,color)
+	local e=Instance.new("ParticleEmitter",part) e.Size=NumberSequence.new({NumberSequenceKeypoint.new(0,0.1),NumberSequenceKeypoint.new(0.3,0.4),NumberSequenceKeypoint.new(1,0.1)})
+	e.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,0),NumberSequenceKeypoint.new(.3,0.2),NumberSequenceKeypoint.new(1,1)})
+	e.LightEmission=1.5 e.Lifetime=NumberRange.new(0.5) e.Speed=NumberRange.new(5) e.Rate=300 e.VelocitySpread=20000
+	e.Texture="rbxassetid://347504241" e.Color=ColorSequence.new(color or Color3.new(1,0,0),Color3.new(0.5,0,0)) e.RotSpeed=NumberRange.new(-200,200) return e
+end
+
+function VoidEff(part) local e=Instance.new("ParticleEmitter",part) e.Size=NumberSequence.new({NumberSequenceKeypoint.new(0,2),NumberSequenceKeypoint.new(0.5,3),NumberSequenceKeypoint.new(1,2)})
+	e.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,0.5),NumberSequenceKeypoint.new(.5,0.3),NumberSequenceKeypoint.new(1,1)})
+	e.LightEmission=0 e.Lifetime=NumberRange.new(2) e.Speed=NumberRange.new(2) e.Rate=30 e.VelocitySpread=360
+	e.Texture="rbxasset://textures/particles/smoke_main.dds" e.Color=ColorSequence.new(Color3.new(0.1,0,0))
+	e.Acceleration=Vector3.new(0,5,0) e.RotSpeed=NumberRange.new(-30,30) return e end
+
+function DarkAuraEff(part) local e=Instance.new("ParticleEmitter",part) e.Size=NumberSequence.new({NumberSequenceKeypoint.new(0,0.5),NumberSequenceKeypoint.new(0.5,1.5),NumberSequenceKeypoint.new(1,0.5)})
+	e.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,0.8),NumberSequenceKeypoint.new(.5,0.5),NumberSequenceKeypoint.new(1,1)})
+	e.LightEmission=0.3 e.Lifetime=NumberRange.new(3) e.Speed=NumberRange.new(1) e.Rate=50 e.VelocitySpread=3000
+	e.Texture="rbxasset://textures/particles/smoke_main.dds" e.Color=ColorSequence.new(Color3.new(0,0,0)) e.Acceleration=Vector3.new(0,-2,0) e.RotSpeed=NumberRange.new(-50,50) return e end
+
+function IceEff(part) local e=Instance.new("ParticleEmitter",part) e.Size=NumberSequence.new({NumberSequenceKeypoint.new(0,0.5),NumberSequenceKeypoint.new(0.5,0.8),NumberSequenceKeypoint.new(1,0.3)})
+	e.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,0.3),NumberSequenceKeypoint.new(0.5,0.5),NumberSequenceKeypoint.new(1,1)})
+	e.LightEmission=0.8 e.Lifetime=NumberRange.new(2) e.Speed=NumberRange.new(1) e.Rate=80 e.VelocitySpread=360
+	e.Texture="rbxassetid://347504259" e.Color=ColorSequence.new(Color3.new(0.5,0.8,1)) e.Acceleration=Vector3.new(0,-3,0) return e end
+
+function PoisonEff(part) local e=Instance.new("ParticleEmitter",part) e.Size=NumberSequence.new({NumberSequenceKeypoint.new(0,0.3),NumberSequenceKeypoint.new(0.5,0.6),NumberSequenceKeypoint.new(1,0.2)})
+	e.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,0.2),NumberSequenceKeypoint.new(0.6,0.4),NumberSequenceKeypoint.new(1,1)})
+	e.LightEmission=0.6 e.Lifetime=NumberRange.new(1.5) e.Speed=NumberRange.new(2) e.Rate=100 e.VelocitySpread=180
+	e.Texture="rbxasset://textures/particles/smoke_main.dds" e.Color=ColorSequence.new(Color3.new(0,0.8,0)) e.Acceleration=Vector3.new(0,3,0) return e end
+
+--===========================================--
+--          SOUND SYSTEM
+--===========================================--
+local Sounds = {}
+function AddSound(name,id,vol,pitch,looped)
+	local s=Instance.new("Sound",chara.Torso) s.Name=name s.SoundId="rbxassetid://"..id s.Volume=vol or 5 s.PlaybackSpeed=pitch or 1 s.Looped=looped or false Sounds[name]=s return s
+end
+function PlaySound(name,pitch) if Sounds[name] then if pitch then Sounds[name].PlaybackSpeed=pitch end Sounds[name]:Play() end end
+function StopSound(name) if Sounds[name] then Sounds[name]:Stop() end end
+function StopAllSounds() for _,s in pairs(Sounds) do s:Stop() end end
+
+AddSound("Slash",28144425,5,0.7) AddSound("Hit",429400881,5,0.7) AddSound("Tele",2767090,5,0.7)
+AddSound("Burn",32791565,5,0.7) AddSound("Music1",151038517,10,0.5,true) AddSound("Music2",11984351,5,0.2,true)
+AddSound("DeathMus",19094700,5,0.5,true) AddSound("DeathEx",11984351,5,1)
+AddSound("Scream",138093082,8,0.9) AddSound("Thunder",130818250,6,1) AddSound("Explosion",138186576,6,1)
+AddSound("Charge",136007472,5,1) AddSound("PowerUp",136007472,7,1.2) AddSound("Freeze",186311262,5,1)
+AddSound("Poison",137579113,4,0.8) AddSound("Shield",137579113,5,1.5) AddSound("Summon",137579113,6,0.5)
+AddSound("PhaseUp",136007472,8,0.6) AddSound("SpikeDamage",429400881,4,1.2) AddSound("SpikeGrow",137579113,3,0.8)
+AddSound("TendrilWhip",28144425,4,1.5) AddSound("DarkBreath",138093082,3,0.4) AddSound("EvilLaugh2",56536755,6,0.5)
+AddSound("PhaseRoar",138093082,9,0.6) AddSound("PhaseImpact",138186576,8,0.8)
+AddSound("PhaseBreak",138186576,10,1.2) AddSound("PhaseAscend",136007472,8,0.4)
+
+PlaySound("Music1") PlaySound("Music2")
+
+--===========================================--
+--    ИСПРАВЛЕННАЯ МУЗЫКАЛЬНАЯ СИСТЕМА
+--    Используем 3 проверенных ID с разным pitch
+--===========================================--
+local PMusic = {}
+PMusic.Current = nil
+PMusic.CurrentName = ""
+PMusic.Fading = false
+PMusic.Tracks = {}
+
+local MusicFolder = Instance.new("Folder",chara)
+MusicFolder.Name = "PhaseMusicFolder"
+
+-- ПРОВЕРЕННЫЕ РАБОЧИЕ Sound ID:
+-- 151038517 - тёмный амбиент
+-- 11984351  - жуткая тема
+-- 19094700  - мрачная тема
+-- Разные фазы = разный pitch + volume = разное звучание
+
+local PMusData = {
+	[0]  = {Id=151038517, Vol=5,  Pitch=0.50, Name="Ambient Dread"},
+	[1]  = {Id=151038517, Vol=5,  Pitch=0.65, Name="Dark Awakening"},
+	[2]  = {Id=151038517, Vol=6,  Pitch=0.80, Name="Corruption Spreads"},
+	[3]  = {Id=11984351,  Vol=5,  Pitch=0.30, Name="Tainted Soul"},
+	[4]  = {Id=11984351,  Vol=5,  Pitch=0.40, Name="Descent Into Darkness"},
+	[5]  = {Id=11984351,  Vol=6,  Pitch=0.50, Name="Consumed By Void"},
+	[6]  = {Id=19094700,  Vol=5,  Pitch=0.35, Name="Abyssal Hymn"},
+	[7]  = {Id=19094700,  Vol=6,  Pitch=0.45, Name="Demon Unleashed"},
+	[8]  = {Id=19094700,  Vol=7,  Pitch=0.55, Name="Eldritch Horror"},
+	[9]  = {Id=151038517, Vol=8,  Pitch=0.30, Name="Voice of the Void"},
+	[10] = {Id=11984351,  Vol=10, Pitch=0.20, Name="GOD THEME"},
+}
+
+-- Создаём треки
+for ph, d in pairs(PMusData) do
+	local s = Instance.new("Sound", MusicFolder)
+	s.Name = "PM_"..ph
+	s.SoundId = "rbxassetid://"..d.Id
+	s.Volume = 0
+	s.PlaybackSpeed = d.Pitch
+	s.Looped = true
+	s.Playing = false
+	PMusic.Tracks[ph] = {Sound = s, Data = d}
+end
+
+-- Амбиент слои
+local AmbientLayer = Instance.new("Sound",MusicFolder)
+AmbientLayer.Name="DarkAmbient" AmbientLayer.SoundId="rbxassetid://11984351"
+AmbientLayer.Volume=0 AmbientLayer.PlaybackSpeed=0.15 AmbientLayer.Looped=true AmbientLayer:Play()
+
+local HeartbeatLayer = Instance.new("Sound",MusicFolder)
+HeartbeatLayer.Name="Heartbeat" HeartbeatLayer.SoundId="rbxassetid://137579113"
+HeartbeatLayer.Volume=0 HeartbeatLayer.PlaybackSpeed=0.5 HeartbeatLayer.Looped=true HeartbeatLayer:Play()
+
+-- ИСПРАВЛЕННЫЙ FadeOut
+function PMusic:FadeOutSound(snd, dur)
+	if not snd or not snd.Parent then return end
+	local startVol = snd.Volume
+	if startVol <= 0 then snd:Stop() return end
+	spawn(function()
+		local steps = math.max(1, math.floor((dur or 2) / 0.05))
+		for i = 1, steps do
+			if not snd or not snd.Parent then return end
+			snd.Volume = startVol * (1 - i/steps)
+			wait(0.05)
+		end
+		if snd and snd.Parent then
+			snd.Volume = 0
+			snd:Stop()
+		end
+	end)
+end
+
+-- ИСПРАВЛЕННЫЙ FadeIn
+function PMusic:FadeInSound(snd, targetVol, dur)
+	if not snd or not snd.Parent then return end
+	spawn(function()
+		snd.Volume = 0
+		snd:Play()
+		local steps = math.max(1, math.floor((dur or 2) / 0.05))
+		for i = 1, steps do
+			if not snd or not snd.Parent then return end
+			snd.Volume = targetVol * (i / steps)
+			wait(0.05)
+		end
+		if snd and snd.Parent then
+			snd.Volume = targetVol
+		end
+	end)
+end
+
+-- ИСПРАВЛЕННОЕ ПЕРЕКЛЮЧЕНИЕ МУЗЫКИ
+function PMusic:SwitchToPhase(newPhase)
+	if self.Fading then return end
+	self.Fading = true
+
+	local trackData = self.Tracks[newPhase]
+	if not trackData then self.Fading = false return end
+
+	local newData = trackData.Data
+	local newSound = trackData.Sound
+
+	-- Стопим базовые Music1/Music2 только один раз
+	if Sounds["Music1"] and Sounds["Music1"].Playing then
+		self:FadeOutSound(Sounds["Music1"], 2)
+	end
+	if Sounds["Music2"] and Sounds["Music2"].Playing then
+		self:FadeOutSound(Sounds["Music2"], 2)
+	end
+
+	-- Фейд-аут ВСЕХ других фазовых треков (не только текущего)
+	for ph, td in pairs(self.Tracks) do
+		if ph ~= newPhase and td.Sound and td.Sound.Parent then
+			if td.Sound.Playing and td.Sound.Volume > 0 then
+				self:FadeOutSound(td.Sound, 2)
+			end
+		end
+	end
+
+	-- Фейд-ин нового трека с задержкой
+	spawn(function()
+		wait(1.5) -- ждём пока старые треки начнут затихать
+		if newSound and newSound.Parent then
+			self:FadeInSound(newSound, newData.Vol, 2.5)
+		end
+	end)
+
+	-- Обновляем амбиент слои
+	spawn(function()
+		local dl = PhaseInfo[newPhase].DarkLevel
+		local targetAmbVol = dl * 2.5
+		local targetAmbPitch = math.max(0.08, 0.2 - dl * 0.12)
+		local targetHBVol = 0
+		local targetHBPitch = 0.5
+		if newPhase >= 3 then
+			targetHBVol = 0.8 + (newPhase - 3) * 0.4
+			targetHBPitch = 0.5 + (newPhase - 3) * 0.08
+		end
+		for i = 1, 40 do
+			AmbientLayer.Volume = AmbientLayer.Volume + (targetAmbVol - AmbientLayer.Volume) * 0.05
+			AmbientLayer.PlaybackSpeed = AmbientLayer.PlaybackSpeed + (targetAmbPitch - AmbientLayer.PlaybackSpeed) * 0.05
+			HeartbeatLayer.Volume = HeartbeatLayer.Volume + (targetHBVol - HeartbeatLayer.Volume) * 0.05
+			HeartbeatLayer.PlaybackSpeed = HeartbeatLayer.PlaybackSpeed + (targetHBPitch - HeartbeatLayer.PlaybackSpeed) * 0.05
+			wait(0.05)
+		end
+	end)
+
+	self.Current = newSound
+	self.CurrentName = newData.Name
+
+	-- Уведомление
+	spawn(function()
+		wait(2.5)
+		local info = PhaseInfo[newPhase]
+		local mg = Instance.new("ScreenGui",player.PlayerGui) mg.Name="MusicNotif" mg.ResetOnSpawn=false
+		local nf = Instance.new("Frame",mg) nf.Size=UDim2.new(0,280,0,55) nf.Position=UDim2.new(1,0,0.82,0)
+		nf.BackgroundColor3=Color3.new(0.05,0,0) nf.BackgroundTransparency=0.2 nf.BorderSizePixel=0
+		Instance.new("UICorner",nf).CornerRadius=UDim.new(0,8)
+		local sk=Instance.new("UIStroke",nf) sk.Color=Color3.new(1,0,0) sk.Thickness=2
+		local ml=Instance.new("TextLabel",nf) ml.Size=UDim2.new(0,30,0,30) ml.Position=UDim2.new(0,8,0,12) ml.BackgroundTransparency=1 ml.Text="♪" ml.TextColor3=Color3.new(1,0,0) ml.Font=Enum.Font.GothamBold ml.TextSize=22
+		local pl=Instance.new("TextLabel",nf) pl.Size=UDim2.new(1,-50,0,18) pl.Position=UDim2.new(0,42,0,6) pl.BackgroundTransparency=1 pl.Text="Phase "..newPhase.." Music" pl.TextColor3=Color3.new(1,0,0) pl.Font=Enum.Font.GothamBold pl.TextSize=13 pl.TextXAlignment=Enum.TextXAlignment.Left
+		local tl=Instance.new("TextLabel",nf) tl.Size=UDim2.new(1,-50,0,16) tl.Position=UDim2.new(0,42,0,26) tl.BackgroundTransparency=1 tl.Text="\""..newData.Name.."\"" tl.TextColor3=Color3.new(0.8,0.8,0.8) tl.Font=Enum.Font.GothamSemibold tl.TextSize=11 tl.TextXAlignment=Enum.TextXAlignment.Left
+		TweenService:Create(nf,TweenInfo.new(0.8,Enum.EasingStyle.Back,Enum.EasingDirection.Out),{Position=UDim2.new(1,-290,0.82,0)}):Play()
+		wait(5) TweenService:Create(nf,TweenInfo.new(0.6,Enum.EasingStyle.Back,Enum.EasingDirection.In),{Position=UDim2.new(1,50,0.82,0)}):Play()
+		wait(0.7) mg:Destroy()
+	end)
+
+	-- Снимаем блокировку через гарантированное время
+	spawn(function()
+		wait(4)
+		self.Fading = false
+	end)
+end
+
+--===========================================--
+--          ANIMATION SYSTEM
+--===========================================--
+local Anims = {}
+Anims.Idle = Humanoid:LoadAnimation(New("Animation",chara,"IdleAnim",{AnimationId="rbxassetid://180435571"}))
+Anims.Walk = Humanoid:LoadAnimation(New("Animation",chara,"WalkAnim",{AnimationId="rbxassetid://180426354"}))
+Anims.Run = Humanoid:LoadAnimation(New("Animation",chara,"RunAnim",{AnimationId="rbxassetid://180426354"}))
+Anims.Jump = Humanoid:LoadAnimation(New("Animation",chara,"JumpAnim",{AnimationId="rbxassetid://125750702"}))
+Anims.Fall = Humanoid:LoadAnimation(New("Animation",chara,"FallAnim",{AnimationId="rbxassetid://180436148"}))
+Anims.Swing = Humanoid:LoadAnimation(New("Animation",chara,"SwingAnim",{AnimationId="rbxassetid://186934658"}))
+
+local ExtraAnims = {}
+local function LoadExtraAnim(n,id) local a=Instance.new("Animation") a.AnimationId="rbxassetid://"..id a.Name=n a.Parent=chara local t=Humanoid:LoadAnimation(a) t.Priority=Enum.AnimationPriority.Action ExtraAnims[n]=t return t end
+LoadExtraAnim("Punch1",522635514) LoadExtraAnim("Punch2",522638767) LoadExtraAnim("Kick",522636083) LoadExtraAnim("Spin",235542946)
+LoadExtraAnim("Stomp",163412601) LoadExtraAnim("Roar",163412601) LoadExtraAnim("PowerUpAnim",163412601) LoadExtraAnim("Point",128853357) LoadExtraAnim("Taunt",128853357)
+
+local AttackAnimList = {"Punch1","Punch2","Kick","Spin"}
+local CurrentAnimState = "Idle"
+
+function StopMovementAnims() Anims.Idle:Stop() Anims.Walk:Stop() Anims.Run:Stop() end
+function PlayAnimState(state)
+	if state==CurrentAnimState then return end CurrentAnimState=state StopMovementAnims()
+	if state=="Idle" then Anims.Idle:Play()
+	elseif state=="Walk" then Anims.Walk:Play() Anims.Walk:AdjustSpeed(1+CurrentPhase*0.05)
+	elseif state=="Run" then Anims.Run:Play() Anims.Run:AdjustSpeed(1.8+CurrentPhase*0.08) end
+end
+
+UserInputService.InputBegan:Connect(function(input,gpe) if gpe then return end
+	if input.KeyCode==Enum.KeyCode.LeftShift or input.KeyCode==Enum.KeyCode.RightShift then IsSprinting=true Humanoid.WalkSpeed=PhaseInfo[CurrentPhase].RunSpeed end end)
+UserInputService.InputEnded:Connect(function(input)
+	if input.KeyCode==Enum.KeyCode.LeftShift or input.KeyCode==Enum.KeyCode.RightShift then IsSprinting=false Humanoid.WalkSpeed=PhaseInfo[CurrentPhase].WalkSpeed end end)
+Humanoid.Running:Connect(function(speed) if speed>1 then if IsSprinting then PlayAnimState("Run") else PlayAnimState("Walk") end else PlayAnimState("Idle") end end)
+Humanoid.Jumping:Connect(function(a) if a then Anims.Jump:Play() end end)
+Humanoid.FreeFalling:Connect(function(a) if a then Anims.Fall:Play() else Anims.Fall:Stop() end end)
+Humanoid.StateChanged:Connect(function(o,n) if n==Enum.HumanoidStateType.Landed then Anims.Jump:Stop() Anims.Fall:Stop() end end)
+PlayAnimState("Idle")
+
+--===========================================--
+--          CAMERA EFFECTS
+--===========================================--
+function ShakeCamera(intensity,duration,freq) if CameraShakeActive then return end CameraShakeActive=true
+	spawn(function() local st=tick() while tick()-st<duration do if not CameraShakeActive then break end local fo=1-((tick()-st)/duration) local s=intensity*fo
+		Camera.CFrame=Camera.CFrame*CFrame.new(math.random(-100,100)/100*s,math.random(-100,100)/100*s,math.random(-100,100)/100*s)*CFrame.Angles(math.rad(math.random(-100,100)/100*s*2),math.rad(math.random(-100,100)/100*s*2),0)
+		wait(1/(freq or 60)) end CameraShakeActive=false end) end
+function CameraZoomEffect(zo,_,dur) spawn(function() local of=Camera.FieldOfView local tf=of+zo
+	for i=1,20 do Camera.FieldOfView=of+(tf-of)*(i/20) wait(dur/40) end wait(dur/4) for i=1,20 do Camera.FieldOfView=tf+(of-tf)*(i/20) wait(dur/40) end Camera.FieldOfView=of end) end
+function ScreenFlash(color,intensity,duration) spawn(function() local f=Instance.new("ColorCorrectionEffect",Lighting) f.Brightness=intensity or 2 f.Contrast=0.8 f.TintColor=color wait(0.1)
+	for i=1,math.floor((duration or 1)/0.02) do local p=i/math.floor((duration or 1)/0.02) f.Brightness=(intensity or 2)*(1-p) f.Contrast=0.8*(1-p) wait(0.02) end f:Destroy() end) end
+function DarkenScreen(darkness,duration,hold) spawn(function() local d=Instance.new("ColorCorrectionEffect",Lighting)
+	for i=1,20 do d.Brightness=-(darkness or 1)*(i/20) wait((duration or 1)/40) end wait(hold or 0.5) for i=20,0,-1 do d.Brightness=-(darkness or 1)*(i/20) wait((duration or 1)/40) end d:Destroy() end) end
+function SlowMotionEffect(dur) spawn(function() local b=Instance.new("BlurEffect",Lighting) b.Size=0 for i=1,10 do b.Size=i*2 wait(0.03) end wait(dur or 1) for i=10,0,-1 do b.Size=i*2 wait(0.02) end b:Destroy() end) end
+
+--===========================================--
+--     TRANSITION VISUAL EFFECTS (КРАСНЫЕ)
+--===========================================--
+function CreateDarkRing(pos,maxS,col,dur) local r=Instance.new("Part",workspace) r.Shape="Cylinder" r.Size=Vector3.new(0.5,1,1) r.CFrame=CFrame.new(pos)*CFrame.Angles(0,0,math.rad(90))
+	r.Material=Enum.Material.Neon r.Color=col or Color3.new(1,0,0) r.Anchored=true r.CanCollide=false r.Transparency=0.2
+	spawn(function() for i=1,math.floor((dur or 2)/0.02) do local p=i/math.floor((dur or 2)/0.02) r.Size=Vector3.new(0.5,maxS*p,maxS*p) r.CFrame=CFrame.new(pos)*CFrame.Angles(0,0,math.rad(90)) r.Transparency=0.2+0.8*p wait(0.02) end r:Destroy() end) end
+
+function CreateDarkPillar(pos,h,col,dur) local p=Instance.new("Part",workspace) p.Size=Vector3.new(4,0,4) p.CFrame=CFrame.new(pos) p.Material=Enum.Material.Neon p.Color=col or Color3.new(1,0,0) p.Anchored=true p.CanCollide=false p.Transparency=0.3
+	local pe=Instance.new("ParticleEmitter",p) pe.Size=NumberSequence.new(0.5) pe.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,0.2),NumberSequenceKeypoint.new(1,1)})
+	pe.LightEmission=1 pe.Lifetime=NumberRange.new(0.5,1) pe.Speed=NumberRange.new(5,15) pe.Rate=500 pe.VelocitySpread=10 pe.Texture="rbxassetid://347504241" pe.Color=ColorSequence.new(Color3.new(1,0,0)) pe.EmissionDirection="Top"
+	local l=Instance.new("PointLight",p) l.Color=Color3.new(1,0,0) l.Brightness=10 l.Range=40
+	spawn(function() for i=1,20 do p.Size=Vector3.new(4,h*(i/20),4) p.CFrame=CFrame.new(pos+Vector3.new(0,h*(i/20)/2,0)) wait(0.02) end wait(dur or 1)
+		for i=1,20 do p.Transparency=p.Transparency+0.035 l.Brightness=l.Brightness-0.5 wait(0.02) end p:Destroy() end) end
+
+function CreateDarkShards(pos,count,col) for i=1,count do spawn(function()
+	local s=Instance.new("Part",workspace) s.Size=Vector3.new(math.random(3,8)/10,math.random(5,15)/10,math.random(3,8)/10)
+	s.CFrame=CFrame.new(pos+Vector3.new(math.random(-8,8),math.random(-2,2),math.random(-8,8)))*CFrame.Angles(math.random()*math.pi,math.random()*math.pi,math.random()*math.pi)
+	s.Material=Enum.Material.Neon s.Color=col or Color3.new(0.5,0,0) s.Anchored=true s.CanCollide=false ScatterEff(s)
+	local sp=s.Position local ey=sp.Y+math.random(20,50)
+	for j=1,40 do local p=j/40 s.Position=sp+Vector3.new(0,(ey-sp.Y)*p,0) s.CFrame=s.CFrame*CFrame.Angles(0.1,0.1,0.05) s.Transparency=p*0.8 wait(0.03) end s:Destroy()
+end) wait(0.05) end end
+
+function CreateDarkPulse(pos,maxR,col,pc) for p=1,(pc or 3) do spawn(function()
+	local pu=Instance.new("Part",workspace) pu.Shape="Ball" pu.Size=Vector3.new(1,1,1) pu.Position=pos pu.Material=Enum.Material.Neon pu.Color=col or Color3.new(1,0,0) pu.Anchored=true pu.CanCollide=false pu.Transparency=0.3
+	for i=1,25 do local pr=i/25 local sz=maxR*pr pu.Size=Vector3.new(sz,sz,sz) pu.Transparency=0.3+0.7*pr wait(0.02) end pu:Destroy() end) wait(0.3) end end
+
+function CreateBodyLightning(bp,count,col) for i=1,count do spawn(function()
+	local b=Instance.new("Part",workspace) b.Size=Vector3.new(0.15,math.random(3,8),0.15) b.Material=Enum.Material.Neon b.Color=col or Color3.new(1,0,0) b.Anchored=true b.CanCollide=false
+	b.CFrame=CFrame.new(bp.Position+Vector3.new(math.random(-20,20)/10,math.random(-10,10)/10,math.random(-20,20)/10))*CFrame.Angles(math.random()*math.pi*2,math.random()*math.pi*2,math.random()*math.pi*2)
+	local bl=Instance.new("PointLight",b) bl.Brightness=8 bl.Range=15 bl.Color=Color3.new(1,0,0)
+	wait(math.random(1,3)/20) for j=1,5 do b.Transparency=b.Transparency+0.2 bl.Brightness=bl.Brightness-1.6 wait(0.02) end b:Destroy() end) wait(math.random(1,5)/30) end end
+
+function CreateDarkRune(pos,sz,col,dur) local r=Instance.new("Part",workspace) r.Size=Vector3.new(sz,0.1,sz) r.CFrame=CFrame.new(pos-Vector3.new(0,3,0))
+	r.Material=Enum.Material.Neon r.Color=col or Color3.new(1,0,0) r.Anchored=true r.CanCollide=false r.Transparency=0.3
+	local rl=Instance.new("PointLight",r) rl.Color=Color3.new(1,0,0) rl.Brightness=5 rl.Range=sz*2
+	local ep=Instance.new("ParticleEmitter",r) ep.Size=NumberSequence.new(0.3) ep.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,0),NumberSequenceKeypoint.new(1,1)}) ep.LightEmission=1 ep.Lifetime=NumberRange.new(1,2) ep.Speed=NumberRange.new(2,5)
+	ep.Rate=150 ep.VelocitySpread=360 ep.Texture="rbxassetid://347504259" ep.Color=ColorSequence.new(Color3.new(1,0,0)) ep.EmissionDirection="Top"
+	spawn(function() local st=tick() while r and r.Parent and tick()-st<(dur or 5) do r.CFrame=r.CFrame*CFrame.Angles(0,math.rad(2),0) wait(0.02) end
+		if r and r.Parent then for i=1,20 do r.Transparency=r.Transparency+0.035 rl.Brightness=rl.Brightness-0.25 wait(0.02) end r:Destroy() end end) end
+
+function CreateGroundSpikes(pos,count,maxH,col) for i=1,count do spawn(function() wait(math.random(0,30)/30)
+	local s=Instance.new("WedgePart",workspace) s.Size=Vector3.new(0.5,0,0.5) s.Material=Enum.Material.Neon s.Color=col or Color3.new(0.3,0,0) s.Anchored=true s.CanCollide=false
+	local ang=(i/count)*math.pi*2+math.random()*0.5 local dist=math.random(5,15) local sp=pos+Vector3.new(math.cos(ang)*dist,-3,math.sin(ang)*dist)
+	local h=maxH*(0.5+math.random()*0.5) local w=0.3+math.random()*0.5 s.CFrame=CFrame.new(sp)*CFrame.Angles(0,ang,0)
+	for j=1,15 do local p=j/15 s.Size=Vector3.new(w,h*p,w) s.CFrame=CFrame.new(sp+Vector3.new(0,h*p/2,0))*CFrame.Angles(0,ang,0) wait(0.02) end wait(2)
+	for j=1,15 do s.Transparency=s.Transparency+0.067 wait(0.03) end s:Destroy() end) end end
+
+function CreateDarkVortex(pos,dur,col,maxS) spawn(function() local vp={} for i=1,20 do local o=Instance.new("Part",workspace) o.Shape="Ball" o.Size=Vector3.new(0.3,0.3,0.3)
+	o.Material=Enum.Material.Neon o.Color=col or Color3.new(0.5,0,0) o.Anchored=true o.CanCollide=false o.Transparency=0.3 table.insert(vp,o) end
+	local st=tick() while tick()-st<(dur or 3) do local el=tick()-st local pr=el/(dur or 3)
+		for i,o in ipairs(vp) do if o and o.Parent then local a=(i/#vp)*math.pi*2+el*3 local r=(maxS or 10)*(1-pr*0.5)*math.sin(pr*math.pi)
+			o.Position=pos+Vector3.new(math.cos(a)*r,math.sin(el*2+i)*5+pr*10,math.sin(a)*r) o.Transparency=0.3+pr*0.5 end end wait(0.02) end
+	for _,o in pairs(vp) do if o and o.Parent then o:Destroy() end end end) end
+
+function LevitatePlayer(h,dur) local bp=Instance.new("BodyPosition",chara.Torso) bp.Name="PhaseFloat" bp.MaxForce=Vector3.new(0,100000,0) bp.D=500 bp.P=5000
+	bp.Position=chara.Torso.Position+Vector3.new(0,h,0)
+	spawn(function() wait(dur or 3) bp.Position=chara.Torso.Position-Vector3.new(0,h,0) wait(0.5) if bp and bp.Parent then bp:Destroy() end end) end
+
+function FreezePlayer(dur) Humanoid.WalkSpeed=0 Humanoid.JumpPower=0
+	spawn(function() wait(dur or 2) local info=PhaseInfo[CurrentPhase] if IsSprinting then Humanoid.WalkSpeed=info.RunSpeed else Humanoid.WalkSpeed=info.WalkSpeed end Humanoid.JumpPower=50 end) end
+
+--===========================================--
+--     MEGA SPIKE SYSTEM (ЧЁРНО-КРАСНЫЕ)
+--===========================================--
+function ClearMegaSpikes() for _,sd in pairs(MegaSpikes) do if sd.Connection then sd.Connection:Disconnect() end
+	if sd.Part and sd.Part.Parent then spawn(function() local sp=sd.Part for i=1,10 do if not sp or not sp.Parent then break end sp.Transparency=i/10 sp.Size=sp.Size*0.9 wait(0.02) end if sp and sp.Parent then sp:Destroy() end end) end
+end MegaSpikes={} LastDamageTick={} end
+
+function CreateMegaSpike(parentPart,spikeSize,offsetCF,sData,index)
+	local spike=Instance.new("WedgePart") spike.Name="MegaSpike_"..index spike.Size=Vector3.new(0.01,0.01,0.01)
+	spike.Material=sData.Material spike.Color=sData.Color spike.CanCollide=false spike.Anchored=false spike.Parent=chara
+	local weld=Instance.new("Weld",spike) weld.Part0=parentPart weld.Part1=spike weld.C0=offsetCF
+	local targetSize=spikeSize
+
+	if sData.GlowEnabled then
+		local l=Instance.new("PointLight",spike) l.Name="SpikeGlow" l.Color=Color3.new(1,0,0) l.Brightness=0.5+CurrentPhase*0.15 l.Range=2+CurrentPhase*0.5
+	end
+
+	-- КРАСНЫЕ частицы на шипах
+	if sData.ParticlesEnabled then
+		local tp=Instance.new("ParticleEmitter",spike) tp.Size=NumberSequence.new({NumberSequenceKeypoint.new(0,0.03+CurrentPhase*0.01),NumberSequenceKeypoint.new(1,0)})
+		tp.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,0.2),NumberSequenceKeypoint.new(1,1)}) tp.LightEmission=1 tp.Lifetime=NumberRange.new(0.2+CurrentPhase*0.05,0.5+CurrentPhase*0.08)
+		tp.Speed=NumberRange.new(0.5,2+CurrentPhase*0.3) tp.Rate=10+CurrentPhase*5 tp.VelocitySpread=60 tp.Texture="rbxassetid://347504241"
+		tp.Color=ColorSequence.new(Color3.new(1,0,0),Color3.new(0.3,0,0)) tp.EmissionDirection="Top"
+		local sm=Instance.new("ParticleEmitter",spike) sm.Size=NumberSequence.new({NumberSequenceKeypoint.new(0,0.05),NumberSequenceKeypoint.new(0.5,0.15),NumberSequenceKeypoint.new(1,0.05)})
+		sm.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,0.5),NumberSequenceKeypoint.new(1,1)}) sm.LightEmission=0.2 sm.Lifetime=NumberRange.new(0.5,1)
+		sm.Speed=NumberRange.new(0.3,1) sm.Rate=5+CurrentPhase*2 sm.VelocitySpread=180 sm.Texture="rbxasset://textures/particles/smoke_main.dds"
+		sm.Color=ColorSequence.new(Color3.new(0.15,0,0)) sm.Acceleration=Vector3.new(0,1,0)
+	end
+
+	-- УРОН ПРИ КАСАНИИ
+	local dmgConn=spike.Touched:Connect(function(hit)
+		if not hit or not hit.Parent or hit.Parent==chara or hit:IsDescendantOf(chara) then return end
+		local hum=hit.Parent:FindFirstChild("Humanoid") if not hum or hum.Health<=0 or hit.Parent:FindFirstChild("HasBeenHit") then return end
+		local key=hit.Parent:GetFullName() if LastDamageTick[key] and tick()-LastDamageTick[key]<DamageTickRate then return end LastDamageTick[key]=tick()
+		local dmg=sData.Damage*DamageMultiplier hum.Health=hum.Health-dmg PlaySound("SpikeDamage")
+		spawn(function() local dg=Instance.new("BillboardGui",hit) dg.Size=UDim2.new(0,80,0,30) dg.StudsOffset=Vector3.new(math.random(-2,2),math.random(1,3),0) dg.Adornee=hit
+			local dl=Instance.new("TextLabel",dg) dl.Size=UDim2.new(1,0,1,0) dl.BackgroundTransparency=1 dl.Text="-"..math.floor(dmg) dl.TextColor3=Color3.new(1,0,0) dl.TextStrokeTransparency=0 dl.TextStrokeColor3=Color3.new(0,0,0) dl.Font=Enum.Font.GothamBold dl.TextScaled=true
+			for i=1,30 do dg.StudsOffset=dg.StudsOffset+Vector3.new(0,0.08,0) dl.TextTransparency=i/30 dl.TextStrokeTransparency=i/30 wait(0.03) end dg:Destroy() end)
+		if hum.Health<=0 then KillMortal(hit.Parent) end
+		local torso=hit.Parent:FindFirstChild("Torso") or hit.Parent:FindFirstChild("UpperTorso")
+		if torso then local pf=Instance.new("BodyVelocity",torso) pf.Velocity=(torso.Position-chara.Torso.Position).Unit*(20+CurrentPhase*5)+Vector3.new(0,15,0) pf.MaxForce=Vector3.new(50000,50000,50000) Debris:AddItem(pf,0.3) end
+	end)
+
+	spawn(function() for i=1,20 do if not spike or not spike.Parent then break end local p=i/20 local bn=1+math.sin(p*math.pi*2)*(1-p)*0.3
+		spike.Size=Vector3.new(targetSize.X*p*bn,targetSize.Y*p*bn,targetSize.Z*p*bn) wait(0.02) end if spike and spike.Parent then spike.Size=targetSize end end)
+
+	if sData.PulseEnabled then spawn(function() local ps=sData.AnimationSpeed
+		while spike and spike.Parent do local pu=math.sin(tick()*ps+index)*0.1 spike.Size=Vector3.new(targetSize.X*(1+pu),targetSize.Y*(1+pu*0.5),targetSize.Z*(1+pu))
+			local t=(math.sin(tick()*ps*0.5+index)+1)/2 spike.Color=lerpColor(sData.Color,Color3.new(1,0,0),t)
+			local gl=spike:FindFirstChild("SpikeGlow") if gl then gl.Brightness=(0.5+CurrentPhase*0.15)*(1+pu*3) end wait(0.03) end end) end
+
+	table.insert(MegaSpikes,{Part=spike,Weld=weld,TargetSize=targetSize,Connection=dmgConn}) return spike
+end
+
+function GenerateMegaSpikesForPhase(phase) ClearMegaSpikes() local data=MegaSpikeData[phase] if not data or data.Count<=0 then return end
+	local bodyParts={{Part=chara.Torso,Weight=3,MaxOffset=Vector3.new(1.2,1.2,0.6)},{Part=chara["Left Arm"],Weight=2,MaxOffset=Vector3.new(0.6,1.2,0.6)},
+		{Part=chara["Right Arm"],Weight=2,MaxOffset=Vector3.new(0.6,1.2,0.6)},{Part=chara["Left Leg"],Weight=2,MaxOffset=Vector3.new(0.6,1.2,0.6)},
+		{Part=chara["Right Leg"],Weight=2,MaxOffset=Vector3.new(0.6,1.2,0.6)},{Part=chara.Head,Weight=1,MaxOffset=Vector3.new(0.6,0.6,0.6)}}
+	local wp={} for _,b in pairs(bodyParts) do for w=1,b.Weight do table.insert(wp,b) end end math.randomseed(phase*54321+12345)
+	spawn(function() for i=1,data.Count do local bp=wp[((i-1)%#wp)+1] local mo=bp.MaxOffset local st=math.random()*0.7+0.3
+		local ss=Vector3.new(data.MinSize.X+(data.MaxSize.X-data.MinSize.X)*st,data.MinSize.Y+(data.MaxSize.Y-data.MinSize.Y)*st,data.MinSize.Z+(data.MaxSize.Z-data.MinSize.Z)*st)
+		local ox,oy,oz=(math.random()-0.5)*2*mo.X,(math.random()-0.5)*2*mo.Y,(math.random()-0.5)*2*mo.Z
+		local od=Vector3.new(ox,oy,oz).Unit local rx=math.atan2(od.Z,od.Y)+(math.random()-0.5)*0.8 local ry=math.random()*math.pi*2 local rz=math.atan2(od.X,od.Y)+(math.random()-0.5)*0.8
+		CreateMegaSpike(bp.Part,ss,CFrame.new(ox,oy,oz)*CFrame.Angles(rx,ry,rz),data,i) if i%5==0 then wait(0.05) end end end)
+end
+
+--===========================================--
+--     TENDRILS, ORBS, WINGS, TRAILS, AURA
+--===========================================--
+function ClearTendrils() for _,t in pairs(DarkTendrils) do if t.Folder and t.Folder.Parent then t.Folder:Destroy() end t.Active=false end DarkTendrils={} end
+function ClearOrbs() for _,o in pairs(FloatingOrbs) do if o.Part and o.Part.Parent then o.Part:Destroy() end if o.Connection then o.Connection:Disconnect() end end FloatingOrbs={} end
+function ClearWings() for _,w in pairs(PhaseWings) do if w and w.Parent then w:Destroy() end end PhaseWings={} end
+function ClearBodyTrails() for _,t in pairs(BodyTrails) do if t and t.Parent then t:Destroy() end end BodyTrails={} end
+function ClearAuras() for _,a in pairs(AuraObjects) do if a and a.Parent then a:Destroy() end end AuraObjects={} end
+function ClearEyeEffects() for _,e in pairs(EyeEffects) do if e and e.Parent then e:Destroy() end end EyeEffects={} end
+
+function GenerateTendrilsForPhase(phase) ClearTendrils() if phase<3 then return end
+	local tc=math.floor((phase-2)*1.5) local tl=2+phase*0.5 local segs=4+math.floor(phase/2) local dmg=10+phase*5
+	local bps={chara.Torso,chara["Left Arm"],chara["Right Arm"]} if phase>=6 then table.insert(bps,chara["Left Leg"]) table.insert(bps,chara["Right Leg"]) end
+	for i=1,tc do local bp=bps[((i-1)%#bps)+1] local folder=Instance.new("Folder",chara) folder.Name="Tendril"
+		local parts={} local prev=bp local ba=math.random()*math.pi*2
+		for s=1,segs do local sz=Vector3.new(0.15+(1-s/segs)*0.2,tl/segs,0.15+(1-s/segs)*0.2)
+			local seg=Instance.new("Part",folder) seg.Size=sz seg.Material=Enum.Material.Neon seg.Color=Color3.new(0.2,0,0) seg.CanCollide=false seg.Anchored=false seg.Transparency=0.2+(s/segs)*0.3
+			local w=Instance.new("Weld",seg) w.Part0=prev w.Part1=seg
+			if s==1 then w.C0=CFrame.new(math.cos(ba)*0.5,0,math.sin(ba)*0.5)*CFrame.Angles(math.random()*0.5,ba,0)
+			else w.C0=CFrame.new(0,-sz.Y,0)*CFrame.Angles(math.sin(tick()+s)*0.2,0,math.cos(tick()+s)*0.2) end
+			seg.Touched:Connect(function(hit) if not hit or not hit.Parent or hit.Parent==chara or hit:IsDescendantOf(chara) then return end
+				local hum=hit.Parent:FindFirstChild("Humanoid") if not hum or hum.Health<=0 or hit.Parent:FindFirstChild("HasBeenHit") then return end
+				local key=hit.Parent:GetFullName().."_t" if LastDamageTick[key] and tick()-LastDamageTick[key]<0.8 then return end LastDamageTick[key]=tick()
+				hum.Health=hum.Health-dmg PlaySound("TendrilWhip") if hum.Health<=0 then KillMortal(hit.Parent) end end)
+			table.insert(parts,seg) prev=seg end
+		local td={Parts=parts,Folder=folder,Active=true}
+		spawn(function() while td.Active and folder and folder.Parent do for si,seg in ipairs(parts) do if seg and seg.Parent then local w=seg:FindFirstChildOfClass("Weld")
+			if w and si>1 then local t=tick()*(1.5+CurrentPhase*0.1)+si*0.5 w.C0=CFrame.new(0,-seg.Size.Y,0)*CFrame.Angles(math.sin(t)*(0.15+CurrentPhase*0.02),math.cos(t*0.7)*0.1,math.sin(t*1.3)*(0.15+CurrentPhase*0.02)) end end end wait(0.03) end end)
+		table.insert(DarkTendrils,td) wait(0.1) end end
+
+function GenerateOrbsForPhase(phase) ClearOrbs() if phase<2 then return end local dmg=10+phase*8
+	for i=1,phase do local orb=Instance.new("Part",chara) orb.Shape="Ball" orb.Size=Vector3.new(0.01,0.01,0.01) orb.Material=Enum.Material.Neon orb.Color=Color3.new(1,0,0) orb.CanCollide=false orb.Anchored=true orb.Transparency=0.2
+		Instance.new("PointLight",orb).Color=Color3.new(1,0,0)
+		local op=Instance.new("ParticleEmitter",orb) op.Size=NumberSequence.new({NumberSequenceKeypoint.new(0,0.15),NumberSequenceKeypoint.new(1,0)})
+		op.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,0),NumberSequenceKeypoint.new(1,1)}) op.LightEmission=1 op.Lifetime=NumberRange.new(0.5,1) op.Speed=NumberRange.new(0.5,2)
+		op.Rate=40 op.VelocitySpread=360 op.Texture="rbxassetid://347504259" op.Color=ColorSequence.new(Color3.new(1,0,0))
+		spawn(function() local ts=0.6+CurrentPhase*0.1 for j=1,15 do if not orb or not orb.Parent then break end local s=ts*(j/15) orb.Size=Vector3.new(s,s,s) wait(0.03) end end)
+		local dc=orb.Touched:Connect(function(hit) if not hit or not hit.Parent or hit.Parent==chara or hit:IsDescendantOf(chara) then return end
+			local hum=hit.Parent:FindFirstChild("Humanoid") if not hum or hum.Health<=0 or hit.Parent:FindFirstChild("HasBeenHit") then return end
+			local key=hit.Parent:GetFullName().."_o" if LastDamageTick[key] and tick()-LastDamageTick[key]<1 then return end LastDamageTick[key]=tick()
+			hum.Health=hum.Health-dmg if hum.Health<=0 then KillMortal(hit.Parent) end end)
+		table.insert(FloatingOrbs,{Part=orb,Index=i,Total=phase,Connection=dc})
+		spawn(function() while orb and orb.Parent do if chara:FindFirstChild("Torso") then local t=tick()*(0.8+CurrentPhase*0.05) local a=(i/phase)*math.pi*2+t local r=3+CurrentPhase*0.3+math.sin(t*0.5)*0.5
+			orb.Position=chara.Torso.Position+Vector3.new(math.cos(a)*r,math.sin(t*1.5+i)*1.5+1,math.sin(a)*r) end wait(0.02) end end) wait(0.15) end end
+
+function CreateDarkWings(phase) ClearWings() if phase<5 then return end
+	local wf=Instance.new("Folder",chara) wf.Name="DarkWings" table.insert(PhaseWings,wf) local ws=1+(phase-5)*0.8 local fc=3+(phase-5)*2
+	for side=-1,1,2 do local wb=Instance.new("Part",wf) wb.Size=Vector3.new(0.3,0.5,0.3) wb.Material=Enum.Material.Neon wb.Color=Color3.new(0.3,0,0) wb.CanCollide=false wb.Anchored=false wb.Transparency=0.3
+		local ww=Instance.new("Weld",wb) ww.Part0=chara.Torso ww.Part1=wb ww.C0=CFrame.new(side*0.8,0.5,0.5)
+		for f=1,fc do local fl=ws*(1-(f/fc)*0.3) local ft=Instance.new("WedgePart",wf) ft.Size=Vector3.new(0.1,fl,0.4+(1-f/fc)*0.6) ft.Material=Enum.Material.Neon ft.Color=Color3.new(0.15,0,0) ft.CanCollide=false ft.Anchored=false ft.Transparency=0.1+(f/fc)*0.4
+			local fw=Instance.new("Weld",ft) fw.Part0=wb fw.Part1=ft fw.C0=CFrame.new(side*fl*0.5,(f/fc)*0.3,0)*CFrame.Angles(0,0,side*(f/fc)*math.rad(60))
+			ft.Touched:Connect(function(hit) if not hit or not hit.Parent or hit.Parent==chara or hit:IsDescendantOf(chara) then return end
+				local hum=hit.Parent:FindFirstChild("Humanoid") if not hum or hum.Health<=0 or hit.Parent:FindFirstChild("HasBeenHit") then return end
+				local key=hit.Parent:GetFullName().."_w" if LastDamageTick[key] and tick()-LastDamageTick[key]<0.6 then return end LastDamageTick[key]=tick()
+				hum.Health=hum.Health-(20+phase*5) if hum.Health<=0 then KillMortal(hit.Parent) end end) end
+		spawn(function() while wf and wf.Parent do local t=tick() ww.C0=CFrame.new(side*0.8,0.5,0.5)*CFrame.Angles(math.sin(t*0.5)*math.rad(5),0,side*(math.rad(30)+math.sin(t*2)*math.rad(15+(phase-5)*3))) wait(0.03) end end) end end
+
+function GenerateTrailsForPhase(phase) ClearBodyTrails() if phase<1 then return end local lt=0.3+phase*0.08 local w=0.5+phase*0.15
+	local parts={chara.Torso} if phase>=2 then table.insert(parts,chara["Left Arm"]) table.insert(parts,chara["Right Arm"]) end
+	if phase>=4 then table.insert(parts,chara["Left Leg"]) table.insert(parts,chara["Right Leg"]) end
+	for _,p in pairs(parts) do local a0=Instance.new("Attachment",p) a0.Position=Vector3.new(0,p.Size.Y/2,0)
+		local a1=Instance.new("Attachment",p) a1.Position=Vector3.new(0,-p.Size.Y/2,0)
+		local tr=Instance.new("Trail",p) tr.Attachment0=a0 tr.Attachment1=a1 tr.Color=ColorSequence.new(Color3.new(1,0,0),Color3.new(0,0,0))
+		tr.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,0.3),NumberSequenceKeypoint.new(0.5,0.5),NumberSequenceKeypoint.new(1,1)}) tr.Lifetime=lt tr.MinLength=0.05 tr.MaxWidth=w tr.LightEmission=0.5 tr.FaceCamera=true
+		table.insert(BodyTrails,a0) table.insert(BodyTrails,a1) table.insert(BodyTrails,tr) end end
+
+function GenerateAuraForPhase(phase) ClearAuras() if phase<1 then return end local dl=PhaseInfo[phase].DarkLevel
+	local ma=Instance.new("ParticleEmitter",chara.Torso) ma.Size=NumberSequence.new({NumberSequenceKeypoint.new(0,0.5+dl*2),NumberSequenceKeypoint.new(0.5,1.5+dl*4),NumberSequenceKeypoint.new(1,0.5+dl*2)})
+	ma.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,0.7-dl*0.3),NumberSequenceKeypoint.new(0.5,0.4-dl*0.2),NumberSequenceKeypoint.new(1,1)})
+	ma.LightEmission=0.2+dl*0.5 ma.Lifetime=NumberRange.new(1+dl*3) ma.Speed=NumberRange.new(1+dl*4) ma.Rate=math.floor(30+dl*150) ma.VelocitySpread=360
+	ma.Texture="rbxasset://textures/particles/smoke_main.dds" ma.Color=ColorSequence.new(Color3.new(0.5,0,0),Color3.new(0,0,0)) ma.Acceleration=Vector3.new(0,2+dl*8,0) table.insert(AuraObjects,ma)
+	if phase>=2 then local sa=Instance.new("ParticleEmitter",chara.Torso) sa.Size=NumberSequence.new({NumberSequenceKeypoint.new(0,0.05+dl*0.1),NumberSequenceKeypoint.new(0.3,0.15+dl*0.2),NumberSequenceKeypoint.new(1,0.02)})
+		sa.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,0),NumberSequenceKeypoint.new(0.5,0.3),NumberSequenceKeypoint.new(1,1)}) sa.LightEmission=1.5 sa.Lifetime=NumberRange.new(0.3,0.8)
+		sa.Speed=NumberRange.new(3+dl*8) sa.Rate=math.floor(20+dl*80) sa.VelocitySpread=360 sa.Texture="rbxassetid://347504241" sa.Color=ColorSequence.new(Color3.new(1,0,0)) table.insert(AuraObjects,sa) end
+	if phase>=3 then for _,p in pairs({chara["Left Arm"],chara["Right Arm"],chara["Left Leg"],chara["Right Leg"]}) do
+		local ls=Instance.new("ParticleEmitter",p) ls.Size=NumberSequence.new({NumberSequenceKeypoint.new(0,0.2+dl*0.3),NumberSequenceKeypoint.new(1,0.5+dl*0.8)})
+		ls.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,0.5),NumberSequenceKeypoint.new(1,1)}) ls.Lifetime=NumberRange.new(0.5,1.5) ls.Speed=NumberRange.new(0.5,2) ls.Rate=math.floor(10+dl*30) ls.VelocitySpread=180
+		ls.Texture="rbxasset://textures/particles/smoke_main.dds" ls.Color=ColorSequence.new(Color3.new(0.15,0,0)) ls.Acceleration=Vector3.new(0,1,0) table.insert(AuraObjects,ls) end end
+	if phase>=5 then local ea=Instance.new("ParticleEmitter",chara.Torso) ea.Size=NumberSequence.new({NumberSequenceKeypoint.new(0,0.05),NumberSequenceKeypoint.new(0.2,0.3+dl*0.3),NumberSequenceKeypoint.new(1,0.05)})
+		ea.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,0),NumberSequenceKeypoint.new(0.3,0.2),NumberSequenceKeypoint.new(1,1)}) ea.LightEmission=2 ea.Lifetime=NumberRange.new(0.1,0.4)
+		ea.Speed=NumberRange.new(5,12) ea.Rate=math.floor(50+dl*150) ea.VelocitySpread=360 ea.Texture="rbxassetid://347504241" ea.Color=ColorSequence.new(Color3.new(1,0,0),Color3.new(0.5,0,0)) table.insert(AuraObjects,ea) end
+	if phase>=7 then local fa=Instance.new("ParticleEmitter",chara.Torso) fa.Size=NumberSequence.new({NumberSequenceKeypoint.new(0,0.5),NumberSequenceKeypoint.new(0.3,1+dl),NumberSequenceKeypoint.new(1,0.3)})
+		fa.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,0.3),NumberSequenceKeypoint.new(0.5,0.5),NumberSequenceKeypoint.new(1,1)}) fa.LightEmission=1 fa.Lifetime=NumberRange.new(0.5,1.5)
+		fa.Speed=NumberRange.new(2,6) fa.Rate=math.floor(60+dl*100) fa.VelocitySpread=30 fa.Texture="rbxasset://textures/particles/fire_main.dds" fa.Color=ColorSequence.new(Color3.new(1,0,0),Color3.new(0.3,0,0))
+		fa.Acceleration=Vector3.new(0,15,0) fa.EmissionDirection="Top" table.insert(AuraObjects,fa) end end
+
+function GenerateEyeEffectsForPhase(phase) ClearEyeEffects() if phase<1 then return end
+	if EyeFire then for _,c in pairs(EyeFire:GetChildren()) do if c:IsA("ParticleEmitter") then c.Rate=100+phase*30 c.Speed=NumberRange.new(1+phase*0.3) c.Color=ColorSequence.new(Color3.new(1,0,0)) end end end
+	if phase>=3 then local e2=Instance.new("Part",chara) e2.Size=Vector3.new(0.4,0.2,0.2) e2.Material=Enum.Material.Neon e2.Color=Color3.new(1,0,0) e2.CanCollide=false e2.Anchored=false
+		local w2=Instance.new("Weld",e2) w2.Part0=FakeHead.MainPart w2.Part1=e2 w2.C0=CFrame.new(-0.3,0.1,-0.6)
+		local ef2=Instance.new("ParticleEmitter",e2) ef2.Size=NumberSequence.new(0.1+phase*0.02) ef2.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,0),NumberSequenceKeypoint.new(0.2,0),NumberSequenceKeypoint.new(1,1)})
+		ef2.LightEmission=1 ef2.Lifetime=NumberRange.new(0.3+phase*0.05) ef2.Speed=NumberRange.new(1+phase*0.3) ef2.EmissionDirection="Front" ef2.Rate=100+phase*30
+		ef2.Texture="rbxassetid://347504241" ef2.Acceleration=Vector3.new(0,10,0) ef2.Color=ColorSequence.new(Color3.new(1,0,0)) table.insert(EyeEffects,e2) end
+	if phase>=6 then local e3=Instance.new("Part",chara) e3.Shape="Ball" e3.Size=Vector3.new(0.3,0.3,0.15) e3.Material=Enum.Material.Neon e3.Color=Color3.new(1,0,0) e3.CanCollide=false e3.Anchored=false
+		local w3=Instance.new("Weld",e3) w3.Part0=FakeHead.MainPart w3.Part1=e3 w3.C0=CFrame.new(0,0.35,-0.5)
+		local el3=Instance.new("PointLight",e3) el3.Color=Color3.new(1,0,0) el3.Brightness=5 el3.Range=10
+		spawn(function() while e3 and e3.Parent do local p=math.sin(tick()*3)*0.1 e3.Size=Vector3.new(0.3+p,0.3+p,0.15) el3.Brightness=5+math.sin(tick()*2)*2 wait(0.03) end end)
+		table.insert(EyeEffects,e3) end end
+
+function UpdateBodyDarkness(phase) local d=PhaseInfo[phase].BodyDarkness local tp=Color3.new(0.1,0,0) -- тёмно-красный вместо фиолетового
+	chara["Left Arm"].Color=lerpColor(Color3.new(0.992,0.918,0.553),tp,d) chara["Right Arm"].Color=lerpColor(Color3.new(0.992,0.918,0.553),tp,d)
+	chara["Left Leg"].Color=lerpColor(Color3.new(0.431,0.6,0.792),tp,d) chara["Right Leg"].Color=lerpColor(Color3.new(0.431,0.6,0.792),tp,d)
+	chara.Torso.Color=lerpColor(Color3.new(0.961,0.804,0.188),tp,d) end
+
+--===========================================--
+--     CHARACTER PARTS
+--===========================================--
+FakeHead=New("Model",chara,"FakeHead",{})
+MainPart=New("Part",FakeHead,"MainPart",{FormFactor=Enum.FormFactor.Symmetric,Size=Vector3.new(2,1,1),CanCollide=false,TopSurface=Enum.SurfaceType.Smooth})
+New("SpecialMesh",MainPart,"Mesh",{Scale=Vector3.new(1.25,1.25,1.25)}) New("Decal",MainPart,"face",{Texture="rbxasset://textures/face.png"})
+New("ManualWeld",MainPart,"Weld",{Part0=MainPart,Part1=chara.Head})
+FakeHead.MainPart.BrickColor=BrickColor.new("Cool yellow")
+EyeFire=New("Part",FakeHead,"EyeFire",{BrickColor=BrickColor.new("Really red"),Material=Enum.Material.Neon,Size=Vector3.new(0.4,0.2,0.2),CanCollide=false,Color=Color3.new(1,0,0)})
+New("CylinderMesh",EyeFire,"Mesh",{Offset=Vector3.new(0.05,0,-0.04),Scale=Vector3.new(1,0.15,1)})
+New("ManualWeld",EyeFire,"Weld",{Part0=EyeFire,Part1=MainPart,C1=CFrame.new(0.1,0.3,-0.6)})
+
+Chest=New("Model",chara,"Chest",{}) local ChestMain=New("Part",Chest,"MainPart",{Transparency=1,FormFactor=Enum.FormFactor.Symmetric,Size=Vector3.new(2,2,1),CanCollide=false})
+New("ManualWeld",ChestMain,"Weld",{Part0=ChestMain,Part1=chara.Torso})
+local CP1=New("Part",Chest,"CP",{BrickColor=BrickColor.new("Really black"),Material=Enum.Material.Granite,Size=Vector3.new(0.4,0.8,1),CanCollide=false}) New("BlockMesh",CP1,"M",{Scale=Vector3.new(1.1,1.1,1.1)}) New("ManualWeld",CP1,"W",{Part0=CP1,Part1=ChestMain,C1=CFrame.new(-0.6,0.8,0)})
+local CP2=New("Part",Chest,"CP",{BrickColor=BrickColor.new("Really black"),Material=Enum.Material.Granite,Size=Vector3.new(0.4,0.4,1),CanCollide=false}) New("BlockMesh",CP2,"M",{Scale=Vector3.new(1.1,1.1,1.1)}) New("ManualWeld",CP2,"W",{Part0=CP2,Part1=ChestMain,C1=CFrame.new(-0.8,0.4,0)})
+
+RightArm=New("Model",chara,"RightArm",{}) local RAMain=New("Part",RightArm,"MainPart",{Transparency=1,FormFactor=Enum.FormFactor.Symmetric,Size=Vector3.new(1,2,1),CanCollide=false})
+New("ManualWeld",RAMain,"W",{Part0=RAMain,Part1=chara["Right Arm"]})
+Hitbox=New("Part",RightArm,"Hitbox",{Transparency=1,Size=Vector3.new(1,4,1),CanCollide=false}) New("ManualWeld",Hitbox,"W",{Part0=Hitbox,Part1=RAMain,C1=CFrame.new(0,-1,0)})
+local RACP=New("Part",RightArm,"CP",{BrickColor=BrickColor.new("Really black"),Material=Enum.Material.Granite,Size=Vector3.new(1,2,1),CanCollide=false}) New("BlockMesh",RACP,"M",{Scale=Vector3.new(1.1,1.1,1.1)}) New("ManualWeld",RACP,"W",{Part0=RACP,Part1=RAMain})
+
+LeftArm=New("Model",chara,"LeftArm",{}) local LAMain=New("Part",LeftArm,"MainPart",{Transparency=1,FormFactor=Enum.FormFactor.Symmetric,Size=Vector3.new(1,2,1),CanCollide=false})
+New("ManualWeld",LAMain,"W",{Part0=LAMain,Part1=chara["Left Arm"]})
+local LACP=New("Part",LeftArm,"ECP",{BrickColor=BrickColor.new("Really black"),Material=Enum.Material.Granite,Size=Vector3.new(1,1,1),CanCollide=false}) New("BlockMesh",LACP,"M",{Scale=Vector3.new(1.1,1.1,1.1)}) New("ManualWeld",LACP,"W",{Part0=LACP,Part1=LAMain,C1=CFrame.new(0,-0.5,0)}) BurningEff(LACP)
+
+LeftLeg=New("Model",chara,"LeftLeg",{}) local LLMain=New("Part",LeftLeg,"MainPart",{Transparency=1,FormFactor=Enum.FormFactor.Symmetric,Size=Vector3.new(1,2,1),CanCollide=false})
+New("ManualWeld",LLMain,"W",{Part0=LLMain,Part1=chara["Left Leg"]})
+local LLCP=New("Part",LeftLeg,"ECP",{BrickColor=BrickColor.new("Really black"),Material=Enum.Material.Granite,Size=Vector3.new(1,0.2,1),CanCollide=false}) New("BlockMesh",LLCP,"M",{Scale=Vector3.new(1.1,1.1,1.1)}) New("ManualWeld",LLCP,"W",{Part0=LLCP,Part1=LLMain,C1=CFrame.new(0,-0.9,0)}) ScatterEff(LLCP)
+
+RightLeg=New("Model",chara,"RightLeg",{}) local RLMain=New("Part",RightLeg,"MainPart",{Transparency=1,FormFactor=Enum.FormFactor.Symmetric,Size=Vector3.new(1,2,1),CanCollide=false})
+New("ManualWeld",RLMain,"W",{Part0=RLMain,Part1=chara["Right Leg"]})
+local RLCP=New("Part",RightLeg,"ECP",{BrickColor=BrickColor.new("Really black"),Material=Enum.Material.Granite,Size=Vector3.new(1,1.2,1),CanCollide=false}) New("BlockMesh",RLCP,"M",{Scale=Vector3.new(1.1,1.1,1.1)}) New("ManualWeld",RLCP,"W",{Part0=RLCP,Part1=RLMain,C1=CFrame.new(0,-0.4,0)}) ScatterEff(RLCP)
+
+for _,c in pairs(RightArm:GetChildren()) do ScatterEff(c) end
+local ef1=Instance.new("ParticleEmitter",EyeFire) ef1.Size=NumberSequence.new(.1) ef1.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,0),NumberSequenceKeypoint.new(.2,0),NumberSequenceKeypoint.new(1,1)})
+ef1.LightEmission=1 ef1.Lifetime=NumberRange.new(.5) ef1.Speed=NumberRange.new(1) ef1.EmissionDirection="Front" ef1.Rate=100 ef1.Texture="rbxassetid://347504241" ef1.Acceleration=Vector3.new(0,10,0) ef1.Color=ColorSequence.new(Color3.new(1,0,0))
+
+--===========================================--
+--     NAME TAG & SKYBOX
+--===========================================--
+local naeeym=Instance.new("BillboardGui",chara) naeeym.Size=UDim2.new(0,100,0,40) naeeym.StudsOffset=Vector3.new(0,2,0) naeeym.Adornee=chara.Head
+tecks=Instance.new("TextLabel",naeeym) tecks.BackgroundTransparency=1 tecks.BorderSizePixel=0 tecks.Text="John Doe" tecks.Font="Fantasy" tecks.FontSize="Size24"
+tecks.TextStrokeTransparency=0 tecks.TextStrokeColor3=Color3.new(0,0,0) tecks.TextColor3=Color3.new(0,0,0) tecks.Size=UDim2.new(1,0,0.5,0)
+
+skybox=Instance.new("Part",chara) skybox.Size=Vector3.new(0,0,0) skybox.Anchored=true skybox.CanCollide=true
+skyboxmesh=Instance.new("SpecialMesh",skybox) skyboxmesh.MeshId="http://www.roblox.com/asset/?id=1527559" skyboxmesh.TextureId="http://www.roblox.com/asset/?id=1529455"
+skyboxmesh.VertexColor=Vector3.new(1,0,0) skyboxmesh.Scale=Vector3.new(-3000,-1000,-3000)
+
+--===========================================--
+--     SOUL STEAL & KILL MORTAL
+--===========================================--
+function SoulSteal(pos) coroutine.wrap(function() local soul=Instance.new("Part",chara) soul.Size=Vector3.new(0,0,0) soul.CanCollide=false soul.Anchored=false soul.Position=pos soul.Transparency=1
+	local ptc=Instance.new("ParticleEmitter",soul) ptc.Texture="http://www.roblox.com/asset/?id=413366101" ptc.Size=NumberSequence.new(.5) ptc.LockedToPart=true ptc.Speed=NumberRange.new(0) ptc.Lifetime=NumberRange.new(9999)
+	local bp=Instance.new("BodyPosition",soul) bp.Position=pos wait(2) soul.Touched:connect(function(hit) if hit.Parent==chara then PlayerStats.SoulsCollected=PlayerStats.SoulsCollected+1 soul:Destroy() end end)
+	while soul and soul.Parent do wait(.1) bp.Position=chara.Torso.Position end end)() end
+
+function KillMortal(hitdude) if not hitdude or hitdude:FindFirstChild("HasBeenHit") then return end
+	local torsy=hitdude:FindFirstChild("Torso") or hitdude:FindFirstChild("UpperTorso") if not torsy then return end
+	Instance.new("ObjectValue",hitdude).Name="HasBeenHit" hitdude:BreakJoints()
+	local hum=hitdude:FindFirstChild("Humanoid") if hum then hum:Destroy() end
+	SoulSteal(torsy.Position) KillCount=KillCount+1 PlayerStats.Kills=PlayerStats.Kills+1 CheckPhaseUp()
+	local chi=hitdude:GetChildren() for i=1,#chi do if chi[i].ClassName=="Part" or chi[i].ClassName=="MeshPart" then
+		Instance.new("BodyPosition",chi[i]).Position=chi[i].Position+Vector3.new(math.random(-5,5),math.random(-5,5),math.random(-5,5))
+		ScatterEff(chi[i]) chi[i].BrickColor=BrickColor.new("Really black") end end
+	for i=1,4 do for j=1,#chi do if chi[j].ClassName=="Part" or chi[j].ClassName=="MeshPart" then chi[j].Transparency=chi[j].Transparency+.25 wait(.01) end end end
+	for i=1,#chi do if chi[i].ClassName=="Part" or chi[i].ClassName=="MeshPart" then chi[i]:Destroy() end end end
+
+Hitbox.Touched:connect(function(hit) if bladeactive and hit.Parent:FindFirstChild("Humanoid") and not hit.Parent:FindFirstChild("HasBeenHit") and hit.Parent~=chara then PlaySound("Hit") KillMortal(hit.Parent) end end)
+
+--===========================================--
+--     TELEPORT & GRAB
+--===========================================--
+function Teleport(pos) PlaySound("Tele") for _,c in pairs(chara:GetChildren()) do if c.ClassName=="Part" and c.Name~="HumanoidRootPart" then
+	local tr=Instance.new("Part",workspace) tr.Size=c.Size tr.Material="Neon" tr.BrickColor=BrickColor.new("Really black") tr.Transparency=.3 tr.CanCollide=false tr.Anchored=true tr.CFrame=c.CFrame
+	coroutine.wrap(function() wait(1) for j=1,7 do wait(.1) tr.Transparency=tr.Transparency+.1 end tr:Destroy() end)() end end
+	chara.Torso.CFrame=CFrame.new(pos.X,pos.Y,pos.Z) end
+
+function Grab(mouse) local hit=mouse.Target if not hit then return end if hit.Parent:FindFirstChild("Humanoid") then
+	local torsy=hit.Parent:FindFirstChild("Torso") or hit.Parent:FindFirstChild("UpperTorso")
+	local bp=Instance.new("BodyPosition",torsy) bp.Position=torsy.Position wait(1) PlaySound("Burn") hit.Parent.Humanoid.MaxHealth=100 bp.Position=bp.Position+Vector3.new(0,4,0)
+	for i=1,10 do wait(.1) BurningEff(torsy) hit.Parent.Humanoid.Health=hit.Parent.Humanoid.Health-10 end KillMortal(hit.Parent) end end
+
+--===========================================--
+--     ABILITIES
+--===========================================--
+function AbilityDash() if not CanUseAbility("Dash") or not CanUseCooldown("Dash",3) then return end PlaySound("Slash",1.2)
+	local bv=Instance.new("BodyVelocity",chara.Torso) bv.Velocity=chara.Torso.CFrame.lookVector*(100+CurrentPhase*10) bv.MaxForce=Vector3.new(100000,0,100000)
+	for i=1,15 do local dt=Instance.new("Part",workspace) dt.Size=Vector3.new(3,3,3) dt.CFrame=chara.Torso.CFrame dt.Material="Neon" dt.BrickColor=BrickColor.new("Really red") dt.Anchored=true dt.CanCollide=false dt.Transparency=0.5
+		ScatterEff(dt) Debris:AddItem(dt,0.5) for _,t in pairs(GetAllTargetsInRange(chara.Torso.Position,5)) do KillMortal(t) end wait(0.03) end bv:Destroy() end
+
+function AbilityAreaAttack() if not CanUseAbility("AreaAttack") or not CanUseCooldown("AreaAttack",5) then return end PlaySound("Explosion")
+	local ex=Instance.new("Part",workspace) ex.Shape="Ball" ex.Size=Vector3.new(1,1,1) ex.Position=chara.Torso.Position ex.BrickColor=BrickColor.new("Really red") ex.Material="Neon" ex.Anchored=true ex.CanCollide=false ex.Transparency=0.3
+	BurningEff(ex) local ms=40+CurrentPhase*5 for i=1,30 do ex.Size=ex.Size+Vector3.new(ms/30,ms/30,ms/30) ex.Transparency=ex.Transparency+0.023 wait(0.02) end
+	for _,t in pairs(GetAllTargetsInRange(chara.Torso.Position,ms/2)) do KillMortal(t) end ex:Destroy() end
+
+function AbilityBlackHole() if not CanUseAbility("BlackHole") or not CanUseCooldown("BlackHole",15) then return end PlaySound("Charge")
+	local bh=Instance.new("Part",workspace) bh.Shape="Ball" bh.Size=Vector3.new(5,5,5) bh.Position=chara.Torso.Position+chara.Torso.CFrame.lookVector*20 bh.BrickColor=BrickColor.new("Really black") bh.Material="Neon" bh.Anchored=true bh.CanCollide=false VoidEff(bh) DarkAuraEff(bh)
+	spawn(function() for i=1,100 do if not bh or not bh.Parent then break end for _,t in pairs(GetAllTargetsInRange(bh.Position,50+CurrentPhase*3)) do
+		local ts=t:FindFirstChild("Torso") or t:FindFirstChild("UpperTorso") if ts then local bv=ts:FindFirstChild("BHP") or Instance.new("BodyVelocity",ts) bv.Name="BHP"
+			bv.Velocity=(bh.Position-ts.Position).Unit*(20+CurrentPhase*5) bv.MaxForce=Vector3.new(50000,50000,50000) if GetDistanceBetween(ts,bh)<5 then bv:Destroy() KillMortal(t) end end end
+		bh.Size=bh.Size+Vector3.new(0.1,0.1,0.1) wait(0.05) end PlaySound("Explosion") for _,t in pairs(GetAllTargetsInRange(bh.Position,30)) do KillMortal(t) end bh:Destroy() end) end
+
+function AbilitySoulDrain() if not CanUseAbility("SoulDrain") or not CanUseCooldown("SoulDrain",10) then return end PlaySound("Scream",0.7)
+	local da=Instance.new("Part",chara) da.Shape="Ball" da.Size=Vector3.new(30+CurrentPhase*3,30+CurrentPhase*3,30+CurrentPhase*3) da.Transparency=0.7 da.BrickColor=BrickColor.new("Really red") da.Material="ForceField" da.CanCollide=false da.Anchored=false
+	local w=Instance.new("Weld",da) w.Part0=chara.Torso w.Part1=da VoidEff(da)
+	for _,t in pairs(GetAllTargetsInRange(chara.Torso.Position,20+CurrentPhase*2)) do local ts=t:FindFirstChild("Torso") or t:FindFirstChild("UpperTorso")
+		if ts then local bm=Instance.new("Part",workspace) bm.Size=Vector3.new(0.5,0.5,GetDistanceBetween(ts,chara.Torso)) bm.CFrame=CFrame.new((ts.Position+chara.Torso.Position)/2,chara.Torso.Position)
+			bm.Material="Neon" bm.BrickColor=BrickColor.new("Really red") bm.Anchored=true bm.CanCollide=false Debris:AddItem(bm,1) spawn(function() wait(0.5) KillMortal(t) end) end end Debris:AddItem(da,2) end
+
+function AbilityMeteorStrike() if not CanUseAbility("MeteorStrike") or not CanUseCooldown("MeteorStrike",20) then return end PlaySound("Charge")
+	local tp=Mouse.Hit.p for i=1,3+math.floor(CurrentPhase/2) do spawn(function() local m=Instance.new("Part",workspace) m.Shape="Ball" m.Size=Vector3.new(6+CurrentPhase,6+CurrentPhase,6+CurrentPhase)
+		m.Position=tp+Vector3.new(math.random(-20,20),100,math.random(-20,20)) m.BrickColor=BrickColor.new("Really red") m.Material="Neon" m.Anchored=false m.CanCollide=false BurningEff(m)
+		local bv=Instance.new("BodyVelocity",m) bv.Velocity=Vector3.new(0,-80,0) bv.MaxForce=Vector3.new(0,100000,0)
+		m.Touched:Connect(function(hit) if hit.Parent~=chara and not hit:IsDescendantOf(chara) then PlaySound("Explosion")
+			local ep=Instance.new("Part",workspace) ep.Shape="Ball" ep.Size=Vector3.new(1,1,1) ep.Position=m.Position ep.BrickColor=BrickColor.new("Really red") ep.Material="Neon" ep.Anchored=true ep.CanCollide=false ep.Transparency=0.3 BurningEff(ep)
+			for j=1,20 do ep.Size=ep.Size+Vector3.new(2,2,2) ep.Transparency=ep.Transparency+0.035 wait(0.02) end for _,t in pairs(GetAllTargetsInRange(m.Position,20+CurrentPhase*2)) do KillMortal(t) end ep:Destroy() m:Destroy() end end)
+		Debris:AddItem(m,10) end) wait(0.3) end end
+
+function AbilityShadowClone() if not CanUseAbility("ShadowClone") or not CanUseCooldown("ShadowClone",8) then return end PlaySound("Summon")
+	for i=1,2+math.floor(CurrentPhase/3) do local cl=Instance.new("Model",workspace) cl.Name="SC"
+		local ct=Instance.new("Part",cl) ct.Name="Torso" ct.Size=Vector3.new(2,2,1) ct.Position=chara.Torso.Position+Vector3.new(math.random(-10,10),0,math.random(-10,10)) ct.BrickColor=BrickColor.new("Really black") ct.Material="Granite" ct.CanCollide=false ct.Anchored=false
+		local ch2=Instance.new("Part",cl) ch2.Name="Head" ch2.Size=Vector3.new(2,1,1) ch2.Position=ct.Position+Vector3.new(0,1.5,0) ch2.BrickColor=BrickColor.new("Really black") ch2.Material="Granite" ch2.CanCollide=false ch2.Anchored=false Instance.new("SpecialMesh",ch2).Scale=Vector3.new(1.25,1.25,1.25)
+		local chum=Instance.new("Humanoid",cl) chum.MaxHealth=50+CurrentPhase*10 chum.Health=chum.MaxHealth DarkAuraEff(ct) ScatterEff(ct)
+		local bp=Instance.new("BodyPosition",ct) bp.MaxForce=Vector3.new(50000,50000,50000)
+		spawn(function() while cl and cl.Parent and chum.Health>0 do local nt,nd=nil,math.huge
+			for _,plr in pairs(Players:GetPlayers()) do if plr~=player and plr.Character then local t=plr.Character:FindFirstChild("Torso") or plr.Character:FindFirstChild("UpperTorso")
+				if t and IsValidTarget(plr.Character) then local d=GetDistanceBetween(ct,t) if d<nd then nd=d nt=plr.Character end end end end
+			if nt then local t=nt:FindFirstChild("Torso") or nt:FindFirstChild("UpperTorso") bp.Position=t.Position if nd<5 then KillMortal(nt) end
+			else bp.Position=chara.Torso.Position+Vector3.new(math.random(-10,10),2,math.random(-10,10)) end wait(0.3) end if cl and cl.Parent then cl:Destroy() end end)
+		Debris:AddItem(cl,15+CurrentPhase) end end
+
+function AbilityFreezeWave() if not CanUseAbility("FreezeWave") or not CanUseCooldown("FreezeWave",12) then return end PlaySound("Freeze")
+	local wv=Instance.new("Part",workspace) wv.Shape="Cylinder" wv.Size=Vector3.new(1,1,1) wv.CFrame=chara.Torso.CFrame*CFrame.Angles(0,0,math.rad(90)) wv.BrickColor=BrickColor.new("Pastel light blue") wv.Material="Ice" wv.Anchored=true wv.CanCollide=false wv.Transparency=0.3 IceEff(wv) local ft={}
+	for i=1,40 do wv.Size=wv.Size+Vector3.new(0,3,3) wv.CFrame=chara.Torso.CFrame*CFrame.Angles(0,0,math.rad(90)) wv.Transparency=wv.Transparency+0.017
+		for _,t in pairs(GetAllTargetsInRange(chara.Torso.Position,wv.Size.Y/2)) do if not ft[t] then ft[t]=true local ts=t:FindFirstChild("Torso") or t:FindFirstChild("UpperTorso")
+			if ts then local ic=Instance.new("Part",workspace) ic.Size=Vector3.new(4,6,4) ic.Position=ts.Position ic.BrickColor=BrickColor.new("Pastel light blue") ic.Material="Ice" ic.Anchored=true ic.Transparency=0.3 ts.Anchored=true
+				spawn(function() wait(3) ts.Anchored=false ic:Destroy() KillMortal(t) end) end end end wait(0.02) end wv:Destroy() end
+
+function AbilityPoisonCloud() if not CanUseAbility("PoisonCloud") or not CanUseCooldown("PoisonCloud",10) then return end PlaySound("Poison")
+	local cl=Instance.new("Part",workspace) cl.Shape="Ball" cl.Size=Vector3.new(30+CurrentPhase*2,30+CurrentPhase*2,30+CurrentPhase*2) cl.Position=Mouse.Hit.p cl.BrickColor=BrickColor.new("Bright green") cl.Material="Neon" cl.Anchored=true cl.CanCollide=false cl.Transparency=0.7 PoisonEff(cl)
+	spawn(function() for i=1,100 do if not cl or not cl.Parent then break end for _,t in pairs(GetAllTargetsInRange(cl.Position,15+CurrentPhase)) do
+		local h=t:FindFirstChild("Humanoid") if h then h.Health=h.Health-(3+CurrentPhase) if h.Health<=0 then KillMortal(t) end end end wait(0.1) end cl:Destroy() end) end
+
+function AbilityShield() if not CanUseAbility("Shield") or not CanUseCooldown("Shield",15) or chara:FindFirstChild("Shield") then return end PlaySound("Shield")
+	local sh=Instance.new("Part",chara) sh.Name="Shield" sh.Shape="Ball" sh.Size=Vector3.new(10+CurrentPhase,10+CurrentPhase,10+CurrentPhase) sh.Transparency=0.5 sh.BrickColor=BrickColor.new("Really red") sh.Material="ForceField" sh.CanCollide=false sh.Anchored=false
+	local w=Instance.new("Weld",sh) w.Part0=chara.Torso w.Part1=sh ElectricEff(sh)
+	sh.Touched:Connect(function(hit) if hit.Parent and hit.Parent~=chara and IsValidTarget(hit.Parent) then local h=hit.Parent:FindFirstChild("Humanoid") if h then h.Health=h.Health-(15+CurrentPhase*3) if h.Health<=0 then KillMortal(hit.Parent) end end end end)
+	Debris:AddItem(sh,8+CurrentPhase) end
+
+function AbilityTimeStop() if not CanUseAbility("TimeStop") or not CanUseCooldown("TimeStop",30) then return end PlaySound("Thunder")
+	local tse=Instance.new("ColorCorrectionEffect",Lighting) tse.Saturation=-1 tse.Contrast=0.5
+	local fp={} for _,plr in pairs(Players:GetPlayers()) do if plr~=player and plr.Character then for _,p in pairs(plr.Character:GetDescendants()) do if p:IsA("BasePart") then fp[p]=p.Anchored p.Anchored=true end end end end
+	wait(1) for _,plr in pairs(Players:GetPlayers()) do if plr~=player and plr.Character and IsValidTarget(plr.Character) then KillMortal(plr.Character) end end
+	wait(4) for p,wa in pairs(fp) do if p and p.Parent then p.Anchored=wa end end tse:Destroy() end
+
+--===========================================--
+--     EMOTES
+--===========================================--
+function PlayEmote(name) if EmoteActive then return end EmoteActive=true
+	if name=="Roar" then if ExtraAnims["Roar"] then ExtraAnims["Roar"]:Play() end PlaySound("PhaseRoar")
+		spawn(function() for i=1,3 do local rw=Instance.new("Part",workspace) rw.Shape="Ball" rw.Size=Vector3.new(1,1,1) rw.Position=chara.Head.Position rw.Material=Enum.Material.Neon rw.Color=Color3.new(1,0,0) rw.Anchored=true rw.CanCollide=false rw.Transparency=0.5
+			spawn(function() for j=1,20 do local s=j*3 rw.Size=Vector3.new(s,s,s) rw.Transparency=0.5+(j/20)*0.5 wait(0.02) end rw:Destroy() end)
+			for _,t in pairs(GetAllTargetsInRange(chara.Torso.Position,30)) do local ts=t:FindFirstChild("Torso") or t:FindFirstChild("UpperTorso")
+				if ts then local pf=Instance.new("BodyVelocity",ts) pf.Velocity=(ts.Position-chara.Torso.Position).Unit*(30+CurrentPhase*5)+Vector3.new(0,10,0) pf.MaxForce=Vector3.new(50000,50000,50000) Debris:AddItem(pf,0.5) end
+				local h=t:FindFirstChild("Humanoid") if h then h.Health=h.Health-CurrentPhase*5 if h.Health<=0 then KillMortal(t) end end end wait(0.5) end end)
+		wait(2) if ExtraAnims["Roar"] then ExtraAnims["Roar"]:Stop() end
+	elseif name=="Taunt" then if ExtraAnims["Taunt"] then ExtraAnims["Taunt"]:Play() end PlaySound("EvilLaugh2") wait(3) if ExtraAnims["Taunt"] then ExtraAnims["Taunt"]:Stop() end
+	elseif name=="Stomp" then if ExtraAnims["Stomp"] then ExtraAnims["Stomp"]:Play() end PlaySound("PhaseImpact") wait(0.5)
+		ShakeCamera(1+CurrentPhase*0.2,1,50) CreateGroundSpikes(chara.Torso.Position,10+CurrentPhase*2,3+CurrentPhase,Color3.new(0.3,0,0))
+		local sr=Instance.new("Part",workspace) sr.Shape="Cylinder" sr.Size=Vector3.new(0.5,1,1) sr.CFrame=CFrame.new(chara.Torso.Position-Vector3.new(0,3,0))*CFrame.Angles(0,0,math.rad(90)) sr.Material=Enum.Material.Neon sr.Color=Color3.new(1,0,0) sr.Anchored=true sr.CanCollide=false sr.Transparency=0.3
+		spawn(function() for i=1,30 do local s=i*(2+CurrentPhase*0.5) sr.Size=Vector3.new(0.5,s,s) sr.Transparency=0.3+(i/30)*0.7
+			for _,t in pairs(GetAllTargetsInRange(chara.Torso.Position,s/2)) do local h=t:FindFirstChild("Humanoid") if h and h.Health>0 then h.Health=h.Health-CurrentPhase*4 if h.Health<=0 then KillMortal(t) end end end wait(0.02) end sr:Destroy() end)
+		wait(1.5) if ExtraAnims["Stomp"] then ExtraAnims["Stomp"]:Stop() end
+	elseif name=="PowerUp" then if ExtraAnims["PowerUpAnim"] then ExtraAnims["PowerUpAnim"]:Play() end PlaySound("PhaseAscend") Humanoid.WalkSpeed=0 LevitatePlayer(5,3) ShakeCamera(0.8,2.5,40)
+		spawn(function() for i=1,30 do CreateBodyLightning(chara.Torso,3,Color3.new(1,0,0)) wait(0.08) end end)
+		CreateDarkPulse(chara.Torso.Position,20+CurrentPhase*3,Color3.new(1,0,0),3) wait(2.5)
+		local info=PhaseInfo[CurrentPhase] if IsSprinting then Humanoid.WalkSpeed=info.RunSpeed else Humanoid.WalkSpeed=info.WalkSpeed end
+		if ExtraAnims["PowerUpAnim"] then ExtraAnims["PowerUpAnim"]:Stop() end
+	elseif name=="Point" then if ExtraAnims["Point"] then ExtraAnims["Point"]:Play() end
+		if CurrentPhase>=4 then spawn(function() local ray=Instance.new("Part",workspace) ray.Size=Vector3.new(0.2,0.2,200) ray.Material=Enum.Material.Neon ray.Color=Color3.new(1,0,0)
+			ray.Anchored=true ray.CanCollide=false ray.Transparency=0.3 ray.CFrame=chara["Right Arm"].CFrame*CFrame.new(0,-2,0)*CFrame.new(0,0,-100) ElectricEff(ray,Color3.new(1,0,0))
+			for _,t in pairs(GetAllTargetsInRange(ray.Position,5)) do local h=t:FindFirstChild("Humanoid") if h and h.Health>0 then h.Health=h.Health-CurrentPhase*10 if h.Health<=0 then KillMortal(t) end end end
+			wait(1) for i=1,10 do ray.Transparency=0.3+(i/10)*0.7 wait(0.03) end ray:Destroy() end) end
+		wait(2) if ExtraAnims["Point"] then ExtraAnims["Point"]:Stop() end end EmoteActive=false end
+
+--===========================================--
+--     PHASE TRANSITIONS (КРАСНЫЕ ЭФФЕКТЫ)
+--===========================================--
+local RC = Color3.new(1,0,0) -- Красный цвет для всех эффектов
+local DRC = Color3.new(0.5,0,0) -- Тёмно-красный
+local BK = Color3.new(0,0,0) -- Чёрный
+
+local PhaseTransFuncs = {}
+PhaseTransFuncs[1]=function() IsTransitioning=true FreezePlayer(3) PlaySound("PhaseUp") ShakeCamera(0.3,2,30) ScreenFlash(RC,1.5,1)
+	CreateDarkPulse(chara.Torso.Position,15,DRC,2) CreateBodyLightning(chara.Torso,5,RC) wait(2.5) IsTransitioning=false end
+PhaseTransFuncs[2]=function() IsTransitioning=true FreezePlayer(4) PlaySound("PhaseUp") ShakeCamera(0.5,3,40)
+	CreateDarkRing(chara.Torso.Position,30,DRC,2) CreateDarkShards(chara.Torso.Position,8,DRC) ScreenFlash(DRC,1.8,1.5) CreateGroundSpikes(chara.Torso.Position,6,3,DRC) wait(3.5) IsTransitioning=false end
+PhaseTransFuncs[3]=function() IsTransitioning=true FreezePlayer(5) LevitatePlayer(5,4) ShakeCamera(0.7,3.5,45) wait(0.5) PlaySound("PhaseUp")
+	CreateDarkPillar(chara.Torso.Position,60,RC,3) CreateDarkRune(chara.Torso.Position,12,RC,4) CreateDarkShards(chara.Torso.Position,15,DRC)
+	CreateDarkPulse(chara.Torso.Position,25,RC,3) DarkenScreen(0.5,1,1) wait(1) ScreenFlash(RC,2,1) PlaySound("PhaseImpact") wait(3) IsTransitioning=false end
+PhaseTransFuncs[4]=function() IsTransitioning=true FreezePlayer(5.5) PlaySound("PhaseRoar") SlowMotionEffect(1.5) LevitatePlayer(7,4.5) wait(0.3) ShakeCamera(1,4,50)
+	CreateDarkRune(chara.Torso.Position,16,RC,5) CreateDarkPillar(chara.Torso.Position,80,DRC,3) CreateBodyLightning(chara.Torso,15,RC)
+	CreateGroundSpikes(chara.Torso.Position,12,5,DRC) CreateDarkRing(chara.Torso.Position,40,RC,2) wait(0.5) CreateDarkRing(chara.Torso.Position,50,RC,2)
+	DarkenScreen(0.7,1.5,1) wait(1) ScreenFlash(RC,2.5,1.5) PlaySound("PhaseImpact") CreateDarkShards(chara.Torso.Position,20,DRC) wait(3) IsTransitioning=false end
+PhaseTransFuncs[5]=function() IsTransitioning=true FreezePlayer(6) DarkenScreen(1,2,2) wait(0.5)
+	CreateDarkVortex(chara.Torso.Position,4,DRC,12) LevitatePlayer(10,5) ShakeCamera(1.2,4.5,55) wait(0.5) PlaySound("PhaseRoar")
+	CreateDarkPillar(chara.Torso.Position,100,RC,4) CreateDarkRune(chara.Torso.Position,20,RC,5) CreateGroundSpikes(chara.Torso.Position,16,7,DRC)
+	CreateBodyLightning(chara.Torso,25,RC) for i=1,3 do CreateDarkRing(chara.Torso.Position,60,RC,2) wait(0.4) end CreateDarkShards(chara.Torso.Position,30,DRC)
+	wait(1) ScreenFlash(RC,3,1.5) PlaySound("PhaseImpact") CameraZoomEffect(15,true,2) wait(3) IsTransitioning=false end
+PhaseTransFuncs[6]=function() IsTransitioning=true FreezePlayer(7) DarkenScreen(1.5,2,3) wait(1)
+	LevitatePlayer(12,5.5) ShakeCamera(1.5,5,60) PlaySound("PhaseRoar") CreateDarkPillar(chara.Torso.Position,120,RC,5) CreateDarkRune(chara.Torso.Position,25,RC,6)
+	wait(0.5) CreateDarkVortex(chara.Torso.Position,5,DRC,15) CreateGroundSpikes(chara.Torso.Position,20,9,DRC) CreateBodyLightning(chara.Torso,35,RC)
+	CreateDarkPulse(chara.Torso.Position,40,RC,4) CreateDarkShards(chara.Torso.Position,40,DRC)
+	for i=1,5 do CreateDarkRing(chara.Torso.Position,70,RC,2.5) wait(0.3) end wait(1) ScreenFlash(RC,3.5,2) PlaySound("PhaseImpact") CameraZoomEffect(20,true,2) wait(3) IsTransitioning=false end
+PhaseTransFuncs[7]=function() IsTransitioning=true FreezePlayer(8) SlowMotionEffect(2) wait(0.5) DarkenScreen(2,2,3) LevitatePlayer(15,6) ShakeCamera(2,6,65) wait(0.5) PlaySound("PhaseRoar")
+	CreateDarkPillar(chara.Torso.Position,150,RC,5) wait(0.3) CreateDarkPillar(chara.Torso.Position,120,DRC,4)
+	CreateDarkRune(chara.Torso.Position,30,RC,7) CreateDarkVortex(chara.Torso.Position,5,RC,18) CreateGroundSpikes(chara.Torso.Position,25,12,DRC) CreateBodyLightning(chara.Torso,50,RC)
+	CreateDarkShards(chara.Torso.Position,50,DRC) for i=1,6 do CreateDarkRing(chara.Torso.Position,80+i*5,RC,2.5) wait(0.25) end
+	CreateDarkPulse(chara.Torso.Position,50,RC,5) wait(1) ScreenFlash(RC,4,2) PlaySound("PhaseBreak") CameraZoomEffect(25,true,2) wait(4) IsTransitioning=false end
+PhaseTransFuncs[8]=function() IsTransitioning=true FreezePlayer(9)
+	spawn(function() local d=Instance.new("ColorCorrectionEffect",Lighting) for i=1,60 do d.Saturation=math.sin(i*0.5)*2 d.Contrast=math.cos(i*0.3)*1.5 d.Brightness=math.sin(i*0.7)*0.5 wait(0.05) end d:Destroy() end)
+	DarkenScreen(2.5,2,4) SlowMotionEffect(2.5) wait(0.5) LevitatePlayer(18,7) ShakeCamera(2.5,7,70) PlaySound("PhaseRoar")
+	CreateDarkPillar(chara.Torso.Position,200,RC,6) CreateDarkRune(chara.Torso.Position,35,RC,8) CreateDarkVortex(chara.Torso.Position,6,DRC,20)
+	CreateGroundSpikes(chara.Torso.Position,30,15,DRC) CreateBodyLightning(chara.Torso,70,RC) CreateBodyLightning(chara["Left Arm"],20,RC) CreateBodyLightning(chara["Right Arm"],20,RC)
+	CreateDarkShards(chara.Torso.Position,60,DRC) for i=1,8 do CreateDarkRing(chara.Torso.Position,90+i*5,RC,3) wait(0.2) end
+	CreateDarkPulse(chara.Torso.Position,60,RC,6) wait(1.5) ScreenFlash(RC,4.5,2) PlaySound("PhaseBreak") CameraZoomEffect(30,true,2.5) wait(4.5) IsTransitioning=false end
+PhaseTransFuncs[9]=function() IsTransitioning=true FreezePlayer(10)
+	spawn(function() local vd=Instance.new("ColorCorrectionEffect",Lighting) for i=1,30 do vd.Brightness=-i/10 vd.Saturation=-i/15 wait(0.05) end wait(3) for i=30,0,-1 do vd.Brightness=-i/10 vd.Saturation=-i/15 wait(0.03) end vd:Destroy() end)
+	SlowMotionEffect(3) wait(1) LevitatePlayer(22,8) ShakeCamera(3,8,75) wait(0.5) PlaySound("PhaseRoar")
+	CreateDarkPillar(chara.Torso.Position,250,RC,7) CreateDarkRune(chara.Torso.Position,40,RC,9) CreateDarkVortex(chara.Torso.Position,7,DRC,25) CreateGroundSpikes(chara.Torso.Position,35,18,DRC)
+	for _,p in pairs({chara.Torso,chara["Left Arm"],chara["Right Arm"],chara["Left Leg"],chara["Right Leg"]}) do CreateBodyLightning(p,30,RC) end
+	CreateDarkShards(chara.Torso.Position,80,DRC) for i=1,10 do CreateDarkRing(chara.Torso.Position,100+i*8,RC,3) wait(0.15) end
+	CreateDarkPulse(chara.Torso.Position,70,RC,8) wait(2) ScreenFlash(RC,5,2) PlaySound("PhaseBreak") CameraZoomEffect(35,true,3) wait(5) IsTransitioning=false end
+PhaseTransFuncs[10]=function() IsTransitioning=true FreezePlayer(14) StopAllSounds() wait(2)
+	spawn(function() local gd=Instance.new("ColorCorrectionEffect",Lighting) for i=1,50 do gd.Brightness=-i/10 gd.Saturation=-3 gd.Contrast=i/25 wait(0.04) end
+		for i=1,10 do gd.Brightness=-5 wait(0.1) gd.Brightness=3 wait(0.05) end wait(2) for i=50,0,-1 do gd.Brightness=-i/10 gd.Contrast=i/25 gd.Saturation=-3*(i/50) wait(0.02) end gd:Destroy() end)
+	wait(2) PlaySound("PhaseRoar") LevitatePlayer(30,10) ShakeCamera(4,10,80) SlowMotionEffect(4) wait(1)
+	CreateDarkPillar(chara.Torso.Position,500,BK,8) wait(0.2) CreateDarkPillar(chara.Torso.Position,400,DRC,7) wait(0.2) CreateDarkPillar(chara.Torso.Position,300,RC,6)
+	CreateDarkRune(chara.Torso.Position,50,BK,12) wait(0.3) CreateDarkRune(chara.Torso.Position,35,RC,10)
+	CreateDarkVortex(chara.Torso.Position,8,BK,30) CreateGroundSpikes(chara.Torso.Position,50,25,BK)
+	for _,p in pairs({chara.Torso,chara["Left Arm"],chara["Right Arm"],chara["Left Leg"],chara["Right Leg"],chara.Head}) do CreateBodyLightning(p,50,RC) end
+	CreateDarkShards(chara.Torso.Position,120,BK) spawn(function() for i=1,15 do CreateDarkRing(chara.Torso.Position,120+i*10,RC,3) wait(0.15) end end)
+	CreateDarkPulse(chara.Torso.Position,100,BK,10) wait(3) PlaySound("PhaseBreak") ScreenFlash(BK,6,3) wait(0.3) ScreenFlash(RC,6,2) PlaySound("PhaseImpact") CameraZoomEffect(45,true,3)
+	for _,plr in pairs(Players:GetPlayers()) do if plr~=player and plr.Character and IsValidTarget(plr.Character) then KillMortal(plr.Character) end end
+	spawn(function() local gb=Instance.new("BillboardGui",chara.Head) gb.Size=UDim2.new(0,600,0,120) gb.StudsOffset=Vector3.new(0,8,0) gb.Adornee=chara.Head
+		local gl=Instance.new("TextLabel",gb) gl.Size=UDim2.new(1,0,1,0) gl.BackgroundTransparency=1 gl.Text="G O D   F O R M" gl.TextColor3=RC gl.TextStrokeTransparency=0 gl.TextStrokeColor3=BK gl.Font=Enum.Font.GothamBold gl.TextScaled=true
+		for i=1,60 do gl.TextColor3=Color3.new(1,math.sin(i*0.2)*0.15,0) wait(0.1) end for i=1,20 do gl.TextTransparency=i/20 gl.TextStrokeTransparency=i/20 wait(0.05) end gb:Destroy() end)
+	wait(5) PlaySound("Music1") PlaySound("Music2") wait(1) IsTransitioning=false end
+
+--===========================================--
+--     UNIFIED SetPhase
+--===========================================--
+function SetPhase(newPhase) if newPhase==CurrentPhase or IsTransitioning then return end
+	CurrentPhase=newPhase local info=PhaseInfo[newPhase] DamageMultiplier=info.DamageMult SpeedMultiplier=info.SpeedMult
+	if PhaseTransFuncs[newPhase] then spawn(PhaseTransFuncs[newPhase]) end
+	spawn(function() local md=0.5 if newPhase>=7 then md=2 elseif newPhase>=4 then md=1 end wait(md) PMusic:SwitchToPhase(newPhase) end)
+	spawn(function() wait(1) if tecks then tecks.Text=info.Name tecks.TextColor3=info.Color end end)
+	spawn(function() wait(2) local bb=Instance.new("BillboardGui",chara.Head) bb.Size=UDim2.new(0,400,0,80) bb.StudsOffset=Vector3.new(0,5,0) bb.Adornee=chara.Head
+		local lb=Instance.new("TextLabel",bb) lb.Size=UDim2.new(1,0,1,0) lb.BackgroundTransparency=1 lb.Text="PHASE "..newPhase..": "..info.Name
+		lb.TextColor3=RC lb.TextStrokeTransparency=0 lb.TextStrokeColor3=BK lb.Font=Enum.Font.GothamBold lb.TextScaled=true
+		wait(3) for i=1,20 do lb.TextTransparency=lb.TextTransparency+0.05 lb.TextStrokeTransparency=lb.TextStrokeTransparency+0.05 wait(0.03) end bb:Destroy() end)
+	spawn(function() wait(1.5) GenerateMegaSpikesForPhase(newPhase) GenerateTendrilsForPhase(newPhase) GenerateOrbsForPhase(newPhase)
+		GenerateTrailsForPhase(newPhase) GenerateAuraForPhase(newPhase) GenerateEyeEffectsForPhase(newPhase) CreateDarkWings(newPhase) UpdateBodyDarkness(newPhase) end)
+	spawn(function() while IsTransitioning do wait(0.1) end if IsSprinting then Humanoid.WalkSpeed=info.RunSpeed else Humanoid.WalkSpeed=info.WalkSpeed end end)
+	if newPhase>=5 then spawn(function() wait(2) for _,t in pairs(GetAllTargetsInRange(chara.Torso.Position,15+newPhase*3)) do
+		local h=t:FindFirstChild("Humanoid") if h then h.Health=h.Health-newPhase*10 if h.Health<=0 then KillMortal(t) end end end end) end end
+
+function CheckPhaseUp() for i=10,1,-1 do if KillCount>=PhaseKillReqs[i] and CurrentPhase<i then SetPhase(i) break end end end
+
+--===========================================--
+--     KEY BINDINGS & BUTTON
+--===========================================--
+function onButton1Down() if dell==false then dell=true
+	AttackComboIndex=(AttackComboIndex%#AttackAnimList)+1 local an=AttackAnimList[AttackComboIndex]
+	if ExtraAnims[an] then ExtraAnims[an]:Play(0.1) end Anims.Swing:Play() bladeactive=true PlaySound("Slash")
+	if CurrentPhase>=3 then spawn(function() local wv=Instance.new("Part",workspace) wv.Shape="Ball" wv.Size=Vector3.new(1,1,1) wv.Position=chara.Torso.Position+chara.Torso.CFrame.lookVector*3
+		wv.Material=Enum.Material.Neon wv.Color=RC wv.Anchored=true wv.CanCollide=false wv.Transparency=0.5
+		for i=1,15 do local s=i*(1+CurrentPhase*0.3) wv.Size=Vector3.new(s,s,s) wv.Transparency=0.5+(i/15)*0.5
+			for _,t in pairs(GetAllTargetsInRange(wv.Position,s/2)) do local h=t:FindFirstChild("Humanoid") if h and h.Health>0 then h.Health=h.Health-CurrentPhase*3 if h.Health<=0 then KillMortal(t) end end end
+			wait(0.02) end wv:Destroy() end) end
+	wait(.5) bladeactive=false dell=false Anims.Swing:Stop() if ExtraAnims[an] then ExtraAnims[an]:Stop(0.2) end end end
+
+function onKeyDown(key) key=key:lower()
+	if key=="z" then Teleport(Mouse.Hit.p+Vector3.new(0,2,0)) elseif key=="x" then Grab(Mouse) elseif key=="c" then AbilityDash()
+	elseif key=="v" then AbilityAreaAttack() elseif key=="b" then AbilityBlackHole() elseif key=="n" then AbilitySoulDrain()
+	elseif key=="m" then AbilityMeteorStrike() elseif key=="j" then AbilityShadowClone() elseif key=="k" then AbilityFreezeWave()
+	elseif key=="l" then AbilityPoisonCloud() elseif key=="h" then AbilityShield() elseif key=="g" then AbilityTimeStop()
+	elseif key=="t" then PlayEmote("Roar") elseif key=="y" then PlayEmote("Taunt") elseif key=="u" then PlayEmote("Stomp")
+	elseif key=="r" then PlayEmote("PowerUp") elseif key=="f" then PlayEmote("Point") end end
+
+Mouse.Button1Down:connect(onButton1Down)
+Mouse.KeyDown:connect(onKeyDown)
+
+--===========================================--
+--     GUI
+--===========================================--
+local sg=Instance.new("ScreenGui",player.PlayerGui) sg.Name="JohnDoeGUI" sg.ResetOnSpawn=false
+local sf=Instance.new("Frame",sg) sf.Name="StatsFrame" sf.Size=UDim2.new(0,220,0,220) sf.Position=UDim2.new(0,10,0,10) sf.BackgroundColor3=Color3.new(0.05,0,0) sf.BackgroundTransparency=0.3 sf.BorderSizePixel=2 sf.BorderColor3=Color3.new(1,0,0)
+Instance.new("UICorner",sf).CornerRadius=UDim.new(0,10)
+Instance.new("TextLabel",sf).Size=UDim2.new(1,0,0,30) local tl=sf:GetChildren()[2] tl.BackgroundTransparency=1 tl.Text="JOHN DOE - 10 PHASES" tl.TextColor3=Color3.new(1,0,0) tl.Font=Enum.Font.GothamBold tl.TextSize=16
+local function MSL(n,y,t) local l=Instance.new("TextLabel",sf) l.Name=n l.Size=UDim2.new(1,-10,0,18) l.Position=UDim2.new(0,5,0,y) l.BackgroundTransparency=1 l.Text=t l.TextColor3=Color3.new(1,1,1) l.Font=Enum.Font.Gotham l.TextSize=12 l.TextXAlignment=Enum.TextXAlignment.Left return l end
+MSL("PhaseLabel",33,"Phase: 0") MSL("KillsLabel",51,"Kills: 0") MSL("NextPhaseLabel",69,"Next: 5 kills")
+MSL("DamageLabel",87,"Dmg: x1.0") MSL("SpeedLabel",105,"Spd: x1.0") MSL("SoulsLabel",123,"Souls: 0")
+MSL("SpikesLabel",141,"Spikes: 0") MSL("SprintLabel",159,"Sprint: [SHIFT]") MSL("MusicLabel",177,"♪ Ambient Dread")
+
+local af=Instance.new("Frame",sg) af.Name="AbilityFrame" af.Size=UDim2.new(0,220,0,270) af.Position=UDim2.new(0,10,0,240) af.BackgroundColor3=Color3.new(0.05,0,0) af.BackgroundTransparency=0.3 af.BorderSizePixel=2 af.BorderColor3=Color3.new(0.5,0,0)
+Instance.new("UICorner",af).CornerRadius=UDim.new(0,10)
+local at=Instance.new("TextLabel",af) at.Size=UDim2.new(1,0,0,22) at.BackgroundTransparency=1 at.Text="ABILITIES" at.TextColor3=Color3.new(1,0,0) at.Font=Enum.Font.GothamBold at.TextSize=13
+local abilList={{K="Z",N="Teleport",P=0},{K="X",N="Grab",P=0},{K="LMB",N="Combo",P=0},{K="C",N="Dash",P=1},{K="V",N="Area ATK",P=2},{K="B",N="Black Hole",P=3},
+	{K="N",N="Soul Drain",P=4},{K="M",N="Meteor",P=5},{K="J",N="Clones",P=6},{K="K",N="Freeze",P=7},{K="L",N="Poison",P=8},{K="H",N="Shield",P=9},{K="G",N="Time Stop",P=10},
+	{K="T",N="Roar",P=0},{K="U",N="Stomp",P=0}}
+for i,ab in ipairs(abilList) do local al=Instance.new("TextLabel",af) al.Name="Ab_"..ab.N al.Size=UDim2.new(1,-10,0,15) al.Position=UDim2.new(0,5,0,22+(i-1)*16) al.BackgroundTransparency=1 al.Text="["..ab.K.."] "..ab.N.." (P"..ab.P..")" al.TextColor3=Color3.new(0.5,0.5,0.5) al.Font=Enum.Font.Gotham al.TextSize=10 al.TextXAlignment=Enum.TextXAlignment.Left end
+
+function UpdateGUI() local info=PhaseInfo[CurrentPhase]
+	local pl=sf:FindFirstChild("PhaseLabel") if pl then pl.Text="Phase: "..CurrentPhase.." - "..info.Name pl.TextColor3=Color3.new(1,0,0) end
+	local kl=sf:FindFirstChild("KillsLabel") if kl then kl.Text="Kills: "..KillCount end
+	local nl=sf:FindFirstChild("NextPhaseLabel") if nl then if CurrentPhase<10 then local nr=PhaseKillReqs[CurrentPhase+1] nl.Text="Next: "..nr.." kills ("..(nr-KillCount).." left)" nl.TextColor3=Color3.new(1,1,0) else nl.Text="MAX PHASE!" nl.TextColor3=Color3.new(1,0.5,0) end end
+	local dl=sf:FindFirstChild("DamageLabel") if dl then dl.Text="Dmg: x"..string.format("%.1f",info.DamageMult) end
+	local sl=sf:FindFirstChild("SpeedLabel") if sl then sl.Text="Spd: x"..string.format("%.1f",info.SpeedMult) end
+	local sol=sf:FindFirstChild("SoulsLabel") if sol then sol.Text="Souls: "..PlayerStats.SoulsCollected end
+	local spl=sf:FindFirstChild("SpikesLabel") if spl then spl.Text="Spikes: "..#MegaSpikes end
+	local srl=sf:FindFirstChild("SprintLabel") if srl then if IsSprinting then srl.Text="Sprint: ON" srl.TextColor3=Color3.new(0,1,0) else srl.Text="Sprint: [SHIFT]" srl.TextColor3=Color3.new(1,1,1) end end
+	local ml=sf:FindFirstChild("MusicLabel") if ml then ml.Text="♪ "..(PMusic.CurrentName~="" and PMusic.CurrentName or "Ambient Dread") ml.TextColor3=Color3.new(1,0.3,0.3) end
+	for _,ab in ipairs(abilList) do local al=af:FindFirstChild("Ab_"..ab.N) if al then al.TextColor3=CurrentPhase>=ab.P and Color3.new(0,1,0) or Color3.new(0.4,0.4,0.4) end end end
+
+--===========================================--
+--     DEATH
+--===========================================--
+chara.Humanoid.Died:connect(function() local pat=Instance.new("Part",workspace) pat.Transparency=1 pat.Anchored=true pat.CFrame=chara.Torso.CFrame
+	naeeym.Parent=pat naeeym.Adornee=pat skybox.Parent=workspace tecks.Text="BAD CHOICE" tecks.FontSize="Size48" tecks.TextColor3=Color3.new(1,0,0)
+	StopAllSounds() Sounds["DeathMus"].Parent=workspace Sounds["DeathEx"].Parent=workspace Sounds["DeathMus"]:Play() Sounds["DeathEx"]:Play()
+	Lighting.OutdoorAmbient=Color3.new(0,0,0) Lighting.TimeOfDay="00:00:00" Lighting.FogColor=Color3.new(0,0,0) Lighting.FogEnd=1000
+	Instance.new("Explosion",workspace).Position=chara.Torso.Position end)
+
+--===========================================--
+--     BACKGROUND PROCESSES
+--===========================================--
+spawn(function() while true do wait(1) if chara and chara:FindFirstChild("Humanoid") and chara.Humanoid.Health>0 and CurrentPhase>=4 then
+	for _,t in pairs(GetAllTargetsInRange(chara.Torso.Position,5+CurrentPhase*1.5)) do local h=t:FindFirstChild("Humanoid")
+		if h and h.Health>0 and not t:FindFirstChild("HasBeenHit") then h.Health=h.Health-CurrentPhase*3 if h.Health<=0 then KillMortal(t) end end end end end end)
+spawn(function() while true do wait(math.random(20,60)/10) if chara and chara:FindFirstChild("Humanoid") and chara.Humanoid.Health>0 and CurrentPhase>=4 and not IsTransitioning then
+	CreateBodyLightning(chara.Torso,math.floor(CurrentPhase/2),Color3.new(1,0,0)) end end end)
+spawn(function() while true do wait(math.random(30,80)/10) if chara and chara:FindFirstChild("Humanoid") and chara.Humanoid.Health>0 and CurrentPhase>=5 and Humanoid.MoveDirection.Magnitude>0.1 and not IsTransitioning then
+	local pos=chara.Torso.Position for i=1,math.floor(CurrentPhase/2) do spawn(function() local sp=Instance.new("WedgePart",workspace) sp.Size=Vector3.new(0.2,0,0.2) sp.Material=Enum.Material.Neon sp.Color=Color3.new(0.3,0,0) sp.Anchored=true sp.CanCollide=false
+		local ang=math.random()*math.pi*2 local dist=math.random(2,6) local spos=pos+Vector3.new(math.cos(ang)*dist,-3,math.sin(ang)*dist) sp.CFrame=CFrame.new(spos)*CFrame.Angles(0,ang,0) local h=1+CurrentPhase*0.3
+		for j=1,10 do sp.Size=Vector3.new(0.2,h*(j/10),0.2) sp.CFrame=CFrame.new(spos+Vector3.new(0,h*(j/10)/2,0))*CFrame.Angles(0,ang,0) wait(0.02) end wait(1)
+		for j=1,10 do sp.Transparency=j/10 wait(0.03) end sp:Destroy() end) end end end end)
+spawn(function() while true do wait(0.25) if chara and chara:FindFirstChild("Humanoid") and chara.Humanoid.Health>0 and CurrentPhase>=2 and Humanoid.MoveDirection.Magnitude>0.1 then
+	if tick()-LastFootstepTime>=0.3 then LastFootstepTime=tick() local dp=Instance.new("Part",workspace) dp.Size=Vector3.new(2+CurrentPhase*0.3,0.05,2+CurrentPhase*0.3) dp.Position=chara.Torso.Position-Vector3.new(0,3,0)
+		dp.Material=Enum.Material.Neon dp.Color=Color3.new(0.4,0,0) dp.Anchored=true dp.CanCollide=false dp.Transparency=0.3
+		spawn(function() wait(1) for i=1,20 do if not dp or not dp.Parent then break end dp.Transparency=0.3+(i/20)*0.7 wait(0.05) end if dp and dp.Parent then dp:Destroy() end end) end end end end)
+spawn(function() while true do wait(math.random(50,150)/10) if chara and chara:FindFirstChild("Humanoid") and chara.Humanoid.Health>0 and CurrentPhase>=5 then PlaySound("DarkBreath") end end end)
+
+-- Запуск музыки фазы 0
+spawn(function() wait(2) PMusic:SwitchToPhase(0) end)
+
+--===========================================--
+--     MAIN LOOP
+--===========================================--
+while true do wait(.01) UpdateGUI()
+	local chance=math.random(0,100)
+	if chance<10 then tecks.Text=({"NOHOPE","GIVEUP","BURNINHELL","YOURDOOM","SUFFER","CONSUME","DARKNESS","VOID","OBLIVION","ETERNAL"})[math.random(1,10)]
+	else tecks.Text=PhaseInfo[CurrentPhase].Name tecks.TextColor3=PhaseInfo[CurrentPhase].Color end
+	if chara.Humanoid.Health>0 then
+		if GodMode then chara.Humanoid.MaxHealth=math.huge chara.Humanoid.Health=math.huge end
+		Lighting.OutdoorAmbient=Color3.new(1,0,0) Lighting.Ambient=Color3.new(1,0,0)
+		for _,c in pairs(chara:GetChildren()) do if c.ClassName=="Accessory" or c.ClassName=="Hat" then c:Destroy() end end
+		for _,t in pairs(player.Backpack:GetChildren()) do if t.ClassName=="HopperBin" then t:Destroy() end end
+		chara["Left Arm"].Anchored=false chara["Right Arm"].Anchored=false chara["Left Leg"].Anchored=false chara["Right Leg"].Anchored=false chara.Torso.Anchored=false
+		skybox.CFrame=skybox.CFrame*CFrame.fromEulerAnglesXYZ(0,math.rad(1),0) tecks.Position=UDim2.new(0,math.random(-3,3),0,math.random(-3,3))
+		local ts=10+CurrentPhase*2 local jt=Instance.new("Part",workspace) jt.Name="JDTrace" jt.Size=Vector3.new(ts,0,ts) jt.CFrame=chara.Torso.CFrame-Vector3.new(0,3,0)
+		jt.Anchored=true jt.CanCollide=false jt.BrickColor=BrickColor.new("Really black") jt.Material="Granite" BurningEff(jt) Debris:AddItem(jt,1)
+	end
+end
+--=============================================--
+--          JOHN DOE — 10 PHASES               --
+--       DARK MATTER ULTIMATE EDITION v2.0    --
+--           ENHANCED WITH GREETING            --
+--=============================================--
+
+--===========================================--
+--          SERVICES
+--===========================================--
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local Debris = game:GetService("Debris")
+local Lighting = game:GetService("Lighting")
+local UserInputService = game:GetService("UserInputService")
+
+--===========================================--
+--          PLAYER SETUP
+--===========================================--
+player = Players.LocalPlayer
+chara = player.Character
+Mouse = player:GetMouse()
+local Camera = workspace.CurrentCamera
+local Humanoid = chara.Humanoid
+
+--===========================================--
+--     GREETING SYSTEM (НОВОЕ)
+--===========================================--
+local function ShowGreeting()
+	local gui = Instance.new("ScreenGui", player.PlayerGui)
+	gui.Name = "GreetingGUI"
+	gui.ResetOnSpawn = false
+	
+	-- Иконка игрока
+	local icon = Instance.new("ImageLabel", gui)
+	icon.Size = UDim2.new(0, 100, 0, 100)
+	icon.Position = UDim2.new(0.5, -50, 0.4, -50)
+	icon.BackgroundTransparency = 0.2
+	icon.BackgroundColor3 = Color3.new(0, 0, 0)
+	icon.BorderSizePixel = 2
+	icon.BorderColor3 = Color3.new(1, 0, 0)
+	icon.Image = "rbxthumb://type=AvatarHeadShot&id=" .. player.UserId .. "&w=150&h=150"
+	Instance.new("UICorner", icon).CornerRadius = UDim.new(0, 15)
+	
+	-- Ник игрока
+	local nickLabel = Instance.new("TextLabel", gui)
+	nickLabel.Size = UDim2.new(0, 400, 0, 50)
+	nickLabel.Position = UDim2.new(0.5, -200, 0.55, 0)
+	nickLabel.BackgroundTransparency = 0.3
+	nickLabel.BackgroundColor3 = Color3.new(0.05, 0, 0)
+	nickLabel.BorderSizePixel = 2
+	nickLabel.BorderColor3 = Color3.new(1, 0, 0)
+	nickLabel.Text = "Welcome, " .. player.Name .. "!"
+	nickLabel.TextColor3 = Color3.new(1, 0, 0)
+	nickLabel.Font = Enum.Font.GothamBold
+	nickLabel.TextSize = 24
+	Instance.new("UICorner", nickLabel).CornerRadius = UDim.new(0, 10)
+	
+	-- Текст "John Doe"
+	local titleLabel = Instance.new("TextLabel", gui)
+	titleLabel.Size = UDim2.new(0, 400, 0, 40)
+	titleLabel.Position = UDim2.new(0.5, -200, 0.62, 0)
+	titleLabel.BackgroundTransparency = 1
+	titleLabel.Text = "JOHN DOE - 10 PHASES"
+	titleLabel.TextColor3 = Color3.new(0.8, 0.2, 0.2)
+	titleLabel.Font = Enum.Font.GothamBold
+	titleLabel.TextSize = 16
+	
+	-- Анимация появления
+	TweenService:Create(icon, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Position = UDim2.new(0.5, -50, 0.3, -50)}):Play()
+	TweenService:Create(nickLabel, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Position = UDim2.new(0.5, -200, 0.45, 0)}):Play()
+	
+	-- Удаление через 3 секунды
+	task.wait(3)
+	
+	-- Анимация исчезновения
+	TweenService:Create(icon, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.In), {Position = UDim2.new(0.5, -50, -0.3, -50)}):Play()
+	TweenService:Create(nickLabel, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.In), {Position = UDim2.new(0.5, -200, 1.1, 0)}):Play()
+	TweenService:Create(titleLabel, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.In), {TextTransparency = 1}):Play()
+	
+	task.wait(0.5)
+	gui:Destroy()
+end
+
+-- Показываем приветствие при загрузке
+spawn(ShowGreeting)
+
+--===========================================--
+--          CHARACTER SETUP
+--===========================================--
+local ch = chara:GetChildren()
+for i = 1, #ch do
+	if ch[i].Name == "Torso" then
+		if ch[i]:FindFirstChild("roblox") then ch[i].roblox.Transparency = 1 end
+	elseif ch[i].Name == "Head" then
+		if ch[i]:FindFirstChild("face") then ch[i].face.Transparency = 1 end
+		ch[i].Transparency = 1
+	elseif ch[i].ClassName == "Accessory" or ch[i].ClassName == "Shirt" or ch[i].ClassName == "Pants" or ch[i].ClassName == "ShirtGraphic" then
+		ch[i]:Destroy()
+	end
+end
+
+local defaultAnimate = chara:FindFirstChild("Animate")
+if defaultAnimate then defaultAnimate:Destroy() end
+
+chara["Left Arm"].BrickColor = BrickColor.new("Cool yellow")
+chara["Right Arm"].BrickColor = BrickColor.new("Cool yellow")
+chara["Left Leg"].BrickColor = BrickColor.new("Medium blue")
+chara["Right Leg"].BrickColor = BrickColor.new("Medium blue")
+chara.Torso.BrickColor = BrickColor.new("Bright yellow")
+
+--===========================================--
+--          GLOBAL VARIABLES
+--===========================================--
+local CurrentPhase = 0
+local KillCount = 0
+local DamageMultiplier = 1
+local SpeedMultiplier = 1
+local IsSprinting = false
+local GodMode = true
+local bladeactive = false
+local dell = false
+local IsTransitioning = false
+local EmoteActive = false
+local CameraShakeActive = false
+local AttackComboIndex = 0
+local LastFootstepTime = 0
+local DamageTickRate = 0.5
+local LastDamageTick = {}
+
+local PhaseKillReqs = {5, 10, 20, 30, 50, 75, 100, 125, 150, 200}
+
+local PhaseInfo = {
+	[0] = {Name="John Doe",Color=Color3.new(0,0,0),DamageMult=1,SpeedMult=1,SpikeCount=0,DarkLevel=0,WalkSpeed=16,RunSpeed=28,BodyDarkness=0},
+	[1] = {Name="Awakened John Doe",Color=Color3.new(0.6,0,0),DamageMult=1.3,SpeedMult=1.1,SpikeCount=6,DarkLevel=0.1,WalkSpeed=18,RunSpeed=32,BodyDarkness=0.05},
+	[2] = {Name="Corrupted John Doe",Color=Color3.new(0.7,0,0),DamageMult=1.6,SpeedMult=1.2,SpikeCount=12,DarkLevel=0.2,WalkSpeed=20,RunSpeed=36,BodyDarkness=0.1},
+	[3] = {Name="Tainted John Doe",Color=Color3.new(0.8,0,0),DamageMult=2.0,SpeedMult=1.3,SpikeCount=20,DarkLevel=0.3,WalkSpeed=22,RunSpeed=40,BodyDarkness=0.2},
+	[4] = {Name="Darkened John Doe",Color=Color3.new(0.5,0,0),DamageMult=2.5,SpeedMult=1.4,SpikeCount=30,DarkLevel=0.4,WalkSpeed=24,RunSpeed=44,BodyDarkness=0.3},
+	[5] = {Name="Consumed John Doe",Color=Color3.new(0.4,0,0),DamageMult=3.0,SpeedMult=1.5,SpikeCount=42,DarkLevel=0.5,WalkSpeed=26,RunSpeed=48,BodyDarkness=0.4},
+	[6] = {Name="Abyssal John Doe",Color=Color3.new(0.3,0,0),DamageMult=4.0,SpeedMult=1.6,SpikeCount=56,DarkLevel=0.6,WalkSpeed=28,RunSpeed=52,BodyDarkness=0.55},
+	[7] = {Name="Demonic John Doe",Color=Color3.new(0.2,0,0),DamageMult=5.0,SpeedMult=1.7,SpikeCount=72,DarkLevel=0.7,WalkSpeed=30,RunSpeed=56,BodyDarkness=0.7},
+	[8] = {Name="Eldritch John Doe",Color=Color3.new(0.15,0,0),DamageMult=6.5,SpeedMult=1.8,SpikeCount=90,DarkLevel=0.8,WalkSpeed=32,RunSpeed=60,BodyDarkness=0.8},
+	[9] = {Name="Void John Doe",Color=Color3.new(0.1,0,0),DamageMult=8.0,SpeedMult=1.9,SpikeCount=110,DarkLevel=0.9,WalkSpeed=34,RunSpeed=64,BodyDarkness=0.9},
+	[10] = {Name="GOD John Doe",Color=Color3.new(0,0,0),DamageMult=12.0,SpeedMult=2.0,SpikeCount=140,DarkLevel=1.0,WalkSpeed=38,RunSpeed=72,BodyDarkness=1.0},
+}
+
+--===========================================--
+--     ENHANCED PHASE ABILITIES (НОВОЕ)
+--===========================================--
+-- Фаза 1: Красные частицы вокруг
+local Phase1Abilities = {
+	function() -- Пассивная красная аура
+		local p = Instance.new("ParticleEmitter", chara.Torso)
+		p.Size = NumberSequence.new(0.2)
+		p.Lifetime = NumberRange.new(1)
+		p.Speed = NumberRange.new(1)
+		p.Rate = 20
+		p.Color = ColorSequence.new(Color3.new(1, 0, 0))
+		p.Texture = "rbxasset://textures/particles/smoke_main.dds"
+	end
+}
+
+-- Фаза 2: Волны урона при ходьбе
+local Phase2AbilityCD = 0
+local function Phase2WaveAttack()
+	if tick() - Phase2AbilityCD < 2 then return end
+	Phase2AbilityCD = tick()
+	local wave = Instance.new("Part", workspace)
+	wave.Shape = "Ball"
+	wave.Size = Vector3.new(2, 2, 2)
+	wave.Position = chara.Torso.Position
+	wave.Material = Enum.Material.Neon
+	wave.Color = Color3.new(1, 0, 0)
+	wave.Anchored = true
+	wave.CanCollide = false
+	wave.Transparency = 0.5
+	
+	spawn(function()
+		for i = 1, 30 do
+			wave.Size = Vector3.new(4*i, 4*i, 4*i)
+			wave.Transparency = 0.5 + (i/30)*0.5
+			for _, target in pairs(GetAllTargetsInRange(wave.Position, 8*i/30)) do
+				local h = target:FindFirstChild("Humanoid")
+				if h and h.Health > 0 then
+					h.Health = h.Health - 5
+					if h.Health <= 0 then KillMortal(target) end
+				end
+			end
+			wait(0.03)
+		end
+		wave:Destroy()
+	end)
+end
+
+-- Фаза 3: Спонтанные взрывы
+local Phase3ExplosionCD = 0
+local function Phase3SpontaneousExplosion()
+	if tick() - Phase3ExplosionCD < 3 then return end
+	Phase3ExplosionCD = tick()
+	local explosions = math.floor(CurrentPhase/2)
+	for i = 1, explosions do
+		spawn(function()
+			local exp = Instance.new("Part", workspace)
+			exp.Shape = "Ball"
+			exp.Size = Vector3.new(5, 5, 5)
+			exp.Position = chara.Torso.Position + Vector3.new(math.random(-15, 15), math.random(-5, 15), math.random(-15, 15))
+			exp.Material = Enum.Material.Neon
+			exp.Color = Color3.new(1, 0.2, 0)
+			exp.Anchored = true
+			exp.CanCollide = false
+			exp.Transparency = 0.3
+			
+			for j = 1, 15 do
+				exp.Size = exp.Size + Vector3.new(2, 2, 2)
+				exp.Transparency = 0.3 + (j/15)*0.7
+				for _, target in pairs(GetAllTargetsInRange(exp.Position, 10)) do
+					local h = target:FindFirstChild("Humanoid")
+					if h and h.Health > 0 then h.Health = h.Health - 3 end
+				end
+				wait(0.03)
+			end
+			exp:Destroy()
+		end)
+	end
+end
+
+-- Фаза 4: Шокирующие волны при атаке
+local Phase4ShockCD = 0
+local function Phase4ShockWave()
+	if tick() - Phase4ShockCD < 1.5 then return end
+	Phase4ShockCD = tick()
+	for i = 1, 3 do
+		spawn(function()
+			local shock = Instance.new("Part", workspace)
+			shock.Shape = "Cylinder"
+			shock.Size = Vector3.new(1, 20, 20)
+			shock.CFrame = chara.Torso.CFrame * CFrame.Angles(0, 0, math.rad(90))
+			shock.Material = Enum.Material.Neon
+			shock.Color = Color3.new(1, 0, 0)
+			shock.Anchored = true
+			shock.CanCollide = false
+			shock.Transparency = 0.5
+			
+			for j = 1, 20 do
+				shock.Size = Vector3.new(1, 20 + j*2, 20 + j*2)
+				shock.CFrame = chara.Torso.CFrame * CFrame.Angles(0, 0, math.rad(90))
+				shock.Transparency = 0.5 + (j/20)*0.5
+				wait(0.03)
+			end
+			shock:Destroy()
+		end)
+	end
+end
+
+-- Фаза 5-10: Прогрессивные эффекты
+local function PhaseProgressiveEffect()
+	if CurrentPhase >= 5 then
+		-- Тёмные шары кружат вокруг
+		spawn(function()
+			for i = 1, 3 do
+				local orb = Instance.new("Part", chara)
+				orb.Shape = "Ball"
+				orb.Size = Vector3.new(0.5, 0.5, 0.5)
+				orb.Material = Enum.Material.Neon
+				orb.Color = Color3.new(1, 0, 0)
+				orb.CanCollide = false
+				orb.Anchored = true
+				
+				spawn(function()
+					while orb and orb.Parent do
+						local angle = (i/3)*math.pi*2 + tick()
+						orb.Position = chara.Torso.Position + Vector3.new(math.cos(angle)*5, math.sin(tick())*2, math.sin(angle)*5)
+						wait(0.02)
+					end
+				end)
+			end
+		end)
+	end
+	
+	if CurrentPhase >= 7 then
+		-- Огненные вспышки на прыжке
+		if Humanoid.Jumping then
+			for i = 1, 5 do
+				local flame = Instance.new("Part", workspace)
+				flame.Shape = "Ball"
+				flame.Size = Vector3.new(2, 2, 2)
+				flame.Position = chara.Torso.Position + Vector3.new(math.random(-8, 8), 0, math.random(-8, 8))
+				flame.Material = Enum.Material.Neon
+				flame.Color = Color3.new(1, 0.3, 0)
+				flame.Anchored = true
+				flame.CanCollide = false
+				
+				spawn(function()
+					for j = 1, 10 do
+						flame.Transparency = j/10
+						wait(0.1)
+					end
+					flame:Destroy()
+				end)
+			end
+		end
+	end
+end
+
+-- Остальной код... (вставьте оставшийся код из оригинального скрипта)
+-- Здесь должны быть все функции: MegaSpikeData, Particle Effects, Sound System и т.д.
+
+-- ВСТАВЬТЕ ВЕСЬ КОД ИЗ ОРИГИНАЛЬНОГО СКРИПТА НАЧИНАЯ С MegaSpikeData И ДО КОНЦА
+
+--===========================================--
+--     PHASE PASSIVE EFFECTS (В MAIN LOOP)
+--===========================================--
+RunService.RenderStepped:Connect(function()
+	if CurrentPhase >= 1 then Phase2WaveAttack() end
+	if CurrentPhase >= 2 then Phase3SpontaneousExplosion() end
+	if CurrentPhase >= 3 then Phase4ShockWave() end
+	if CurrentPhase >= 4 then PhaseProgressiveEffect() end
+end)
