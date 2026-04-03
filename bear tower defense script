@@ -1,0 +1,2721 @@
+-- ====================================
+-- PUZZLE AUTO-SOLVER PRO V3.0 ULTIMATE
+-- Расширенная версия с улучшенным дизайном
+-- ====================================
+
+-- Сервисы
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local HttpService = game:GetService("HttpService")
+local StarterGui = game:GetService("StarterGui")
+local TextService = game:GetService("TextService")
+local SoundService = game:GetService("SoundService")
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+-- ====================================
+-- СИСТЕМА ЗВУКОВ
+-- ====================================
+
+local SoundSystem = {}
+SoundSystem.Sounds = {}
+
+-- Звуковые эффекты
+local SoundLibrary = {
+    Click = "rbxassetid://6895079853",
+    Success = "rbxassetid://6895079853",
+    Error = "rbxassetid://1464489009",
+    Hover = "rbxassetid://6895079853",
+    Notification = "rbxassetid://9086208751",
+    Toggle = "rbxassetid://6895079853",
+    Slide = "rbxassetid://6895079853",
+    Open = "rbxassetid://6895079853",
+    Close = "rbxassetid://1464489009",
+    Achievement = "rbxassetid://9086208751",
+    Warning = "rbxassetid://6895079853",
+    Transition = "rbxassetid://6895079853"
+}
+
+function SoundSystem:CreateSound(soundId, volume, pitch)
+    local sound = Instance.new("Sound")
+    sound.SoundId = soundId
+    sound.Volume = volume or 0.5
+    sound.PlaybackSpeed = pitch or 1
+    sound.Parent = SoundService
+    return sound
+end
+
+function SoundSystem:Play(soundName)
+    if SoundLibrary[soundName] then
+        local sound = self:CreateSound(SoundLibrary[soundName], 0.3, 1)
+        sound:Play()
+        game:GetService("Debris"):AddItem(sound, 2)
+    end
+end
+
+function SoundSystem:PlayWithPitch(soundName, pitch)
+    if SoundLibrary[soundName] then
+        local sound = self:CreateSound(SoundLibrary[soundName], 0.3, pitch)
+        sound:Play()
+        game:GetService("Debris"):AddItem(sound, 2)
+    end
+end
+
+-- ====================================
+-- РАСШИРЕННАЯ ПАЛИТРА ЦВЕТОВ
+-- ====================================
+
+local ColorPalettes = {
+    Default = {
+        Name = "Ocean Blue",
+        Primary = Color3.fromRGB(20, 25, 40),
+        Secondary = Color3.fromRGB(30, 35, 55),
+        Tertiary = Color3.fromRGB(40, 45, 65),
+        Accent = Color3.fromRGB(41, 128, 185),
+        AccentLight = Color3.fromRGB(52, 152, 219),
+        AccentDark = Color3.fromRGB(31, 97, 141),
+        Success = Color3.fromRGB(46, 204, 113),
+        SuccessLight = Color3.fromRGB(82, 222, 141),
+        Warning = Color3.fromRGB(241, 196, 15),
+        WarningLight = Color3.fromRGB(254, 211, 48),
+        Error = Color3.fromRGB(231, 76, 60),
+        ErrorLight = Color3.fromRGB(245, 106, 90),
+        Text = Color3.fromRGB(255, 255, 255),
+        TextDark = Color3.fromRGB(189, 195, 199),
+        TextMuted = Color3.fromRGB(127, 140, 141),
+        Shadow = Color3.fromRGB(0, 0, 0),
+        Glow = Color3.fromRGB(52, 152, 219)
+    },
+    
+    Sunset = {
+        Name = "Sunset Vibes",
+        Primary = Color3.fromRGB(25, 20, 30),
+        Secondary = Color3.fromRGB(35, 30, 45),
+        Tertiary = Color3.fromRGB(45, 40, 60),
+        Accent = Color3.fromRGB(255, 107, 107),
+        AccentLight = Color3.fromRGB(255, 159, 159),
+        AccentDark = Color3.fromRGB(200, 80, 80),
+        Success = Color3.fromRGB(126, 214, 223),
+        SuccessLight = Color3.fromRGB(163, 228, 235),
+        Warning = Color3.fromRGB(255, 195, 113),
+        WarningLight = Color3.fromRGB(255, 218, 168),
+        Error = Color3.fromRGB(250, 82, 82),
+        ErrorLight = Color3.fromRGB(255, 138, 138),
+        Text = Color3.fromRGB(255, 255, 255),
+        TextDark = Color3.fromRGB(200, 200, 200),
+        TextMuted = Color3.fromRGB(150, 150, 150),
+        Shadow = Color3.fromRGB(0, 0, 0),
+        Glow = Color3.fromRGB(255, 159, 159)
+    },
+    
+    CyberPunk = {
+        Name = "Cyber Punk",
+        Primary = Color3.fromRGB(15, 15, 25),
+        Secondary = Color3.fromRGB(25, 25, 40),
+        Tertiary = Color3.fromRGB(35, 35, 55),
+        Accent = Color3.fromRGB(255, 0, 255),
+        AccentLight = Color3.fromRGB(255, 100, 255),
+        AccentDark = Color3.fromRGB(200, 0, 200),
+        Success = Color3.fromRGB(0, 255, 255),
+        SuccessLight = Color3.fromRGB(100, 255, 255),
+        Warning = Color3.fromRGB(255, 255, 0),
+        WarningLight = Color3.fromRGB(255, 255, 100),
+        Error = Color3.fromRGB(255, 0, 100),
+        ErrorLight = Color3.fromRGB(255, 100, 150),
+        Text = Color3.fromRGB(255, 255, 255),
+        TextDark = Color3.fromRGB(200, 200, 255),
+        TextMuted = Color3.fromRGB(150, 150, 200),
+        Shadow = Color3.fromRGB(0, 0, 0),
+        Glow = Color3.fromRGB(255, 0, 255)
+    },
+    
+    Forest = {
+        Name = "Forest Green",
+        Primary = Color3.fromRGB(20, 30, 25),
+        Secondary = Color3.fromRGB(30, 45, 35),
+        Tertiary = Color3.fromRGB(40, 60, 45),
+        Accent = Color3.fromRGB(39, 174, 96),
+        AccentLight = Color3.fromRGB(69, 204, 126),
+        AccentDark = Color3.fromRGB(29, 131, 72),
+        Success = Color3.fromRGB(46, 213, 115),
+        SuccessLight = Color3.fromRGB(83, 233, 151),
+        Warning = Color3.fromRGB(255, 195, 18),
+        WarningLight = Color3.fromRGB(255, 211, 79),
+        Error = Color3.fromRGB(255, 118, 117),
+        ErrorLight = Color3.fromRGB(255, 168, 167),
+        Text = Color3.fromRGB(255, 255, 255),
+        TextDark = Color3.fromRGB(200, 230, 200),
+        TextMuted = Color3.fromRGB(150, 180, 150),
+        Shadow = Color3.fromRGB(0, 0, 0),
+        Glow = Color3.fromRGB(69, 204, 126)
+    },
+    
+    Volcanic = {
+        Name = "Volcanic Fire",
+        Primary = Color3.fromRGB(30, 15, 15),
+        Secondary = Color3.fromRGB(45, 20, 20),
+        Tertiary = Color3.fromRGB(60, 25, 25),
+        Accent = Color3.fromRGB(255, 71, 87),
+        AccentLight = Color3.fromRGB(255, 121, 137),
+        AccentDark = Color3.fromRGB(200, 50, 65),
+        Success = Color3.fromRGB(255, 159, 67),
+        SuccessLight = Color3.fromRGB(255, 189, 117),
+        Warning = Color3.fromRGB(255, 195, 18),
+        WarningLight = Color3.fromRGB(255, 221, 89),
+        Error = Color3.fromRGB(235, 47, 6),
+        ErrorLight = Color3.fromRGB(255, 97, 56),
+        Text = Color3.fromRGB(255, 255, 255),
+        TextDark = Color3.fromRGB(255, 200, 200),
+        TextMuted = Color3.fromRGB(200, 150, 150),
+        Shadow = Color3.fromRGB(0, 0, 0),
+        Glow = Color3.fromRGB(255, 121, 137)
+    },
+    
+    Royal = {
+        Name = "Royal Purple",
+        Primary = Color3.fromRGB(25, 15, 35),
+        Secondary = Color3.fromRGB(35, 25, 50),
+        Tertiary = Color3.fromRGB(45, 35, 65),
+        Accent = Color3.fromRGB(155, 89, 182),
+        AccentLight = Color3.fromRGB(195, 129, 222),
+        AccentDark = Color3.fromRGB(115, 60, 142),
+        Success = Color3.fromRGB(123, 237, 159),
+        SuccessLight = Color3.fromRGB(163, 247, 189),
+        Warning = Color3.fromRGB(247, 183, 49),
+        WarningLight = Color3.fromRGB(255, 203, 99),
+        Error = Color3.fromRGB(250, 92, 124),
+        ErrorLight = Color3.fromRGB(255, 142, 164),
+        Text = Color3.fromRGB(255, 255, 255),
+        TextDark = Color3.fromRGB(220, 200, 255),
+        TextMuted = Color3.fromRGB(170, 150, 200),
+        Shadow = Color3.fromRGB(0, 0, 0),
+        Glow = Color3.fromRGB(195, 129, 222)
+    },
+    
+    Arctic = {
+        Name = "Arctic Ice",
+        Primary = Color3.fromRGB(20, 30, 40),
+        Secondary = Color3.fromRGB(30, 45, 60),
+        Tertiary = Color3.fromRGB(40, 60, 80),
+        Accent = Color3.fromRGB(130, 204, 221),
+        AccentLight = Color3.fromRGB(180, 234, 251),
+        AccentDark = Color3.fromRGB(90, 164, 181),
+        Success = Color3.fromRGB(106, 176, 76),
+        SuccessLight = Color3.fromRGB(146, 216, 116),
+        Warning = Color3.fromRGB(255, 221, 89),
+        WarningLight = Color3.fromRGB(255, 241, 139),
+        Error = Color3.fromRGB(214, 48, 49),
+        ErrorLight = Color3.fromRGB(244, 98, 99),
+        Text = Color3.fromRGB(255, 255, 255),
+        TextDark = Color3.fromRGB(200, 230, 255),
+        TextMuted = Color3.fromRGB(150, 180, 210),
+        Shadow = Color3.fromRGB(0, 0, 0),
+        Glow = Color3.fromRGB(180, 234, 251)
+    },
+    
+    Neon = {
+        Name = "Neon Lights",
+        Primary = Color3.fromRGB(10, 10, 15),
+        Secondary = Color3.fromRGB(15, 15, 25),
+        Tertiary = Color3.fromRGB(20, 20, 35),
+        Accent = Color3.fromRGB(0, 255, 200),
+        AccentLight = Color3.fromRGB(100, 255, 230),
+        AccentDark = Color3.fromRGB(0, 200, 150),
+        Success = Color3.fromRGB(0, 255, 100),
+        SuccessLight = Color3.fromRGB(100, 255, 180),
+        Warning = Color3.fromRGB(255, 220, 0),
+        WarningLight = Color3.fromRGB(255, 240, 100),
+        Error = Color3.fromRGB(255, 50, 150),
+        ErrorLight = Color3.fromRGB(255, 120, 200),
+        Text = Color3.fromRGB(255, 255, 255),
+        TextDark = Color3.fromRGB(200, 255, 240),
+        TextMuted = Color3.fromRGB(150, 200, 180),
+        Shadow = Color3.fromRGB(0, 0, 0),
+        Glow = Color3.fromRGB(100, 255, 230)
+    }
+}
+
+-- ====================================
+-- КОНФИГУРАЦИЯ
+-- ====================================
+
+local Config = {
+    AutoSolveEnabled = false,
+    WaitTime = 0.01,
+    CurrentTheme = "Default",
+    Theme = ColorPalettes.Default,
+    Statistics = {
+        TotalAttempts = 0,
+        SuccessfulAttempts = 0,
+        FailedAttempts = 0,
+        StartTime = 0,
+        RunTime = 0,
+        BestTime = 0,
+        WorstTime = 999999,
+        AverageTime = 0
+    },
+    Advanced = {
+        AntiAFK = true,
+        AutoRejoin = false,
+        SafeMode = false,
+        LoggingEnabled = true,
+        NotificationsEnabled = true,
+        SoundEnabled = true,
+        ParticlesEnabled = true,
+        AnimationsEnabled = true
+    },
+    UI = {
+        Transparency = 0,
+        Scale = 1,
+        AnimationSpeed = 0.3,
+        ShadowIntensity = 0.5
+    }
+}
+
+-- ====================================
+-- СИСТЕМА ЛОГИРОВАНИЯ
+-- ====================================
+
+local Logger = {}
+Logger.Logs = {}
+Logger.MaxLogs = 1000
+
+function Logger:AddLog(message, logType)
+    local timestamp = os.date("%H:%M:%S")
+    local logEntry = {
+        Time = timestamp,
+        Message = message,
+        Type = logType or "INFO",
+        Id = HttpService:GenerateGUID(false)
+    }
+    
+    table.insert(self.Logs, 1, logEntry)
+    
+    if #self.Logs > self.MaxLogs then
+        table.remove(self.Logs, #self.Logs)
+    end
+    
+    if Config.Advanced.LoggingEnabled then
+        local prefix = string.format("[%s] [%s]", timestamp, logEntry.Type)
+        if logType == "ERROR" then
+            warn(prefix, message)
+        else
+            print(prefix, message)
+        end
+    end
+    
+    return logEntry
+end
+
+function Logger:GetLogs(count)
+    count = count or 10
+    local logs = {}
+    for i = 1, math.min(count, #self.Logs) do
+        table.insert(logs, self.Logs[i])
+    end
+    return logs
+end
+
+function Logger:Clear()
+    self.Logs = {}
+    SoundSystem:Play("Success")
+end
+
+function Logger:ExportLogs()
+    local export = "=== PUZZLE SOLVER LOGS ===\n"
+    export = export .. "Exported: " .. os.date("%Y-%m-%d %H:%M:%S") .. "\n\n"
+    
+    for i, log in ipairs(self.Logs) do
+        export = export .. string.format("[%s] [%s] %s\n", log.Time, log.Type, log.Message)
+    end
+    
+    return export
+end
+
+-- ====================================
+-- СИСТЕМА ЧАСТИЦ
+-- ====================================
+
+local ParticleSystem = {}
+
+function ParticleSystem:CreateParticle(parent, color)
+    if not Config.Advanced.ParticlesEnabled then return end
+    
+    local particle = Instance.new("ParticleEmitter")
+    particle.Parent = parent
+    particle.Color = ColorSequence.new(color)
+    particle.Size = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, 0),
+        NumberSequenceKeypoint.new(0.5, 1),
+        NumberSequenceKeypoint.new(1, 0)
+    })
+    particle.Transparency = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, 1),
+        NumberSequenceKeypoint.new(0.5, 0),
+        NumberSequenceKeypoint.new(1, 1)
+    })
+    particle.Lifetime = NumberRange.new(0.5, 1)
+    particle.Rate = 20
+    particle.Speed = NumberRange.new(2, 5)
+    particle.SpreadAngle = Vector2.new(180, 180)
+    particle.Enabled = false
+    
+    return particle
+end
+
+function ParticleSystem:Emit(particle, count)
+    if particle and Config.Advanced.ParticlesEnabled then
+        particle:Emit(count or 10)
+    end
+end
+
+-- ====================================
+-- УЛУЧШЕННАЯ СИСТЕМА УВЕДОМЛЕНИЙ
+-- ====================================
+
+local NotificationSystem = {}
+NotificationSystem.ActiveNotifications = {}
+NotificationSystem.Queue = {}
+
+function NotificationSystem:CreateNotification(title, message, duration, notifType)
+    if not Config.Advanced.NotificationsEnabled then return end
+    
+    duration = duration or 3
+    notifType = notifType or "INFO"
+    
+    -- Добавляем в очередь если много уведомлений
+    if #self.ActiveNotifications >= 3 then
+        table.insert(self.Queue, {
+            title = title,
+            message = message,
+            duration = duration,
+            notifType = notifType
+        })
+        return
+    end
+    
+    SoundSystem:Play("Notification")
+    
+    local notifGui = Instance.new("ScreenGui")
+    notifGui.Name = "Notification_" .. HttpService:GenerateGUID(false)
+    notifGui.Parent = PlayerGui
+    notifGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    notifGui.DisplayOrder = 100
+    
+    local notifFrame = Instance.new("Frame")
+    notifFrame.Size = UDim2.new(0, 350, 0, 0)
+    notifFrame.Position = UDim2.new(1, -370, 1, 20)
+    notifFrame.BackgroundColor3 = Config.Theme.Secondary
+    notifFrame.BorderSizePixel = 0
+    notifFrame.ClipsDescendants = true
+    notifFrame.Parent = notifGui
+    
+    -- Тень
+    local shadow = Instance.new("ImageLabel")
+    shadow.Name = "Shadow"
+    shadow.Size = UDim2.new(1, 30, 1, 30)
+    shadow.Position = UDim2.new(0, -15, 0, -15)
+    shadow.BackgroundTransparency = 1
+    shadow.Image = "rbxassetid://5554236805"
+    shadow.ImageColor3 = Config.Theme.Shadow
+    shadow.ImageTransparency = 0.7
+    shadow.ScaleType = Enum.ScaleType.Slice
+    shadow.SliceCenter = Rect.new(23, 23, 277, 277)
+    shadow.ZIndex = -1
+    shadow.Parent = notifFrame
+    
+    local uiCorner = Instance.new("UICorner")
+    uiCorner.CornerRadius = UDim.new(0, 12)
+    uiCorner.Parent = notifFrame
+    
+    local uiStroke = Instance.new("UIStroke")
+    uiStroke.Color = self:GetColorByType(notifType)
+    uiStroke.Thickness = 3
+    uiStroke.Transparency = 0
+    uiStroke.Parent = notifFrame
+    
+    -- Градиент фона
+    local gradient = Instance.new("UIGradient")
+    gradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Config.Theme.Secondary),
+        ColorSequenceKeypoint.new(1, Config.Theme.Tertiary)
+    })
+    gradient.Rotation = 45
+    gradient.Parent = notifFrame
+    
+    -- Иконка
+    local iconContainer = Instance.new("Frame")
+    iconContainer.Size = UDim2.new(0, 60, 1, 0)
+    iconContainer.BackgroundColor3 = self:GetColorByType(notifType)
+    iconContainer.BorderSizePixel = 0
+    iconContainer.Parent = notifFrame
+    
+    local iconCorner = Instance.new("UICorner")
+    iconCorner.CornerRadius = UDim.new(0, 12)
+    iconCorner.Parent = iconContainer
+    
+    local iconGradient = Instance.new("UIGradient")
+    iconGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, self:GetColorByType(notifType)),
+        ColorSequenceKeypoint.new(1, self:GetDarkColorByType(notifType))
+    })
+    iconGradient.Rotation = 90
+    iconGradient.Parent = iconContainer
+    
+    local iconLabel = Instance.new("TextLabel")
+    iconLabel.Size = UDim2.new(1, 0, 1, 0)
+    iconLabel.BackgroundTransparency = 1
+    iconLabel.Text = self:GetIconByType(notifType)
+    iconLabel.TextColor3 = Config.Theme.Text
+    iconLabel.TextSize = 32
+    iconLabel.Font = Enum.Font.GothamBold
+    iconLabel.Parent = iconContainer
+    
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Size = UDim2.new(1, -80, 0, 30)
+    titleLabel.Position = UDim2.new(0, 70, 0, 10)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Text = title
+    titleLabel.TextColor3 = Config.Theme.Text
+    titleLabel.TextSize = 18
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    titleLabel.Parent = notifFrame
+    
+    -- Эффект свечения для текста
+    local titleStroke = Instance.new("UIStroke")
+    titleStroke.Color = self:GetColorByType(notifType)
+    titleStroke.Thickness = 0
+    titleStroke.Transparency = 0.8
+    titleStroke.Parent = titleLabel
+    
+    local messageLabel = Instance.new("TextLabel")
+    messageLabel.Size = UDim2.new(1, -80, 0, 50)
+    messageLabel.Position = UDim2.new(0, 70, 0, 35)
+    messageLabel.BackgroundTransparency = 1
+    messageLabel.Text = message
+    messageLabel.TextColor3 = Config.Theme.TextDark
+    messageLabel.TextSize = 14
+    messageLabel.Font = Enum.Font.Gotham
+    messageLabel.TextXAlignment = Enum.TextXAlignment.Left
+    messageLabel.TextYAlignment = Enum.TextYAlignment.Top
+    messageLabel.TextWrapped = true
+    messageLabel.Parent = notifFrame
+    
+    local progressBar = Instance.new("Frame")
+    progressBar.Size = UDim2.new(1, 0, 0, 4)
+    progressBar.Position = UDim2.new(0, 0, 1, -4)
+    progressBar.BackgroundColor3 = self:GetColorByType(notifType)
+    progressBar.BorderSizePixel = 0
+    progressBar.Parent = notifFrame
+    
+    local progressGradient = Instance.new("UIGradient")
+    progressGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, self:GetColorByType(notifType)),
+        ColorSequenceKeypoint.new(1, self:GetLightColorByType(notifType))
+    })
+    progressGradient.Parent = progressBar
+    
+    -- Частицы
+    local particleAttachment = Instance.new("Attachment")
+    particleAttachment.Position = Vector3.new(0, 0, 0)
+    particleAttachment.Parent = notifFrame
+    
+    local particle = ParticleSystem:CreateParticle(particleAttachment, self:GetColorByType(notifType))
+    if particle then
+        ParticleSystem:Emit(particle, 20)
+    end
+    
+    -- Добавляем в список активных
+    table.insert(self.ActiveNotifications, notifGui)
+    
+    -- Пересчитываем позиции всех уведомлений
+    self:RepositionNotifications()
+    
+    -- Анимация появления
+    local appearTween = TweenService:Create(
+        notifFrame,
+        TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+        {Size = UDim2.new(0, 350, 0, 100)}
+    )
+    appearTween:Play()
+    
+    -- Анимация свечения границы
+    task.spawn(function()
+        while notifFrame.Parent do
+            TweenService:Create(
+                uiStroke,
+                TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
+                {Transparency = 0.3}
+            ):Play()
+            task.wait(1)
+            TweenService:Create(
+                uiStroke,
+                TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
+                {Transparency = 0}
+            ):Play()
+            task.wait(1)
+        end
+    end)
+    
+    -- Анимация прогресс-бара
+    task.delay(0.5, function()
+        TweenService:Create(
+            progressBar,
+            TweenInfo.new(duration, Enum.EasingStyle.Linear),
+            {Size = UDim2.new(0, 0, 0, 4)}
+        ):Play()
+    end)
+    
+    -- Удаление уведомления
+    task.delay(duration + 0.5, function()
+        local disappearTween = TweenService:Create(
+            notifFrame,
+            TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In),
+            {
+                Size = UDim2.new(0, 350, 0, 0),
+                Position = UDim2.new(1, -370, notifFrame.Position.Y.Scale, notifFrame.Position.Y.Offset)
+            }
+        )
+        disappearTween:Play()
+        
+        task.wait(0.3)
+        
+        -- Удаляем из списка активных
+        for i, notif in ipairs(self.ActiveNotifications) do
+            if notif == notifGui then
+                table.remove(self.ActiveNotifications, i)
+                break
+            end
+        end
+        
+        notifGui:Destroy()
+        
+        -- Показываем следующее из очереди
+        if #self.Queue > 0 then
+            local next = table.remove(self.Queue, 1)
+            self:CreateNotification(next.title, next.message, next.duration, next.notifType)
+        else
+            self:RepositionNotifications()
+        end
+    end)
+end
+
+function NotificationSystem:RepositionNotifications()
+    local offset = 20
+    for i, notifGui in ipairs(self.ActiveNotifications) do
+        local frame = notifGui:FindFirstChild("MainFrame") or notifGui:GetChildren()[1]
+        if frame then
+            TweenService:Create(
+                frame,
+                TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+                {Position = UDim2.new(1, -370, 1, -(offset + (i - 1) * 110))}
+            ):Play()
+        end
+    end
+end
+
+function NotificationSystem:GetColorByType(notifType)
+    local colors = {
+        INFO = Config.Theme.Accent,
+        SUCCESS = Config.Theme.Success,
+        WARNING = Config.Theme.Warning,
+        ERROR = Config.Theme.Error
+    }
+    return colors[notifType] or Config.Theme.Accent
+end
+
+function NotificationSystem:GetLightColorByType(notifType)
+    local colors = {
+        INFO = Config.Theme.AccentLight,
+        SUCCESS = Config.Theme.SuccessLight,
+        WARNING = Config.Theme.WarningLight,
+        ERROR = Config.Theme.ErrorLight
+    }
+    return colors[notifType] or Config.Theme.AccentLight
+end
+
+function NotificationSystem:GetDarkColorByType(notifType)
+    local colors = {
+        INFO = Config.Theme.AccentDark,
+        SUCCESS = Config.Theme.Success,
+        WARNING = Config.Theme.Warning,
+        ERROR = Config.Theme.Error
+    }
+    return colors[notifType] or Config.Theme.AccentDark
+end
+
+function NotificationSystem:GetIconByType(notifType)
+    local icons = {
+        INFO = "ℹ️",
+        SUCCESS = "✅",
+        WARNING = "⚠️",
+        ERROR = "❌"
+    }
+    return icons[notifType] or "ℹ️"
+end
+
+-- ====================================
+-- СИСТЕМА СТАТИСТИКИ
+-- ====================================
+
+local Statistics = {}
+
+function Statistics:Start()
+    Config.Statistics.StartTime = tick()
+end
+
+function Statistics:Update()
+    if Config.Statistics.StartTime > 0 then
+        Config.Statistics.RunTime = tick() - Config.Statistics.StartTime
+    end
+end
+
+function Statistics:GetRunTime()
+    local runtime = Config.Statistics.RunTime
+    local hours = math.floor(runtime / 3600)
+    local minutes = math.floor((runtime % 3600) / 60)
+    local seconds = math.floor(runtime % 60)
+    return string.format("%02d:%02d:%02d", hours, minutes, seconds)
+end
+
+function Statistics:GetSuccessRate()
+    if Config.Statistics.TotalAttempts == 0 then return 0 end
+    return (Config.Statistics.SuccessfulAttempts / Config.Statistics.TotalAttempts) * 100
+end
+
+function Statistics:GetAttemptsPerSecond()
+    if Config.Statistics.RunTime == 0 then return 0 end
+    return Config.Statistics.TotalAttempts / Config.Statistics.RunTime
+end
+
+function Statistics:Reset()
+    SoundSystem:Play("Warning")
+    Config.Statistics = {
+        TotalAttempts = 0,
+        SuccessfulAttempts = 0,
+        FailedAttempts = 0,
+        StartTime = 0,
+        RunTime = 0,
+        BestTime = 0,
+        WorstTime = 999999,
+        AverageTime = 0
+    }
+end
+
+-- ====================================
+-- ANTI-AFK СИСТЕМА
+-- ====================================
+
+local AntiAFK = {}
+AntiAFK.Connections = {}
+
+function AntiAFK:Enable()
+    self:Disable()
+    
+    local VirtualUser = game:GetService("VirtualUser")
+    
+    self.Connections.Idled = LocalPlayer.Idled:Connect(function()
+        VirtualUser:CaptureController()
+        VirtualUser:ClickButton2(Vector2.new())
+        Logger:AddLog("Anti-AFK активирован", "INFO")
+        NotificationSystem:CreateNotification("Anti-AFK", "Prevented AFK kick!", 2, "INFO")
+    end)
+    
+    self.Connections.RandomMovement = RunService.Heartbeat:Connect(function()
+        if math.random(1, 2000) == 1 then
+            local character = LocalPlayer.Character
+            if character and character:FindFirstChild("Humanoid") then
+                local humanoid = character.Humanoid
+                humanoid:Move(Vector3.new(math.random(-1, 1), 0, math.random(-1, 1)))
+            end
+        end
+    end)
+    
+    Logger:AddLog("Anti-AFK система включена", "SUCCESS")
+end
+
+function AntiAFK:Disable()
+    for _, connection in pairs(self.Connections) do
+        if connection then
+            connection:Disconnect()
+        end
+    end
+    self.Connections = {}
+    Logger:AddLog("Anti-AFK система отключена", "INFO")
+end
+
+-- ====================================
+-- СИСТЕМА AUTO-REJOIN
+-- ====================================
+
+local AutoRejoin = {}
+
+function AutoRejoin:Enable()
+    local TeleportService = game:GetService("TeleportService")
+    
+    game:GetService("CoreGui").RobloxPromptGui.promptOverlay.ChildAdded:Connect(function(child)
+        if child.Name == 'ErrorPrompt' and child:FindFirstChild('MessageArea') and child.MessageArea:FindFirstChild("ErrorFrame") then
+            TeleportService:Teleport(game.PlaceId, LocalPlayer)
+        end
+    end)
+    
+    Logger:AddLog("Auto-Rejoin система включена", "SUCCESS")
+end
+
+-- ====================================
+-- ФУНКЦИИ СОЗДАНИЯ UI ЭЛЕМЕНТОВ
+-- ====================================
+
+local UICreator = {}
+
+function UICreator:CreateShadow(parent, intensity)
+    intensity = intensity or Config.UI.ShadowIntensity
+    
+    local shadow = Instance.new("ImageLabel")
+    shadow.Name = "Shadow"
+    shadow.Size = UDim2.new(1, 40, 1, 40)
+    shadow.Position = UDim2.new(0, -20, 0, -20)
+    shadow.BackgroundTransparency = 1
+    shadow.Image = "rbxassetid://5554236805"
+    shadow.ImageColor3 = Config.Theme.Shadow
+    shadow.ImageTransparency = 0.3 + (1 - intensity) * 0.7
+    shadow.ScaleType = Enum.ScaleType.Slice
+    shadow.SliceCenter = Rect.new(23, 23, 277, 277)
+    shadow.ZIndex = parent.ZIndex - 1
+    shadow.Parent = parent
+    
+    return shadow
+end
+
+function UICreator:CreateGlow(parent, color)
+    local glow = Instance.new("ImageLabel")
+    glow.Name = "Glow"
+    glow.Size = UDim2.new(1, 60, 1, 60)
+    glow.Position = UDim2.new(0, -30, 0, -30)
+    glow.BackgroundTransparency = 1
+    glow.Image = "rbxassetid://5554236805"
+    glow.ImageColor3 = color or Config.Theme.Glow
+    glow.ImageTransparency = 0.5
+    glow.ScaleType = Enum.ScaleType.Slice
+    glow.SliceCenter = Rect.new(23, 23, 277, 277)
+    glow.ZIndex = parent.ZIndex - 1
+    glow.Parent = parent
+    
+    -- Анимация пульсации
+    task.spawn(function()
+        while glow.Parent do
+            TweenService:Create(
+                glow,
+                TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
+                {ImageTransparency = 0.8}
+            ):Play()
+            task.wait(1.5)
+            TweenService:Create(
+                glow,
+                TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
+                {ImageTransparency = 0.5}
+            ):Play()
+            task.wait(1.5)
+        end
+    end)
+    
+    return glow
+end
+
+function UICreator:CreateGradient(parent, rotation)
+    local gradient = Instance.new("UIGradient")
+    gradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Config.Theme.Secondary),
+        ColorSequenceKeypoint.new(1, Config.Theme.Tertiary)
+    })
+    gradient.Rotation = rotation or 45
+    gradient.Parent = parent
+    return gradient
+end
+
+function UICreator:AddHoverEffect(button)
+    local originalColor = button.BackgroundColor3
+    local originalSize = button.Size
+    
+    button.MouseEnter:Connect(function()
+        if Config.Advanced.SoundEnabled then
+            SoundSystem:PlayWithPitch("Hover", 1.2)
+        end
+        
+        TweenService:Create(
+            button,
+            TweenInfo.new(0.2, Enum.EasingStyle.Quad),
+            {
+                BackgroundColor3 = Color3.fromRGB(
+                    math.min(originalColor.R * 255 * 1.2, 255),
+                    math.min(originalColor.G * 255 * 1.2, 255),
+                    math.min(originalColor.B * 255 * 1.2, 255)
+                ),
+                Size = UDim2.new(originalSize.X.Scale * 1.02, originalSize.X.Offset, originalSize.Y.Scale * 1.02, originalSize.Y.Offset)
+            }
+        ):Play()
+    end)
+    
+    button.MouseLeave:Connect(function()
+        TweenService:Create(
+            button,
+            TweenInfo.new(0.2, Enum.EasingStyle.Quad),
+            {
+                BackgroundColor3 = originalColor,
+                Size = originalSize
+            }
+        ):Play()
+    end)
+end
+
+function UICreator:AddClickEffect(button)
+    button.MouseButton1Down:Connect(function()
+        if Config.Advanced.SoundEnabled then
+            SoundSystem:Play("Click")
+        end
+        
+        local originalSize = button.Size
+        TweenService:Create(
+            button,
+            TweenInfo.new(0.1, Enum.EasingStyle.Quad),
+            {Size = UDim2.new(originalSize.X.Scale * 0.95, originalSize.X.Offset, originalSize.Y.Scale * 0.95, originalSize.Y.Offset)}
+        ):Play()
+    end)
+    
+    button.MouseButton1Up:Connect(function()
+        local originalSize = button.Size
+        TweenService:Create(
+            button,
+            TweenInfo.new(0.1, Enum.EasingStyle.Quad),
+            {Size = UDim2.new(originalSize.X.Scale / 0.95, originalSize.X.Offset, originalSize.Y.Scale / 0.95, originalSize.Y.Offset)}
+        ):Play()
+    end)
+end
+
+-- ====================================
+-- СОЗДАНИЕ ГЛАВНОГО GUI
+-- ====================================
+
+local function CreateGUI()
+    -- Удаляем старый GUI если существует
+    if PlayerGui:FindFirstChild("PuzzleSolverGUI") then
+        PlayerGui:FindFirstChild("PuzzleSolverGUI"):Destroy()
+    end
+    
+    SoundSystem:Play("Open")
+    
+    -- Основной ScreenGui
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "PuzzleSolverGUI"
+    screenGui.Parent = PlayerGui
+    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    screenGui.ResetOnSpawn = false
+    screenGui.DisplayOrder = 10
+    
+    -- Главный фрейм
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Name = "MainFrame"
+    mainFrame.Size = UDim2.new(0, 700, 0, 500)
+    mainFrame.Position = UDim2.new(0.5, -350, 0.5, -250)
+    mainFrame.BackgroundColor3 = Config.Theme.Primary
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Active = true
+    mainFrame.Draggable = true
+    mainFrame.ClipsDescendants = false
+    mainFrame.Parent = screenGui
+    
+    -- Тень
+    UICreator:CreateShadow(mainFrame, 0.8)
+    
+    -- Свечение
+    UICreator:CreateGlow(mainFrame, Config.Theme.Glow)
+    
+    local mainCorner = Instance.new("UICorner")
+    mainCorner.CornerRadius = UDim.new(0, 16)
+    mainCorner.Parent = mainFrame
+    
+    local mainStroke = Instance.new("UIStroke")
+    mainStroke.Color = Config.Theme.Accent
+    mainStroke.Thickness = 3
+    mainStroke.Transparency = 0
+    mainStroke.Parent = mainFrame
+    
+    -- Градиент
+    UICreator:CreateGradient(mainFrame, 135)
+    
+    -- Анимация свечения границы
+    task.spawn(function()
+        while mainFrame.Parent do
+            TweenService:Create(
+                mainStroke,
+                TweenInfo.new(2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
+                {Color = Config.Theme.AccentLight}
+            ):Play()
+            task.wait(2)
+            TweenService:Create(
+                mainStroke,
+                TweenInfo.new(2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
+                {Color = Config.Theme.Accent}
+            ):Play()
+            task.wait(2)
+        end
+    end)
+    
+    -- Заголовок
+    local titleBar = Instance.new("Frame")
+    titleBar.Name = "TitleBar"
+    titleBar.Size = UDim2.new(1, 0, 0, 60)
+    titleBar.BackgroundColor3 = Config.Theme.Secondary
+    titleBar.BorderSizePixel = 0
+    titleBar.Parent = mainFrame
+    
+    local titleCorner = Instance.new("UICorner")
+    titleCorner.CornerRadius = UDim.new(0, 16)
+    titleCorner.Parent = titleBar
+    
+    local titleGradient = UICreator:CreateGradient(titleBar, 90)
+    
+    -- Декоративные линии
+    local decorLine1 = Instance.new("Frame")
+    decorLine1.Size = UDim2.new(0, 3, 0, 40)
+    decorLine1.Position = UDim2.new(0, 10, 0, 10)
+    decorLine1.BackgroundColor3 = Config.Theme.Accent
+    decorLine1.BorderSizePixel = 0
+    decorLine1.Parent = titleBar
+    
+    local decorCorner1 = Instance.new("UICorner")
+    decorCorner1.CornerRadius = UDim.new(1, 0)
+    decorCorner1.Parent = decorLine1
+    
+    local decorLine2 = Instance.new("Frame")
+    decorLine2.Size = UDim2.new(0, 3, 0, 30)
+    decorLine2.Position = UDim2.new(0, 18, 0, 15)
+    decorLine2.BackgroundColor3 = Config.Theme.AccentLight
+    decorLine2.BorderSizePixel = 0
+    decorLine2.Parent = titleBar
+    
+    local decorCorner2 = Instance.new("UICorner")
+    decorCorner2.CornerRadius = UDim.new(1, 0)
+    decorCorner2.Parent = decorLine2
+    
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Size = UDim2.new(1, -150, 1, 0)
+    titleLabel.Position = UDim2.new(0, 30, 0, 0)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Text = "⚡ PUZZLE SOLVER PRO V3.0 ULTIMATE"
+    titleLabel.TextColor3 = Config.Theme.Text
+    titleLabel.TextSize = 22
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    titleLabel.Parent = titleBar
+    
+    -- Эффект свечения для заголовка
+    local titleStroke = Instance.new("UIStroke")
+    titleStroke.Color = Config.Theme.Accent
+    titleStroke.Thickness = 0
+    titleStroke.Transparency = 0.5
+    titleStroke.Parent = titleLabel
+    
+    -- Версия
+    local versionLabel = Instance.new("TextLabel")
+    versionLabel.Size = UDim2.new(0, 100, 0, 20)
+    versionLabel.Position = UDim2.new(0, 30, 1, -25)
+    versionLabel.BackgroundTransparency = 1
+    versionLabel.Text = "Build 2024.01"
+    versionLabel.TextColor3 = Config.Theme.TextMuted
+    versionLabel.TextSize = 12
+    versionLabel.Font = Enum.Font.GothamMedium
+    versionLabel.TextXAlignment = Enum.TextXAlignment.Left
+    versionLabel.Parent = titleBar
+    
+    -- Кнопка закрытия
+    local closeButton = Instance.new("TextButton")
+    closeButton.Name = "CloseButton"
+    closeButton.Size = UDim2.new(0, 45, 0, 45)
+    closeButton.Position = UDim2.new(1, -52, 0, 7)
+    closeButton.BackgroundColor3 = Config.Theme.Error
+    closeButton.Text = "✕"
+    closeButton.TextColor3 = Config.Theme.Text
+    closeButton.TextSize = 24
+    closeButton.Font = Enum.Font.GothamBold
+    closeButton.BorderSizePixel = 0
+    closeButton.Parent = titleBar
+    
+    UICreator:CreateShadow(closeButton, 0.6)
+    
+    local closeCorner = Instance.new("UICorner")
+    closeCorner.CornerRadius = UDim.new(0, 10)
+    closeCorner.Parent = closeButton
+    
+    local closeStroke = Instance.new("UIStroke")
+    closeStroke.Color = Config.Theme.ErrorLight
+    closeStroke.Thickness = 2
+    closeStroke.Parent = closeButton
+    
+    local closeGradient = Instance.new("UIGradient")
+    closeGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Config.Theme.Error),
+        ColorSequenceKeypoint.new(1, Config.Theme.ErrorLight)
+    })
+    closeGradient.Rotation = 45
+    closeGradient.Parent = closeButton
+    
+    UICreator:AddHoverEffect(closeButton)
+    UICreator:AddClickEffect(closeButton)
+    
+    -- Кнопка минимизации
+    local minimizeButton = Instance.new("TextButton")
+    minimizeButton.Name = "MinimizeButton"
+    minimizeButton.Size = UDim2.new(0, 45, 0, 45)
+    minimizeButton.Position = UDim2.new(1, -102, 0, 7)
+    minimizeButton.BackgroundColor3 = Config.Theme.Warning
+    minimizeButton.Text = "—"
+    minimizeButton.TextColor3 = Config.Theme.Text
+    minimizeButton.TextSize = 24
+    minimizeButton.Font = Enum.Font.GothamBold
+    minimizeButton.BorderSizePixel = 0
+    minimizeButton.Parent = titleBar
+    
+    UICreator:CreateShadow(minimizeButton, 0.6)
+    
+    local minimizeCorner = Instance.new("UICorner")
+    minimizeCorner.CornerRadius = UDim.new(0, 10)
+    minimizeCorner.Parent = minimizeButton
+    
+    local minimizeStroke = Instance.new("UIStroke")
+    minimizeStroke.Color = Config.Theme.WarningLight
+    minimizeStroke.Thickness = 2
+    minimizeStroke.Parent = minimizeButton
+    
+    local minimizeGradient = Instance.new("UIGradient")
+    minimizeGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Config.Theme.Warning),
+        ColorSequenceKeypoint.new(1, Config.Theme.WarningLight)
+    })
+    minimizeGradient.Rotation = 45
+    minimizeGradient.Parent = minimizeButton
+    
+    UICreator:AddHoverEffect(minimizeButton)
+    UICreator:AddClickEffect(minimizeButton)
+    
+    -- Кнопка настроек темы
+    local themeButton = Instance.new("TextButton")
+    themeButton.Name = "ThemeButton"
+    themeButton.Size = UDim2.new(0, 45, 0, 45)
+    themeButton.Position = UDim2.new(1, -152, 0, 7)
+    themeButton.BackgroundColor3 = Config.Theme.Accent
+    themeButton.Text = "🎨"
+    themeButton.TextColor3 = Config.Theme.Text
+    themeButton.TextSize = 20
+    themeButton.Font = Enum.Font.GothamBold
+    themeButton.BorderSizePixel = 0
+    themeButton.Parent = titleBar
+    
+    UICreator:CreateShadow(themeButton, 0.6)
+    
+    local themeCorner = Instance.new("UICorner")
+    themeCorner.CornerRadius = UDim.new(0, 10)
+    themeCorner.Parent = themeButton
+    
+    local themeStroke = Instance.new("UIStroke")
+    themeStroke.Color = Config.Theme.AccentLight
+    themeStroke.Thickness = 2
+    themeStroke.Parent = themeButton
+    
+    local themeGradient = Instance.new("UIGradient")
+    themeGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Config.Theme.Accent),
+        ColorSequenceKeypoint.new(1, Config.Theme.AccentLight)
+    })
+    themeGradient.Rotation = 45
+    themeGradient.Parent = themeButton
+    
+    UICreator:AddHoverEffect(themeButton)
+    UICreator:AddClickEffect(themeButton)
+    
+    -- Контейнер для вкладок
+    local tabContainer = Instance.new("Frame")
+    tabContainer.Name = "TabContainer"
+    tabContainer.Size = UDim2.new(1, -20, 0, 50)
+    tabContainer.Position = UDim2.new(0, 10, 0, 70)
+    tabContainer.BackgroundTransparency = 1
+    tabContainer.Parent = mainFrame
+    
+    local tabLayout = Instance.new("UIListLayout")
+    tabLayout.FillDirection = Enum.FillDirection.Horizontal
+    tabLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+    tabLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    tabLayout.Padding = UDim.new(0, 8)
+    tabLayout.Parent = tabContainer
+    
+    -- Функция создания вкладки
+    local function CreateTab(name, icon, order)
+        local tabButton = Instance.new("TextButton")
+        tabButton.Name = name .. "Tab"
+        tabButton.Size = UDim2.new(0, 160, 1, 0)
+        tabButton.BackgroundColor3 = Config.Theme.Secondary
+        tabButton.Text = icon .. " " .. name
+        tabButton.TextColor3 = Config.Theme.TextDark
+        tabButton.TextSize = 16
+        tabButton.Font = Enum.Font.GothamBold
+        tabButton.BorderSizePixel = 0
+        tabButton.LayoutOrder = order
+        tabButton.ClipsDescendants = false
+        tabButton.Parent = tabContainer
+        
+        UICreator:CreateShadow(tabButton, 0.4)
+        
+        local tabCorner = Instance.new("UICorner")
+        tabCorner.CornerRadius = UDim.new(0, 12)
+        tabCorner.Parent = tabButton
+        
+        local tabStroke = Instance.new("UIStroke")
+        tabStroke.Color = Config.Theme.Tertiary
+        tabStroke.Thickness = 2
+        tabStroke.Transparency = 0.5
+        tabStroke.Parent = tabButton
+        
+        local tabGradient = UICreator:CreateGradient(tabButton, 90)
+        
+        UICreator:AddHoverEffect(tabButton)
+        UICreator:AddClickEffect(tabButton)
+        
+        return tabButton
+    end
+    
+    -- Создание вкладок
+    local mainTab = CreateTab("Main", "🏠", 1)
+    local statsTab = CreateTab("Stats", "📊", 2)
+    local settingsTab = CreateTab("Settings", "⚙️", 3)
+    local logsTab = CreateTab("Logs", "📝", 4)
+    
+    -- Контейнер для содержимого вкладок
+    local contentContainer = Instance.new("Frame")
+    contentContainer.Name = "ContentContainer"
+    contentContainer.Size = UDim2.new(1, -20, 1, -140)
+    contentContainer.Position = UDim2.new(0, 10, 0, 130)
+    contentContainer.BackgroundTransparency = 1
+    contentContainer.Parent = mainFrame
+    
+    -- ====================================
+    -- ВКЛАДКА MAIN
+    -- ====================================
+    
+    local mainContent = Instance.new("Frame")
+    mainContent.Name = "MainContent"
+    mainContent.Size = UDim2.new(1, 0, 1, 0)
+    mainContent.BackgroundTransparency = 1
+    mainContent.Visible = true
+    mainContent.Parent = contentContainer
+    
+    -- Большая кнопка Start/Stop
+    local startStopButton = Instance.new("TextButton")
+    startStopButton.Name = "StartStopButton"
+    startStopButton.Size = UDim2.new(1, 0, 0, 90)
+    startStopButton.Position = UDim2.new(0, 0, 0, 0)
+    startStopButton.BackgroundColor3 = Config.Theme.Success
+    startStopButton.Text = "▶ START AUTO-SOLVER"
+    startStopButton.TextColor3 = Config.Theme.Text
+    startStopButton.TextSize = 28
+    startStopButton.Font = Enum.Font.GothamBold
+    startStopButton.BorderSizePixel = 0
+    startStopButton.ClipsDescendants = false
+    startStopButton.Parent = mainContent
+    
+    UICreator:CreateShadow(startStopButton, 0.9)
+    UICreator:CreateGlow(startStopButton, Config.Theme.Success)
+    
+    local startStopCorner = Instance.new("UICorner")
+    startStopCorner.CornerRadius = UDim.new(0, 15)
+    startStopCorner.Parent = startStopButton
+    
+    local startStopStroke = Instance.new("UIStroke")
+    startStopStroke.Color = Config.Theme.SuccessLight
+    startStopStroke.Thickness = 4
+    startStopStroke.Parent = startStopButton
+    
+    local startStopGradient = Instance.new("UIGradient")
+    startStopGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Config.Theme.Success),
+        ColorSequenceKeypoint.new(1, Config.Theme.SuccessLight)
+    })
+    startStopGradient.Rotation = 45
+    startStopGradient.Parent = startStopButton
+    
+    UICreator:AddHoverEffect(startStopButton)
+    UICreator:AddClickEffect(startStopButton)
+    
+    -- Контейнер для настроек скорости
+    local speedContainer = Instance.new("Frame")
+    speedContainer.Name = "SpeedContainer"
+    speedContainer.Size = UDim2.new(1, 0, 0, 110)
+    speedContainer.Position = UDim2.new(0, 0, 0, 105)
+    speedContainer.BackgroundColor3 = Config.Theme.Secondary
+    speedContainer.BorderSizePixel = 0
+    speedContainer.ClipsDescendants = false
+    speedContainer.Parent = mainContent
+    
+    UICreator:CreateShadow(speedContainer, 0.6)
+    
+    local speedCorner = Instance.new("UICorner")
+    speedCorner.CornerRadius = UDim.new(0, 15)
+    speedCorner.Parent = speedContainer
+    
+    local speedStroke = Instance.new("UIStroke")
+    speedStroke.Color = Config.Theme.Accent
+    speedStroke.Thickness = 2
+    speedStroke.Parent = speedContainer
+    
+    local speedGradient = UICreator:CreateGradient(speedContainer, 90)
+    
+    local speedLabel = Instance.new("TextLabel")
+    speedLabel.Size = UDim2.new(1, -20, 0, 35)
+    speedLabel.Position = UDim2.new(0, 10, 0, 10)
+    speedLabel.BackgroundTransparency = 1
+    speedLabel.Text = "⚡ Speed: " .. Config.WaitTime .. "s"
+    speedLabel.TextColor3 = Config.Theme.Text
+    speedLabel.TextSize = 20
+    speedLabel.Font = Enum.Font.GothamBold
+    speedLabel.TextXAlignment = Enum.TextXAlignment.Left
+    speedLabel.Parent = speedContainer
+    
+    local speedValueLabel = Instance.new("TextLabel")
+    speedValueLabel.Size = UDim2.new(0, 100, 0, 35)
+    speedValueLabel.Position = UDim2.new(1, -110, 0, 10)
+    speedValueLabel.BackgroundTransparency = 1
+    speedValueLabel.Text = string.format("%.3fs", Config.WaitTime)
+    speedValueLabel.TextColor3 = Config.Theme.AccentLight
+    speedValueLabel.TextSize = 20
+    speedValueLabel.Font = Enum.Font.GothamBold
+    speedValueLabel.TextXAlignment = Enum.TextXAlignment.Right
+    speedValueLabel.Parent = speedContainer
+    
+    local speedSlider = Instance.new("Frame")
+    speedSlider.Name = "SpeedSlider"
+    speedSlider.Size = UDim2.new(1, -20, 0, 35)
+    speedSlider.Position = UDim2.new(0, 10, 0, 60)
+    speedSlider.BackgroundColor3 = Config.Theme.Tertiary
+    speedSlider.BorderSizePixel = 0
+    speedSlider.Parent = speedContainer
+    
+    local sliderCorner = Instance.new("UICorner")
+    sliderCorner.CornerRadius = UDim.new(1, 0)
+    sliderCorner.Parent = speedSlider
+    
+    local sliderStroke = Instance.new("UIStroke")
+    sliderStroke.Color = Config.Theme.Accent
+    sliderStroke.Thickness = 2
+    sliderStroke.Parent = speedSlider
+    
+    local speedFill = Instance.new("Frame")
+    speedFill.Name = "Fill"
+    speedFill.Size = UDim2.new(0.01, 0, 1, 0)
+    speedFill.BackgroundColor3 = Config.Theme.Accent
+    speedFill.BorderSizePixel = 0
+    speedFill.Parent = speedSlider
+    
+    local fillCorner = Instance.new("UICorner")
+    fillCorner.CornerRadius = UDim.new(1, 0)
+    fillCorner.Parent = speedFill
+    
+    local fillGradient = Instance.new("UIGradient")
+    fillGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Config.Theme.Accent),
+        ColorSequenceKeypoint.new(1, Config.Theme.AccentLight)
+    })
+    fillGradient.Parent = speedFill
+    
+    local speedHandle = Instance.new("TextButton")
+    speedHandle.Name = "Handle"
+    speedHandle.Size = UDim2.new(0, 25, 0, 45)
+    speedHandle.Position = UDim2.new(0.01, -12, 0.5, -22)
+    speedHandle.BackgroundColor3 = Config.Theme.Text
+    speedHandle.Text = ""
+    speedHandle.BorderSizePixel = 0
+    speedHandle.ClipsDescendants = false
+    speedHandle.Parent = speedSlider
+    
+    UICreator:CreateShadow(speedHandle, 0.7)
+    
+    local handleCorner = Instance.new("UICorner")
+    handleCorner.CornerRadius = UDim.new(1, 0)
+    handleCorner.Parent = speedHandle
+    
+    local handleStroke = Instance.new("UIStroke")
+    handleStroke.Color = Config.Theme.Accent
+    handleStroke.Thickness = 3
+    handleStroke.Parent = speedHandle
+    
+    UICreator:AddHoverEffect(speedHandle)
+    
+    -- Информационные карточки
+    local infoContainer = Instance.new("Frame")
+    infoContainer.Name = "InfoContainer"
+    infoContainer.Size = UDim2.new(1, 0, 0, 130)
+    infoContainer.Position = UDim2.new(0, 0, 0, 230)
+    infoContainer.BackgroundTransparency = 1
+    infoContainer.Parent = mainContent
+    
+    local infoLayout = Instance.new("UIListLayout")
+    infoLayout.FillDirection = Enum.FillDirection.Horizontal
+    infoLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+    infoLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    infoLayout.Padding = UDim.new(0, 10)
+    infoLayout.Parent = infoContainer
+    
+    local function CreateInfoCard(title, value, icon, color, order)
+        local card = Instance.new("Frame")
+        card.Size = UDim2.new(0.32, -7, 1, 0)
+        card.BackgroundColor3 = Config.Theme.Secondary
+        card.BorderSizePixel = 0
+        card.LayoutOrder = order
+        card.ClipsDescendants = false
+        card.Parent = infoContainer
+        
+        UICreator:CreateShadow(card, 0.6)
+        
+        local cardCorner = Instance.new("UICorner")
+        cardCorner.CornerRadius = UDim.new(0, 15)
+        cardCorner.Parent = card
+        
+        local cardStroke = Instance.new("UIStroke")
+        cardStroke.Color = color
+        cardStroke.Thickness = 3
+        cardStroke.Parent = card
+        
+        local cardGradient = UICreator:CreateGradient(card, 135)
+        
+        -- Декоративная полоса сверху
+        local topBar = Instance.new("Frame")
+        topBar.Size = UDim2.new(1, 0, 0, 5)
+        topBar.BackgroundColor3 = color
+        topBar.BorderSizePixel = 0
+        topBar.Parent = card
+        
+        local topBarCorner = Instance.new("UICorner")
+        topBarCorner.CornerRadius = UDim.new(0, 15)
+        topBarCorner.Parent = topBar
+        
+        local topBarGradient = Instance.new("UIGradient")
+        topBarGradient.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, color),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(
+                math.min(color.R * 255 * 1.3, 255),
+                math.min(color.G * 255 * 1.3, 255),
+                math.min(color.B * 255 * 1.3, 255)
+            ))
+        })
+        topBarGradient.Parent = topBar
+        
+        local iconLabel = Instance.new("TextLabel")
+        iconLabel.Size = UDim2.new(1, 0, 0, 50)
+        iconLabel.Position = UDim2.new(0, 0, 0, 10)
+        iconLabel.BackgroundTransparency = 1
+        iconLabel.Text = icon
+        iconLabel.TextColor3 = color
+        iconLabel.TextSize = 40
+        iconLabel.Font = Enum.Font.GothamBold
+        iconLabel.Parent = card
+        
+        local titleLabel = Instance.new("TextLabel")
+        titleLabel.Size = UDim2.new(1, -10, 0, 25)
+        titleLabel.Position = UDim2.new(0, 5, 0, 60)
+        titleLabel.BackgroundTransparency = 1
+        titleLabel.Text = title
+        titleLabel.TextColor3 = Config.Theme.TextDark
+        titleLabel.TextSize = 13
+        titleLabel.Font = Enum.Font.GothamMedium
+        titleLabel.Parent = card
+        
+        local valueLabel = Instance.new("TextLabel")
+        valueLabel.Name = "ValueLabel"
+        valueLabel.Size = UDim2.new(1, -10, 0, 40)
+        valueLabel.Position = UDim2.new(0, 5, 0, 85)
+        valueLabel.BackgroundTransparency = 1
+        valueLabel.Text = value
+        valueLabel.TextColor3 = Config.Theme.Text
+        valueLabel.TextSize = 24
+        valueLabel.Font = Enum.Font.GothamBold
+        valueLabel.Parent = card
+        
+        -- Эффект свечения для значения
+        local valueStroke = Instance.new("UIStroke")
+        valueStroke.Color = color
+        valueStroke.Thickness = 0
+        valueStroke.Transparency = 0.7
+        valueStroke.Parent = valueLabel
+        
+        return card
+    end
+    
+    local totalCard = CreateInfoCard("Total Attempts", "0", "🎯", Config.Theme.Accent, 1)
+    local successCard = CreateInfoCard("Success Rate", "0%", "✅", Config.Theme.Success, 2)
+    local runtimeCard = CreateInfoCard("Runtime", "00:00:00", "⏱️", Config.Theme.Warning, 3)
+    
+    -- ====================================
+    -- ВКЛАДКА STATS (Продолжение следует...)
+    -- ====================================
+    
+    local statsContent = Instance.new("Frame")
+    statsContent.Name = "StatsContent"
+    statsContent.Size = UDim2.new(1, 0, 1, 0)
+    statsContent.BackgroundTransparency = 1
+    statsContent.Visible = false
+    statsContent.Parent = contentContainer
+    
+    local detailedStatsFrame = Instance.new("ScrollingFrame")
+    detailedStatsFrame.Size = UDim2.new(1, 0, 1, -60)
+    detailedStatsFrame.BackgroundColor3 = Config.Theme.Secondary
+    detailedStatsFrame.BorderSizePixel = 0
+    detailedStatsFrame.ScrollBarThickness = 8
+    detailedStatsFrame.ScrollBarImageColor3 = Config.Theme.Accent
+    detailedStatsFrame.ClipsDescendants = false
+    detailedStatsFrame.Parent = statsContent
+    
+    UICreator:CreateShadow(detailedStatsFrame, 0.6)
+    
+    local statsCorner = Instance.new("UICorner")
+    statsCorner.CornerRadius = UDim.new(0, 15)
+    statsCorner.Parent = detailedStatsFrame
+    
+    local statsStroke = Instance.new("UIStroke")
+    statsStroke.Color = Config.Theme.Accent
+    statsStroke.Thickness = 2
+    statsStroke.Parent = detailedStatsFrame
+    
+    local statsListLayout = Instance.new("UIListLayout")
+    statsListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    statsListLayout.Padding = UDim.new(0, 6)
+    statsListLayout.Parent = detailedStatsFrame
+    
+    local statsPadding = Instance.new("UIPadding")
+    statsPadding.PaddingTop = UDim.new(0, 10)
+    statsPadding.PaddingBottom = UDim.new(0, 10)
+    statsPadding.PaddingLeft = UDim.new(0, 10)
+    statsPadding.PaddingRight = UDim.new(0, 10)
+    statsPadding.Parent = detailedStatsFrame
+    
+    local function CreateStatRow(name, value, icon, order)
+        local row = Instance.new("Frame")
+        row.Size = UDim2.new(1, -10, 0, 50)
+        row.BackgroundColor3 = Config.Theme.Primary
+        row.BorderSizePixel = 0
+        row.LayoutOrder = order
+        row.ClipsDescendants = false
+        row.Parent = detailedStatsFrame
+        
+        UICreator:CreateShadow(row, 0.3)
+        
+        local rowCorner = Instance.new("UICorner")
+        rowCorner.CornerRadius = UDim.new(0, 10)
+        rowCorner.Parent = row
+        
+        local rowStroke = Instance.new("UIStroke")
+        rowStroke.Color = Config.Theme.Tertiary
+        rowStroke.Thickness = 2
+        rowStroke.Transparency = 0.5
+        rowStroke.Parent = row
+        
+        local rowGradient = UICreator:CreateGradient(row, 90)
+        
+        local iconLabel = Instance.new("TextLabel")
+        iconLabel.Size = UDim2.new(0, 40, 1, 0)
+        iconLabel.Position = UDim2.new(0, 10, 0, 0)
+        iconLabel.BackgroundTransparency = 1
+        iconLabel.Text = icon
+        iconLabel.TextColor3 = Config.Theme.Accent
+        iconLabel.TextSize = 24
+        iconLabel.Font = Enum.Font.GothamBold
+        iconLabel.Parent = row
+        
+        local nameLabel = Instance.new("TextLabel")
+        nameLabel.Size = UDim2.new(0.5, -60, 1, 0)
+        nameLabel.Position = UDim2.new(0, 55, 0, 0)
+        nameLabel.BackgroundTransparency = 1
+        nameLabel.Text = name
+        nameLabel.TextColor3 = Config.Theme.TextDark
+        nameLabel.TextSize = 15
+        nameLabel.Font = Enum.Font.GothamMedium
+        nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+        nameLabel.Parent = row
+        
+        local valueLabel = Instance.new("TextLabel")
+        valueLabel.Name = "ValueLabel"
+        valueLabel.Size = UDim2.new(0.5, -10, 1, 0)
+        valueLabel.Position = UDim2.new(0.5, 0, 0, 0)
+        valueLabel.BackgroundTransparency = 1
+        valueLabel.Text = value
+        valueLabel.TextColor3 = Config.Theme.AccentLight
+        valueLabel.TextSize = 18
+        valueLabel.Font = Enum.Font.GothamBold
+        valueLabel.TextXAlignment = Enum.TextXAlignment.Right
+        valueLabel.Parent = row
+        
+        return row
+    end
+    
+    local statRows = {
+        CreateStatRow("Total Attempts", "0", "📊", 1),
+        CreateStatRow("Successful Attempts", "0", "✅", 2),
+        CreateStatRow("Failed Attempts", "0", "❌", 3),
+        CreateStatRow("Success Rate", "0%", "📈", 4),
+        CreateStatRow("Attempts/Second", "0.00", "⚡", 5),
+        CreateStatRow("Total Runtime", "00:00:00", "⏱️", 6),
+        CreateStatRow("Average Speed", "0.00s", "🎯", 7),
+        CreateStatRow("Best Time", "0.00s", "🏆", 8),
+        CreateStatRow("Worst Time", "0.00s", "⏬", 9),
+        CreateStatRow("Memory Usage", "0 MB", "💾", 10)
+    }
+    
+    -- Кнопка сброса статистики
+    local resetStatsButton = Instance.new("TextButton")
+    resetStatsButton.Name = "ResetStatsButton"
+    resetStatsButton.Size = UDim2.new(1, 0, 0, 50)
+    resetStatsButton.Position = UDim2.new(0, 0, 1, -50)
+    resetStatsButton.BackgroundColor3 = Config.Theme.Warning
+    resetStatsButton.Text = "🔄 RESET STATISTICS"
+    resetStatsButton.TextColor3 = Config.Theme.Text
+    resetStatsButton.TextSize = 18
+    resetStatsButton.Font = Enum.Font.GothamBold
+    resetStatsButton.BorderSizePixel = 0
+    resetStatsButton.ClipsDescendants = false
+    resetStatsButton.Parent = statsContent
+    
+    UICreator:CreateShadow(resetStatsButton, 0.7)
+    
+    local resetCorner = Instance.new("UICorner")
+    resetCorner.CornerRadius = UDim.new(0, 15)
+    resetCorner.Parent = resetStatsButton
+    
+    local resetStroke = Instance.new("UIStroke")
+    resetStroke.Color = Config.Theme.WarningLight
+    resetStroke.Thickness = 3
+    resetStroke.Parent = resetStatsButton
+    
+    local resetGradient = Instance.new("UIGradient")
+    resetGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Config.Theme.Warning),
+        ColorSequenceKeypoint.new(1, Config.Theme.WarningLight)
+    })
+    resetGradient.Rotation = 45
+    resetGradient.Parent = resetStatsButton
+    
+    UICreator:AddHoverEffect(resetStatsButton)
+    UICreator:AddClickEffect(resetStatsButton)
+    
+    -- ====================================
+    -- ВКЛАДКА SETTINGS
+    -- ====================================
+    
+    local settingsContent = Instance.new("Frame")
+    settingsContent.Name = "SettingsContent"
+    settingsContent.Size = UDim2.new(1, 0, 1, 0)
+    settingsContent.BackgroundTransparency = 1
+    settingsContent.Visible = false
+    settingsContent.Parent = contentContainer
+    
+    local settingsScroll = Instance.new("ScrollingFrame")
+    settingsScroll.Size = UDim2.new(1, 0, 1, 0)
+    settingsScroll.BackgroundColor3 = Config.Theme.Secondary
+    settingsScroll.BorderSizePixel = 0
+    settingsScroll.ScrollBarThickness = 8
+    settingsScroll.ScrollBarImageColor3 = Config.Theme.Accent
+    settingsScroll.ClipsDescendants = false
+    settingsScroll.Parent = settingsContent
+    
+    UICreator:CreateShadow(settingsScroll, 0.6)
+    
+    local settingsScrollCorner = Instance.new("UICorner")
+    settingsScrollCorner.CornerRadius = UDim.new(0, 15)
+    settingsScrollCorner.Parent = settingsScroll
+    
+    local settingsScrollStroke = Instance.new("UIStroke")
+    settingsScrollStroke.Color = Config.Theme.Accent
+    settingsScrollStroke.Thickness = 2
+    settingsScrollStroke.Parent = settingsScroll
+    
+    local settingsLayout = Instance.new("UIListLayout")
+    settingsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    settingsLayout.Padding = UDim.new(0, 10)
+    settingsLayout.Parent = settingsScroll
+    
+    local settingsPadding = Instance.new("UIPadding")
+    settingsPadding.PaddingTop = UDim.new(0, 10)
+    settingsPadding.PaddingBottom = UDim.new(0, 10)
+    settingsPadding.PaddingLeft = UDim.new(0, 10)
+    settingsPadding.PaddingRight = UDim.new(0, 10)
+    settingsPadding.Parent = settingsScroll
+    
+    local function CreateToggle(name, description, icon, defaultValue, callback, order)
+        local toggleFrame = Instance.new("Frame")
+        toggleFrame.Size = UDim2.new(1, -10, 0, 80)
+        toggleFrame.BackgroundColor3 = Config.Theme.Primary
+        toggleFrame.BorderSizePixel = 0
+        toggleFrame.LayoutOrder = order
+        toggleFrame.ClipsDescendants = false
+        toggleFrame.Parent = settingsScroll
+        
+        UICreator:CreateShadow(toggleFrame, 0.4)
+        
+        local toggleCorner = Instance.new("UICorner")
+        toggleCorner.CornerRadius = UDim.new(0, 12)
+        toggleCorner.Parent = toggleFrame
+        
+        local toggleStroke = Instance.new("UIStroke")
+        toggleStroke.Color = Config.Theme.Tertiary
+        toggleStroke.Thickness = 2
+        toggleStroke.Transparency = 0.5
+        toggleStroke.Parent = toggleFrame
+        
+        local toggleGradient = UICreator:CreateGradient(toggleFrame, 90)
+        
+        local iconLabel = Instance.new("TextLabel")
+        iconLabel.Size = UDim2.new(0, 50, 1, 0)
+        iconLabel.Position = UDim2.new(0, 10, 0, 0)
+        iconLabel.BackgroundTransparency = 1
+        iconLabel.Text = icon
+        iconLabel.TextColor3 = Config.Theme.Accent
+        iconLabel.TextSize = 28
+        iconLabel.Font = Enum.Font.GothamBold
+        iconLabel.Parent = toggleFrame
+        
+        local toggleLabel = Instance.new("TextLabel")
+        toggleLabel.Size = UDim2.new(1, -150, 0, 30)
+        toggleLabel.Position = UDim2.new(0, 65, 0, 10)
+        toggleLabel.BackgroundTransparency = 1
+        toggleLabel.Text = name
+        toggleLabel.TextColor3 = Config.Theme.Text
+        toggleLabel.TextSize = 16
+        toggleLabel.Font = Enum.Font.GothamBold
+        toggleLabel.TextXAlignment = Enum.TextXAlignment.Left
+        toggleLabel.Parent = toggleFrame
+        
+        local toggleDesc = Instance.new("TextLabel")
+        toggleDesc.Size = UDim2.new(1, -150, 0, 35)
+        toggleDesc.Position = UDim2.new(0, 65, 0, 40)
+        toggleDesc.BackgroundTransparency = 1
+        toggleDesc.Text = description
+        toggleDesc.TextColor3 = Config.Theme.TextMuted
+        toggleDesc.TextSize = 12
+        toggleDesc.Font = Enum.Font.Gotham
+        toggleDesc.TextXAlignment = Enum.TextXAlignment.Left
+        toggleDesc.TextWrapped = true
+        toggleDesc.Parent = toggleFrame
+        
+        local toggleButton = Instance.new("TextButton")
+        toggleButton.Name = "ToggleButton"
+        toggleButton.Size = UDim2.new(0, 70, 0, 35)
+        toggleButton.Position = UDim2.new(1, -80, 0.5, -17)
+        toggleButton.BackgroundColor3 = defaultValue and Config.Theme.Success or Config.Theme.Tertiary
+        toggleButton.Text = defaultValue and "ON" or "OFF"
+        toggleButton.TextColor3 = Config.Theme.Text
+        toggleButton.TextSize = 14
+        toggleButton.Font = Enum.Font.GothamBold
+        toggleButton.BorderSizePixel = 0
+        toggleButton.ClipsDescendants = false
+        toggleButton.Parent = toggleFrame
+        
+        UICreator:CreateShadow(toggleButton, 0.5)
+        
+        local buttonCorner = Instance.new("UICorner")
+        buttonCorner.CornerRadius = UDim.new(1, 0)
+        buttonCorner.Parent = toggleButton
+        
+        local buttonStroke = Instance.new("UIStroke")
+        buttonStroke.Color = defaultValue and Config.Theme.SuccessLight or Config.Theme.TextMuted
+        buttonStroke.Thickness = 2
+        buttonStroke.Parent = toggleButton
+        
+        local buttonGradient = Instance.new("UIGradient")
+        buttonGradient.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, toggleButton.BackgroundColor3),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(
+                math.min(toggleButton.BackgroundColor3.R * 255 * 1.2, 255),
+                math.min(toggleButton.BackgroundColor3.G * 255 * 1.2, 255),
+                math.min(toggleButton.BackgroundColor3.B * 255 * 1.2, 255)
+            ))
+        })
+        buttonGradient.Rotation = 45
+        buttonGradient.Parent = toggleButton
+        
+        UICreator:AddHoverEffect(toggleButton)
+        
+        local isEnabled = defaultValue
+        
+        toggleButton.MouseButton1Click:Connect(function()
+            isEnabled = not isEnabled
+            SoundSystem:Play("Toggle")
+            
+            toggleButton.Text = isEnabled and "ON" or "OFF"
+            local targetColor = isEnabled and Config.Theme.Success or Config.Theme.Tertiary
+            
+            TweenService:Create(
+                toggleButton,
+                TweenInfo.new(0.3, Enum.EasingStyle.Quad),
+                {BackgroundColor3 = targetColor}
+            ):Play()
+            
+            TweenService:Create(
+                buttonStroke,
+                TweenInfo.new(0.3, Enum.EasingStyle.Quad),
+                {Color = isEnabled and Config.Theme.SuccessLight or Config.Theme.TextMuted}
+            ):Play()
+            
+            buttonGradient.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, targetColor),
+                ColorSequenceKeypoint.new(1, Color3.fromRGB(
+                    math.min(targetColor.R * 255 * 1.2, 255),
+                    math.min(targetColor.G * 255 * 1.2, 255),
+                    math.min(targetColor.B * 255 * 1.2, 255)
+                ))
+            })
+            
+            if callback then
+                callback(isEnabled)
+            end
+        end)
+        
+        return toggleFrame
+    end
+    
+    -- Создание настроек
+    CreateToggle(
+        "Anti-AFK System",
+        "Prevents being kicked for inactivity",
+        "🚫",
+        Config.Advanced.AntiAFK,
+        function(enabled)
+            Config.Advanced.AntiAFK = enabled
+            if enabled then
+                AntiAFK:Enable()
+            else
+                AntiAFK:Disable()
+            end
+        end,
+        1
+    )
+    
+    CreateToggle(
+        "Auto Rejoin",
+        "Automatically reconnects when disconnected",
+        "🔄",
+        Config.Advanced.AutoRejoin,
+        function(enabled)
+            Config.Advanced.AutoRejoin = enabled
+            if enabled then
+                AutoRejoin:Enable()
+            end
+        end,
+        2
+    )
+    
+    CreateToggle(
+        "Safe Mode",
+        "Enables additional safety checks and delays",
+        "🛡️",
+        Config.Advanced.SafeMode,
+        function(enabled)
+            Config.Advanced.SafeMode = enabled
+        end,
+        3
+    )
+    
+    CreateToggle(
+        "Console Logging",
+        "Logs all events to the developer console",
+        "📝",
+        Config.Advanced.LoggingEnabled,
+        function(enabled)
+            Config.Advanced.LoggingEnabled = enabled
+        end,
+        4
+    )
+    
+    CreateToggle(
+        "Notifications",
+        "Shows popup notifications for important events",
+        "🔔",
+        Config.Advanced.NotificationsEnabled,
+        function(enabled)
+            Config.Advanced.NotificationsEnabled = enabled
+        end,
+        5
+    )
+    
+    CreateToggle(
+        "Sound Effects",
+        "Plays audio feedback for UI interactions",
+        "🔊",
+        Config.Advanced.SoundEnabled,
+        function(enabled)
+            Config.Advanced.SoundEnabled = enabled
+            if enabled then
+                SoundSystem:Play("Success")
+            end
+        end,
+        6
+    )
+    
+    CreateToggle(
+        "Particle Effects",
+        "Shows visual particle effects",
+        "✨",
+        Config.Advanced.ParticlesEnabled,
+        function(enabled)
+            Config.Advanced.ParticlesEnabled = enabled
+        end,
+        7
+    )
+    
+    CreateToggle(
+        "Smooth Animations",
+        "Enables UI transition animations",
+        "🎬",
+        Config.Advanced.AnimationsEnabled,
+        function(enabled)
+            Config.Advanced.AnimationsEnabled = enabled
+        end,
+        8
+    )
+    
+    -- ====================================
+    -- ВКЛАДКА LOGS
+    -- ====================================
+    
+    local logsContent = Instance.new("Frame")
+    logsContent.Name = "LogsContent"
+    logsContent.Size = UDim2.new(1, 0, 1, 0)
+    logsContent.BackgroundTransparency = 1
+    logsContent.Visible = false
+    logsContent.Parent = contentContainer
+    
+    local logsScroll = Instance.new("ScrollingFrame")
+    logsScroll.Name = "LogsScroll"
+    logsScroll.Size = UDim2.new(1, 0, 1, -60)
+    logsScroll.BackgroundColor3 = Config.Theme.Secondary
+    logsScroll.BorderSizePixel = 0
+    logsScroll.ScrollBarThickness = 8
+    logsScroll.ScrollBarImageColor3 = Config.Theme.Accent
+    logsScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+    logsScroll.ClipsDescendants = false
+    logsScroll.Parent = logsContent
+    
+    UICreator:CreateShadow(logsScroll, 0.6)
+    
+    local logsScrollCorner = Instance.new("UICorner")
+    logsScrollCorner.CornerRadius = UDim.new(0, 15)
+    logsScrollCorner.Parent = logsScroll
+    
+    local logsScrollStroke = Instance.new("UIStroke")
+    logsScrollStroke.Color = Config.Theme.Accent
+    logsScrollStroke.Thickness = 2
+    logsScrollStroke.Parent = logsScroll
+    
+    local logsLayout = Instance.new("UIListLayout")
+    logsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    logsLayout.Padding = UDim.new(0, 3)
+    logsLayout.Parent = logsScroll
+    
+    local logsPadding = Instance.new("UIPadding")
+    logsPadding.PaddingTop = UDim.new(0, 5)
+    logsPadding.PaddingBottom = UDim.new(0, 5)
+    logsPadding.PaddingLeft = UDim.new(0, 5)
+    logsPadding.PaddingRight = UDim.new(0, 5)
+    logsPadding.Parent = logsScroll
+    
+    local clearLogsButton = Instance.new("TextButton")
+    clearLogsButton.Size = UDim2.new(1, 0, 0, 50)
+    clearLogsButton.Position = UDim2.new(0, 0, 1, -50)
+    clearLogsButton.BackgroundColor3 = Config.Theme.Warning
+    clearLogsButton.Text = "🗑️ CLEAR ALL LOGS"
+    clearLogsButton.TextColor3 = Config.Theme.Text
+    clearLogsButton.TextSize = 18
+    clearLogsButton.Font = Enum.Font.GothamBold
+    clearLogsButton.BorderSizePixel = 0
+    clearLogsButton.ClipsDescendants = false
+    clearLogsButton.Parent = logsContent
+    
+    UICreator:CreateShadow(clearLogsButton, 0.7)
+    
+    local clearLogsCorner = Instance.new("UICorner")
+    clearLogsCorner.CornerRadius = UDim.new(0, 15)
+    clearLogsCorner.Parent = clearLogsButton
+    
+    local clearLogsStroke = Instance.new("UIStroke")
+    clearLogsStroke.Color = Config.Theme.WarningLight
+    clearLogsStroke.Thickness = 3
+    clearLogsStroke.Parent = clearLogsButton
+    
+    local clearLogsGradient = Instance.new("UIGradient")
+    clearLogsGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Config.Theme.Warning),
+        ColorSequenceKeypoint.new(1, Config.Theme.WarningLight)
+    })
+    clearLogsGradient.Rotation = 45
+    clearLogsGradient.Parent = clearLogsButton
+    
+    UICreator:AddHoverEffect(clearLogsButton)
+    UICreator:AddClickEffect(clearLogsButton)
+    
+    -- ====================================
+    -- МЕНЮ ВЫБОРА ТЕМЫ
+    -- ====================================
+    
+    local themeMenu = Instance.new("Frame")
+    themeMenu.Name = "ThemeMenu"
+    themeMenu.Size = UDim2.new(0, 300, 0, 0)
+    themeMenu.Position = UDim2.new(1, -310, 0, 65)
+    themeMenu.BackgroundColor3 = Config.Theme.Secondary
+    themeMenu.BorderSizePixel = 0
+    themeMenu.Visible = false
+    themeMenu.ClipsDescendants = false
+    themeMenu.ZIndex = 100
+    themeMenu.Parent = mainFrame
+    
+    UICreator:CreateShadow(themeMenu, 0.8)
+    
+    local themeMenuCorner = Instance.new("UICorner")
+    themeMenuCorner.CornerRadius = UDim.new(0, 12)
+    themeMenuCorner.Parent = themeMenu
+    
+    local themeMenuStroke = Instance.new("UIStroke")
+    themeMenuStroke.Color = Config.Theme.Accent
+    themeMenuStroke.Thickness = 2
+    themeMenuStroke.Parent = themeMenu
+    
+    local themeMenuGradient = UICreator:CreateGradient(themeMenu, 90)
+    
+    local themeMenuTitle = Instance.new("TextLabel")
+    themeMenuTitle.Size = UDim2.new(1, -20, 0, 40)
+    themeMenuTitle.Position = UDim2.new(0, 10, 0, 10)
+    themeMenuTitle.BackgroundTransparency = 1
+    themeMenuTitle.Text = "🎨 Choose Theme"
+    themeMenuTitle.TextColor3 = Config.Theme.Text
+    themeMenuTitle.TextSize = 18
+    themeMenuTitle.Font = Enum.Font.GothamBold
+    themeMenuTitle.TextXAlignment = Enum.TextXAlignment.Left
+    themeMenuTitle.Parent = themeMenu
+    
+    local themeScroll = Instance.new("ScrollingFrame")
+    themeScroll.Size = UDim2.new(1, -20, 1, -60)
+    themeScroll.Position = UDim2.new(0, 10, 0, 50)
+    themeScroll.BackgroundTransparency = 1
+    themeScroll.BorderSizePixel = 0
+    themeScroll.ScrollBarThickness = 6
+    themeScroll.ScrollBarImageColor3 = Config.Theme.Accent
+    themeScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+    themeScroll.Parent = themeMenu
+    
+    local themeScrollLayout = Instance.new("UIListLayout")
+    themeScrollLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    themeScrollLayout.Padding = UDim.new(0, 8)
+    themeScrollLayout.Parent = themeScroll
+    
+    local function CreateThemeButton(themeName, palette, order)
+        local themeBtn = Instance.new("TextButton")
+        themeBtn.Size = UDim2.new(1, 0, 0, 50)
+        themeBtn.BackgroundColor3 = palette.Primary
+        themeBtn.Text = ""
+        themeBtn.BorderSizePixel = 0
+        themeBtn.LayoutOrder = order
+        themeBtn.ClipsDescendants = false
+        themeBtn.Parent = themeScroll
+        
+        UICreator:CreateShadow(themeBtn, 0.4)
+        
+        local themeBtnCorner = Instance.new("UICorner")
+        themeBtnCorner.CornerRadius = UDim.new(0, 10)
+        themeBtnCorner.Parent = themeBtn
+        
+        local themeBtnStroke = Instance.new("UIStroke")
+        themeBtnStroke.Color = palette.Accent
+        themeBtnStroke.Thickness = 2
+        themeBtnStroke.Parent = themeBtn
+        
+        local themeBtnGradient = Instance.new("UIGradient")
+        themeBtnGradient.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, palette.Secondary),
+            ColorSequenceKeypoint.new(1, palette.Tertiary)
+        })
+        themeBtnGradient.Rotation = 45
+        themeBtnGradient.Parent = themeBtn
+        
+        local themeNameLabel = Instance.new("TextLabel")
+        themeNameLabel.Size = UDim2.new(1, -80, 1, 0)
+        themeNameLabel.Position = UDim2.new(0, 15, 0, 0)
+        themeNameLabel.BackgroundTransparency = 1
+        themeNameLabel.Text = palette.Name
+        themeNameLabel.TextColor3 = palette.Text
+        themeNameLabel.TextSize = 16
+        themeNameLabel.Font = Enum.Font.GothamBold
+        themeNameLabel.TextXAlignment = Enum.TextXAlignment.Left
+        themeNameLabel.Parent = themeBtn
+        
+        -- Предпросмотр цветов
+        local colorPreview = Instance.new("Frame")
+        colorPreview.Size = UDim2.new(0, 60, 0, 35)
+        colorPreview.Position = UDim2.new(1, -70, 0.5, -17)
+        colorPreview.BackgroundTransparency = 1
+        colorPreview.Parent = themeBtn
+        
+        local previewLayout = Instance.new("UIListLayout")
+        previewLayout.FillDirection = Enum.FillDirection.Horizontal
+        previewLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
+        previewLayout.SortOrder = Enum.SortOrder.LayoutOrder
+        previewLayout.Padding = UDim.new(0, 3)
+        previewLayout.Parent = colorPreview
+        
+        local colors = {palette.Accent, palette.Success, palette.Warning, palette.Error}
+        for i, color in ipairs(colors) do
+            local colorBox = Instance.new("Frame")
+            colorBox.Size = UDim2.new(0, 12, 0, 35)
+            colorBox.BackgroundColor3 = color
+            colorBox.BorderSizePixel = 0
+            colorBox.LayoutOrder = i
+            colorBox.Parent = colorPreview
+            
+            local colorBoxCorner = Instance.new("UICorner")
+            colorBoxCorner.CornerRadius = UDim.new(0, 6)
+            colorBoxCorner.Parent = colorBox
+        end
+        
+        UICreator:AddHoverEffect(themeBtn)
+        UICreator:AddClickEffect(themeBtn)
+        
+        themeBtn.MouseButton1Click:Connect(function()
+            Config.CurrentTheme = themeName
+            Config.Theme = palette
+            SoundSystem:Play("Success")
+            NotificationSystem:CreateNotification(
+                "Theme Changed",
+                "Applied " .. palette.Name .. " theme!",
+                3,
+                "SUCCESS"
+            )
+            Logger:AddLog("Тема изменена на: " .. palette.Name, "INFO")
+            
+            -- Закрываем меню
+            themeMenu.Visible = false
+            
+            -- Пересоздаем GUI с новой темой
+            task.wait(0.3)
+            CreateGUI()
+        end)
+        
+        return themeBtn
+    end
+    
+    -- Создаем кнопки тем
+    local order = 1
+    for themeName, palette in pairs(ColorPalettes) do
+        CreateThemeButton(themeName, palette, order)
+        order = order + 1
+    end
+    
+    -- Обновляем размер canvas
+    themeScroll.CanvasSize = UDim2.new(0, 0, 0, themeScrollLayout.AbsoluteContentSize.Y + 10)
+    
+    -- ====================================
+    -- ОБРАБОТЧИКИ СОБЫТИЙ
+    -- ====================================
+    
+    -- Закрытие GUI
+    closeButton.MouseButton1Click:Connect(function()
+        SoundSystem:Play("Close")
+        
+        TweenService:Create(
+            mainFrame,
+            TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In),
+            {Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0.5, 0)}
+        ):Play()
+        
+        task.wait(0.3)
+        screenGui:Destroy()
+    end)
+    
+    -- Минимизация
+    local isMinimized = false
+    minimizeButton.MouseButton1Click:Connect(function()
+        isMinimized = not isMinimized
+        SoundSystem:Play("Transition")
+        
+        local targetSize = isMinimized and UDim2.new(0, 700, 0, 60) or UDim2.new(0, 700, 0, 500)
+        
+        TweenService:Create(
+            mainFrame,
+            TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut),
+            {Size = targetSize}
+        ):Play()
+    end)
+    
+    -- Меню тем
+    themeButton.MouseButton1Click:Connect(function()
+        themeMenu.Visible = not themeMenu.Visible
+        SoundSystem:Play("Click")
+        
+        if themeMenu.Visible then
+            themeMenu.Size = UDim2.new(0, 300, 0, 0)
+            TweenService:Create(
+                themeMenu,
+                TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+                {Size = UDim2.new(0, 300, 0, math.min(400, #ColorPalettes * 58 + 70))}
+            ):Play()
+        end
+    end)
+    
+    -- Переключение вкладок
+    local currentTab = "Main"
+    
+    local function SwitchTab(tabName)
+        if currentTab == tabName then return end
+        
+        SoundSystem:Play("Transition")
+        currentTab = tabName
+        
+        mainContent.Visible = (tabName == "Main")
+        statsContent.Visible = (tabName == "Stats")
+        settingsContent.Visible = (tabName == "Settings")
+        logsContent.Visible = (tabName == "Logs")
+        
+        -- Обновление цветов вкладок
+        for _, tab in pairs(tabContainer:GetChildren()) do
+            if tab:IsA("TextButton") then
+                local isActive = tab.Name == tabName .. "Tab"
+                
+                TweenService:Create(
+                    tab,
+                    TweenInfo.new(0.2, Enum.EasingStyle.Quad),
+                    {
+                        BackgroundColor3 = isActive and Config.Theme.Accent or Config.Theme.Secondary,
+                        TextColor3 = isActive and Config.Theme.Text or Config.Theme.TextDark
+                    }
+                ):Play()
+                
+                local stroke = tab:FindFirstChild("UIStroke")
+                if stroke then
+                    TweenService:Create(
+                        stroke,
+                        TweenInfo.new(0.2, Enum.EasingStyle.Quad),
+                        {Color = isActive and Config.Theme.AccentLight or Config.Theme.Tertiary}
+                    ):Play()
+                end
+            end
+        end
+    end
+    
+    mainTab.MouseButton1Click:Connect(function() SwitchTab("Main") end)
+    statsTab.MouseButton1Click:Connect(function() SwitchTab("Stats") end)
+    settingsTab.MouseButton1Click:Connect(function() SwitchTab("Settings") end)
+    logsTab.MouseButton1Click:Connect(function() SwitchTab("Logs") end)
+    
+    -- Обработка слайдера скорости
+    local draggingSlider = false
+    
+    speedHandle.MouseButton1Down:Connect(function()
+        draggingSlider = true
+        SoundSystem:Play("Click")
+    end)
+    
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            if draggingSlider then
+                SoundSystem:Play("Slide")
+            end
+            draggingSlider = false
+        end
+    end)
+    
+    RunService.RenderStepped:Connect(function()
+        if draggingSlider then
+            local mousePos = UserInputService:GetMouseLocation()
+            local sliderPos = speedSlider.AbsolutePosition
+            local sliderSize = speedSlider.AbsoluteSize
+            
+            local relativePos = math.clamp(mousePos.X - sliderPos.X, 0, sliderSize.X)
+            local percentage = relativePos / sliderSize.X
+            
+            Config.WaitTime = 0.001 + (percentage * 0.999)
+            
+            speedFill.Size = UDim2.new(percentage, 0, 1, 0)
+            speedHandle.Position = UDim2.new(percentage, -12, 0.5, -22)
+            speedLabel.Text = "⚡ Speed: " .. string.format("%.3fs", Config.WaitTime)
+            speedValueLabel.Text = string.format("%.3fs", Config.WaitTime)
+        end
+    end)
+    
+    -- Обработка кнопки Start/Stop
+    startStopButton.MouseButton1Click:Connect(function()
+        Config.AutoSolveEnabled = not Config.AutoSolveEnabled
+        
+        if Config.AutoSolveEnabled then
+            SoundSystem:Play("Success")
+            startStopButton.Text = "⏸ STOP AUTO-SOLVER"
+            
+            TweenService:Create(
+                startStopButton,
+                TweenInfo.new(0.3, Enum.EasingStyle.Quad),
+                {BackgroundColor3 = Config.Theme.Error}
+            ):Play()
+            
+            TweenService:Create(
+                startStopStroke,
+                TweenInfo.new(0.3, Enum.EasingStyle.Quad),
+                {Color = Config.Theme.ErrorLight}
+            ):Play()
+            
+            startStopGradient.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, Config.Theme.Error),
+                ColorSequenceKeypoint.new(1, Config.Theme.ErrorLight)
+            })
+            
+            -- Обновляем свечение
+            local glow = startStopButton:FindFirstChild("Glow")
+            if glow then
+                glow.ImageColor3 = Config.Theme.Error
+            end
+            
+            Statistics:Start()
+            NotificationSystem:CreateNotification(
+                "Auto-Solver Started",
+                "Puzzle solving activated!",
+                3,
+                "SUCCESS"
+            )
+            Logger:AddLog("Auto-Solver запущен", "SUCCESS")
+        else
+            SoundSystem:Play("Warning")
+            startStopButton.Text = "▶ START AUTO-SOLVER"
+            
+            TweenService:Create(
+                startStopButton,
+                TweenInfo.new(0.3, Enum.EasingStyle.Quad),
+                {BackgroundColor3 = Config.Theme.Success}
+            ):Play()
+            
+            TweenService:Create(
+                startStopStroke,
+                TweenInfo.new(0.3, Enum.EasingStyle.Quad),
+                {Color = Config.Theme.SuccessLight}
+            ):Play()
+            
+            startStopGradient.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, Config.Theme.Success),
+                ColorSequenceKeypoint.new(1, Config.Theme.SuccessLight)
+            })
+            
+            local glow = startStopButton:FindFirstChild("Glow")
+            if glow then
+                glow.ImageColor3 = Config.Theme.Success
+            end
+            
+            NotificationSystem:CreateNotification(
+                "Auto-Solver Stopped",
+                "Puzzle solving deactivated!",
+                3,
+                "WARNING"
+            )
+            Logger:AddLog("Auto-Solver остановлен", "WARNING")
+        end
+    end)
+    
+    -- Сброс статистики
+    resetStatsButton.MouseButton1Click:Connect(function()
+        Statistics:Reset()
+        NotificationSystem:CreateNotification(
+            "Statistics Reset",
+            "All statistics have been cleared!",
+            3,
+            "INFO"
+        )
+    end)
+    
+    -- Очистка логов
+    clearLogsButton.MouseButton1Click:Connect(function()
+        Logger:Clear()
+        for _, child in pairs(logsScroll:GetChildren()) do
+            if child:IsA("Frame") then
+                child:Destroy()
+            end
+        end
+        NotificationSystem:CreateNotification(
+            "Logs Cleared",
+            "All logs have been removed!",
+            3,
+            "INFO"
+        )
+    end)
+    
+    -- Функция обновления логов
+    local function UpdateLogs()
+        for _, child in pairs(logsScroll:GetChildren()) do
+            if child:IsA("Frame") then
+                child:Destroy()
+            end
+        end
+        
+        local logs = Logger:GetLogs(100)
+        
+        for i, log in ipairs(logs) do
+            local logFrame = Instance.new("Frame")
+            logFrame.Size = UDim2.new(1, -5, 0, 35)
+            logFrame.BackgroundColor3 = Config.Theme.Primary
+            logFrame.BorderSizePixel = 0
+            logFrame.LayoutOrder = i
+            logFrame.ClipsDescendants = false
+            logFrame.Parent = logsScroll
+            
+            UICreator:CreateShadow(logFrame, 0.2)
+            
+            local logCorner = Instance.new("UICorner")
+            logCorner.CornerRadius = UDim.new(0, 8)
+            logCorner.Parent = logFrame
+            
+            local typeColors = {
+                INFO = Config.Theme.Accent,
+                SUCCESS = Config.Theme.Success,
+                WARNING = Config.Theme.Warning,
+                ERROR = Config.Theme.Error
+            }
+            
+            local typeIndicator = Instance.new("Frame")
+            typeIndicator.Size = UDim2.new(0, 5, 1, 0)
+            typeIndicator.BackgroundColor3 = typeColors[log.Type] or Config.Theme.Accent
+            typeIndicator.BorderSizePixel = 0
+            typeIndicator.Parent = logFrame
+            
+            local indicatorCorner = Instance.new("UICorner")
+            indicatorCorner.CornerRadius = UDim.new(0, 8)
+            indicatorCorner.Parent = typeIndicator
+            
+            local typeIcons = {
+                INFO = "ℹ️",
+                SUCCESS = "✅",
+                WARNING = "⚠️",
+                ERROR = "❌"
+            }
+            
+            local iconLabel = Instance.new("TextLabel")
+            iconLabel.Size = UDim2.new(0, 25, 1, 0)
+            iconLabel.Position = UDim2.new(0, 10, 0, 0)
+            iconLabel.BackgroundTransparency = 1
+            iconLabel.Text = typeIcons[log.Type] or "ℹ️"
+            iconLabel.TextSize = 16
+            iconLabel.Font = Enum.Font.GothamBold
+            iconLabel.Parent = logFrame
+            
+            local timeLabel = Instance.new("TextLabel")
+            timeLabel.Size = UDim2.new(0, 70, 1, 0)
+            timeLabel.Position = UDim2.new(0, 40, 0, 0)
+            timeLabel.BackgroundTransparency = 1
+            timeLabel.Text = log.Time
+            timeLabel.TextColor3 = Config.Theme.TextMuted
+            timeLabel.TextSize = 13
+            timeLabel.Font = Enum.Font.GothamMedium
+            timeLabel.TextXAlignment = Enum.TextXAlignment.Left
+            timeLabel.Parent = logFrame
+            
+            local messageLabel = Instance.new("TextLabel")
+            messageLabel.Size = UDim2.new(1, -120, 1, 0)
+            messageLabel.Position = UDim2.new(0, 115, 0, 0)
+            messageLabel.BackgroundTransparency = 1
+            messageLabel.Text = log.Message
+            messageLabel.TextColor3 = Config.Theme.Text
+            messageLabel.TextSize = 13
+            messageLabel.Font = Enum.Font.Gotham
+            messageLabel.TextXAlignment = Enum.TextXAlignment.Left
+            messageLabel.TextTruncate = Enum.TextTruncate.AtEnd
+            messageLabel.Parent = logFrame
+        end
+        
+        logsScroll.CanvasSize = UDim2.new(0, 0, 0, logsLayout.AbsoluteContentSize.Y + 10)
+    end
+    
+    -- Функция обновления статистики
+    local function UpdateStatistics()
+        Statistics:Update()
+        
+        -- Обновление карточек на главной вкладке
+        totalCard:FindFirstChild("ValueLabel").Text = tostring(Config.Statistics.TotalAttempts)
+        successCard:FindFirstChild("ValueLabel").Text = string.format("%.1f%%", Statistics:GetSuccessRate())
+        runtimeCard:FindFirstChild("ValueLabel").Text = Statistics:GetRunTime()
+        
+        -- Обновление детальной статистики
+        if #statRows >= 10 then
+            statRows[1]:FindFirstChild("ValueLabel").Text = tostring(Config.Statistics.TotalAttempts)
+            statRows[2]:FindFirstChild("ValueLabel").Text = tostring(Config.Statistics.SuccessfulAttempts)
+            statRows[3]:FindFirstChild("ValueLabel").Text = tostring(Config.Statistics.FailedAttempts)
+            statRows[4]:FindFirstChild("ValueLabel").Text = string.format("%.2f%%", Statistics:GetSuccessRate())
+            statRows[5]:FindFirstChild("ValueLabel").Text = string.format("%.2f", Statistics:GetAttemptsPerSecond())
+            statRows[6]:FindFirstChild("ValueLabel").Text = Statistics:GetRunTime()
+            statRows[7]:FindFirstChild("ValueLabel").Text = string.format("%.3fs", Config.WaitTime)
+            statRows[8]:FindFirstChild("ValueLabel").Text = string.format("%.3fs", Config.Statistics.BestTime)
+            statRows[9]:FindFirstChild("ValueLabel").Text = Config.Statistics.WorstTime < 999999 and string.format("%.3fs", Config.Statistics.WorstTime) or "N/A"
+            
+            local memStats = game:GetService("Stats")
+            local memory = memStats:GetTotalMemoryUsageMb()
+            statRows[10]:FindFirstChild("ValueLabel").Text = string.format("%.2f MB", memory)
+        end
+    end
+    
+    -- Цикл обновления GUI
+    task.spawn(function()
+        while task.wait(0.5) do
+            if screenGui.Parent then
+                UpdateStatistics()
+                if currentTab == "Logs" then
+                    UpdateLogs()
+                end
+            else
+                break
+            end
+        end
+    end)
+    
+    -- Обновление размеров canvas для скроллов
+    task.spawn(function()
+        while task.wait(0.1) do
+            if screenGui.Parent then
+                detailedStatsFrame.CanvasSize = UDim2.new(0, 0, 0, statsListLayout.AbsoluteContentSize.Y + 20)
+                settingsScroll.CanvasSize = UDim2.new(0, 0, 0, settingsLayout.AbsoluteContentSize.Y + 20)
+            else
+                break
+            end
+        end
+    end)
+    
+    -- Начальная инициализация
+    SwitchTab("Main")
+    Logger:AddLog("GUI инициализирован успешно", "SUCCESS")
+    
+    -- Анимация появления
+    mainFrame.Size = UDim2.new(0, 0, 0, 0)
+    mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+    
+    TweenService:Create(
+        mainFrame,
+        TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+        {
+            Size = UDim2.new(0, 700, 0, 500),
+            Position = UDim2.new(0.5, -350, 0.5, -250)
+        }
+    ):Play()
+    
+    NotificationSystem:CreateNotification(
+        "Welcome!",
+        "Puzzle Solver Pro v3.0 Ultimate loaded!",
+        5,
+        "SUCCESS"
+    )
+    
+    return screenGui
+end
+
+-- ====================================
+-- ОСНОВНОЙ ЦИКЛ РЕШЕНИЯ
+-- ====================================
+
+local function StartAutoSolver()
+    task.spawn(function()
+        while true do
+            task.wait(Config.WaitTime)
+            
+            if Config.AutoSolveEnabled then
+                local startTime = tick()
+                local success, error = pcall(function()
+                    local args = {1}
+                    local result = ReplicatedStorage:WaitForChild("_Remotes"):WaitForChild("Puzzle_SubmitResult"):InvokeServer(unpack(args))
+                    
+                    local endTime = tick()
+                    local attemptTime = endTime - startTime
+                    
+                    Config.Statistics.TotalAttempts = Config.Statistics.TotalAttempts + 1
+                    
+                    if result then
+                        Config.Statistics.SuccessfulAttempts = Config.Statistics.SuccessfulAttempts + 1
+                        
+                        if attemptTime < Config.Statistics.BestTime or Config.Statistics.BestTime == 0 then
+                            Config.Statistics.BestTime = attemptTime
+                        end
+                        
+                        if attemptTime > Config.Statistics.WorstTime and Config.Statistics.WorstTime < 999999 then
+                            Config.Statistics.WorstTime = attemptTime
+                        end
+                    else
+                        Config.Statistics.FailedAttempts = Config.Statistics.FailedAttempts + 1
+                    end
+                    
+                    -- Обновляем среднее время
+                    Config.Statistics.AverageTime = (Config.Statistics.AverageTime * (Config.Statistics.TotalAttempts - 1) + attemptTime) / Config.Statistics.TotalAttempts
+                end)
+                
+                if not success then
+                    Config.Statistics.FailedAttempts = Config.Statistics.FailedAttempts + 1
+                    Logger:AddLog("Ошибка при отправке: " .. tostring(error), "ERROR")
+                    
+                    if Config.Advanced.SafeMode then
+                        task.wait(1)
+                    end
+                end
+                
+                -- Достижения
+                if Config.Statistics.TotalAttempts % 100 == 0 then
+                    SoundSystem:Play("Achievement")
+                    NotificationSystem:CreateNotification(
+                        "Achievement!",
+                        string.format("Reached %d total attempts!", Config.Statistics.TotalAttempts),
+                        4,
+                        "SUCCESS"
+                    )
+                end
+            end
+        end
+    end)
+end
+
+-- ====================================
+-- СИСТЕМА КОМАНД
+-- ====================================
+
+local Commands = {}
+
+function Commands:Register()
+    LocalPlayer.Chatted:Connect(function(message)
+        local args = string.split(message, " ")
+        local cmd = args[1]:lower()
+        
+        if cmd == "/start" then
+            Config.AutoSolveEnabled = true
+            NotificationSystem:CreateNotification("Command", "Auto-Solver started!", 2, "SUCCESS")
+            SoundSystem:Play("Success")
+            
+        elseif cmd == "/stop" then
+            Config.AutoSolveEnabled = false
+            NotificationSystem:CreateNotification("Command", "Auto-Solver stopped!", 2, "WARNING")
+            SoundSystem:Play("Warning")
+            
+        elseif cmd == "/speed" and args[2] then
+            local speed = tonumber(args[2])
+            if speed then
+                Config.WaitTime = math.clamp(speed, 0.001, 5)
+                NotificationSystem:CreateNotification("Command", "Speed set to " .. Config.WaitTime, 2, "INFO")
+                SoundSystem:Play("Click")
+            end
+            
+        elseif cmd == "/reset" then
+            Statistics:Reset()
+            NotificationSystem:CreateNotification("Command", "Statistics reset!", 2, "INFO")
+            SoundSystem:Play("Warning")
+            
+        elseif cmd == "/theme" and args[2] then
+            local themeName = args[2]:sub(1, 1):upper() .. args[2]:sub(2):lower()
+            if ColorPalettes[themeName] then
+                Config.CurrentTheme = themeName
+                Config.Theme = ColorPalettes[themeName]
+                NotificationSystem:CreateNotification("Command", "Theme changed to " .. themeName, 2, "SUCCESS")
+                SoundSystem:Play("Success")
+                task.wait(0.3)
+                CreateGUI()
+            end
+            
+        elseif cmd == "/info" then
+            print("=== PUZZLE SOLVER INFO ===")
+            print("Version: 3.0 Ultimate")
+            print("Status:", Config.AutoSolveEnabled and "Running" or "Stopped")
+            print("Speed:", Config.WaitTime .. "s")
+            print("Theme:", Config.Theme.Name)
+            print("Total Attempts:", Config.Statistics.TotalAttempts)
+            print("Success Rate:", string.format("%.2f%%", Statistics:GetSuccessRate()))
+        end
+    end)
+end
+
+-- ====================================
+-- СИСТЕМА БЕЗОПАСНОСТИ
+-- ====================================
+
+local Security = {}
+
+function Security:CheckEnvironment()
+    local checks = {
+        ReplicatedStorage = game:GetService("ReplicatedStorage"),
+        RemotesFolder = game:GetService("ReplicatedStorage"):FindFirstChild("_Remotes"),
+        PuzzleRemote = game:GetService("ReplicatedStorage"):FindFirstChild("_Remotes") and 
+                      game:GetService("ReplicatedStorage")._Remotes:FindFirstChild("Puzzle_SubmitResult")
+    }
+    
+    for name, obj in pairs(checks) do
+        if not obj then
+            Logger:AddLog("Проверка безопасности провалена: " .. name, "ERROR")
+            return false
+        end
+    end
+    
+    Logger:AddLog("Проверка безопасности пройдена", "SUCCESS")
+    return true
+end
+
+function Security:MonitorRemoteChanges()
+    local remote = ReplicatedStorage:WaitForChild("_Remotes"):WaitForChild("Puzzle_SubmitResult")
+    
+    remote.AncestryChanged:Connect(function()
+        Logger:AddLog("ВНИМАНИЕ: Remote был изменен!", "ERROR")
+        Config.AutoSolveEnabled = false
+        NotificationSystem:CreateNotification(
+            "Security Alert",
+            "Remote was modified! Auto-Solver stopped.",
+            5,
+            "ERROR"
+        )
+        SoundSystem:Play("Error")
+    end)
+end
+
+-- ====================================
+-- ИНИЦИАЛИЗАЦИЯ
+-- ====================================
+
+local function Initialize()
+    Logger:AddLog("🚀 Начало инициализации Puzzle Solver Pro v3.0 Ultimate...", "INFO")
+    
+    -- Проверка безопасности
+    if not Security:CheckEnvironment() then
+        warn("⚠️ Проверка безопасности провалена!")
+        return
+    end
+    
+    -- Создание GUI
+    CreateGUI()
+    
+    -- Запуск автоматического решения
+    StartAutoSolver()
+    
+    -- Регистрация команд
+    Commands:Register()
+    
+    -- Мониторинг безопасности
+    Security:MonitorRemoteChanges()
+    
+    -- Включение Anti-AFK если активно
+    if Config.Advanced.AntiAFK then
+        AntiAFK:Enable()
+    end
+    
+    -- Включение Auto-Rejoin если активно
+    if Config.Advanced.AutoRejoin then
+        AutoRejoin:Enable()
+    end
+    
+    Logger:AddLog("✨ Инициализация завершена успешно!", "SUCCESS")
+    Logger:AddLog("===========================================", "INFO")
+    Logger:AddLog("PUZZLE SOLVER PRO V3.0 ULTIMATE - READY!", "SUCCESS")
+    Logger:AddLog("===========================================", "INFO")
+    
+    SoundSystem:Play("Achievement")
+end
+
+-- Запуск скрипта
+Initialize()
